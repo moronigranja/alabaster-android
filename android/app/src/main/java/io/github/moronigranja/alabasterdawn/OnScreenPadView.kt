@@ -142,6 +142,15 @@ class OnScreenPadView(context: Context) : View(context) {
 
     private fun controlsDrawn(): Boolean = padEnabled && !controllerInUse
 
+    /**
+     * Whether the pill row is drawn and can be hit. It hides with the controls while a physical
+     * controller is being used, so a controller player sees no touch chrome at all, and [showAgain]
+     * brings it back with them once the controller has gone quiet. [noteControllerActivity] ignores
+     * controller events while the editor is open, so editing never hides the row that closes it —
+     * RESET/DONE stay reachable for as long as they are needed.
+     */
+    private fun pillsDrawn(): Boolean = !controllerInUse
+
     /** Whether the overlay is a pad right now: the controls are drawn and no editor is open. */
     private fun overlayActive(): Boolean = controlsDrawn() && !model.editing
 
@@ -165,7 +174,7 @@ class OnScreenPadView(context: Context) : View(context) {
         var consumed = false
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
-                val pill = model.pillAt(x, y)
+                val pill = if (pillsDrawn()) model.pillAt(x, y) else OnScreenPadModel.PILL_NONE
                 if (pill != OnScreenPadModel.PILL_NONE) {
                     onPill(pill)
                 } else if (model.editing && model.handleHit(x, y) && model.selected != OnScreenPadModel.NO_CONTROL) {
@@ -314,13 +323,16 @@ class OnScreenPadView(context: Context) : View(context) {
             drawControlPill(canvas, OnScreenPadModel.HOME, "HOME")
         }
         if (model.editing) drawEditorChrome(canvas)
-        /* The pill row is drawn last and always, so the pad can be brought back after hiding it. */
-        stroke.strokeWidth = model.unit * STROKE_UNITS
-        label.textSize = model.unit * TEXT_UNITS
-        drawRowPill(canvas, OnScreenPadModel.PILL_A, pillLabelA(drawn))
-        drawRowPill(canvas, OnScreenPadModel.PILL_MINUS, "-")
-        drawRowPill(canvas, OnScreenPadModel.PILL_PLUS, "+")
-        drawRowPill(canvas, OnScreenPadModel.PILL_B, if (model.editing) "DONE" else "EDIT")
+        /* The pill row is drawn last so it sits above the pad, and stays drawn whenever the pad is
+         * on screen in some form — hidden or not, it is the only way back. */
+        if (pillsDrawn()) {
+            stroke.strokeWidth = model.unit * STROKE_UNITS
+            label.textSize = model.unit * TEXT_UNITS
+            drawRowPill(canvas, OnScreenPadModel.PILL_A, pillLabelA(drawn))
+            drawRowPill(canvas, OnScreenPadModel.PILL_MINUS, "-")
+            drawRowPill(canvas, OnScreenPadModel.PILL_PLUS, "+")
+            drawRowPill(canvas, OnScreenPadModel.PILL_B, if (model.editing) "DONE" else "EDIT")
+        }
     }
 
     private fun pillLabelA(drawn: Boolean): String = when {

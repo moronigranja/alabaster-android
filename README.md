@@ -34,10 +34,10 @@ Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`)
 * Gamepad: Android `InputDevice` → W3C-standard gamepad for the engine. Left/right stick, d-pad,
   face buttons, shoulders, analog and digital triggers, start/select.
 * **On-screen pad**: the same standard gamepad drawn over the game, for playing with no controller —
-  both sticks, d-pad, A/B/X/Y, L1/R1, L2/R2, Select/Start/HOME, with a small always-tappable toggle
-  that hides the pad (the choice is kept). It feeds the *same* pad state as the hardware one, so the
-  engine sees one standard pad; the controls hide themselves while a real controller is in use and
-  come back after a minute of no controller input.
+  both sticks, d-pad, A/B/X/Y, L1/R1, L2/R2, Select/Start/HOME, with a small toggle pill that hides
+  the pad (the choice is kept). It feeds the *same* pad state as the hardware one, so the engine sees
+  one standard pad; while a real controller is in use the whole overlay hides itself — controls *and*
+  that pill row — and comes back after a minute of no controller input.
 * **Pad layout editor**: an `EDIT` pill in the same row opens an editor — drag any control to move
   it, drag the selected control's corner handle to resize it, `-`/`+` to size the whole pad, `RESET`
   to restore the stock layout (`UNDO` while that reset is still unsaved) and `DONE` to save. The
@@ -57,9 +57,13 @@ Switch Pro Controller: title screen, in-game input, save rotation (`Default` →
 pad with *no* controller attached, a held stick and every button reach the engine with the expected
 values, the d-pad steps the title menu and A opens the highlighted entry, the toggle hides/shows the
 pad (persisted across a restart) and a controller event hides the controls until it goes quiet. The
-same emulator pass covered the layout editor: the pad publishes nothing while editing, a dragged
-control and a resized key reach the engine at their new geometry, the layout survives a restart,
-the saves-folder `pad-layout.json` wins over the prefs copy, and `RESET`/`UNDO` flip as described.
+later change that hides the pill row too (the whole overlay disappears while a controller is in use)
+was verified on a **Galaxy Z Fold 7 (SM-F971B)**: the row stays hidden while controller events keep
+arriving, a tap where it used to be is not swallowed, and the controls and the row both come back a
+minute after the last event. The emulator pass also covered the layout editor: the pad publishes
+nothing while editing, a dragged control and a resized key reach the engine at their new geometry,
+the layout survives a restart, the saves-folder `pad-layout.json` wins over the prefs copy, and
+`RESET`/`UNDO` flip as described.
 
 ### Download
 
