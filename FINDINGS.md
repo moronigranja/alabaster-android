@@ -25,6 +25,7 @@ android/  app/                 the native Android port (§9): Kotlin, WebView + 
 docs/     setup.png            screenshots for README.md (Alabaster Dawn art (c) Radical Fish Games)
           title-screen.png
           on-screen-pad.png
+          pad-editor.png
           release-notes-0.1.md  the 0.1 release notes (no on-screen pad yet; see ON_SCREEN_GAMEPAD_PLAN.md)
           release-notes-0.2.md  the 0.2 release notes (on-screen pad + layout editor)
 fix/    gamepad-fix.js         controller fix for the desktop build (drop-in, tested)

@@ -12,9 +12,9 @@ Two independent pieces of work for [Alabaster Dawn](https://store.steampowered.c
 
 Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`) that produced them.
 
-| Setup screen | Running under the port | On-screen pad |
-|---|---|---|
-| ![Game files and saves pickers](docs/setup.png) | ![Title screen](docs/title-screen.png) | ![On-screen pad over the title screen](docs/on-screen-pad.png) |
+| Setup screen | Running under the port | On-screen pad | Pad layout editor |
+|---|---|---|---|
+| ![Game files and saves pickers](docs/setup.png) | ![Title screen](docs/title-screen.png) | ![On-screen pad over the title screen](docs/on-screen-pad.png) | ![Moving and resizing a pad control](docs/pad-editor.png) |
 
 *Screenshots contain Alabaster Dawn artwork and text, © Radical Fish Games, shown for documentation.*
 
