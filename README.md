@@ -16,6 +16,8 @@ Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`)
 |---|---|---|---|
 | ![Game files and saves pickers](docs/setup.png) | ![Title screen](docs/title-screen.png) | ![On-screen pad over the title screen](docs/on-screen-pad.png) | ![Moving and resizing a pad control](docs/pad-editor.png) |
 
+![The side menu, opened with Back: the two switches, the picture position, the status lines and Exit — with the FPS/battery/temperature readout on](docs/side-menu.png)
+
 *Screenshots contain Alabaster Dawn artwork and text, © Radical Fish Games, shown for documentation.*
 
 ---
@@ -44,6 +46,12 @@ Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`)
   layout is kept in the app's prefs and, when a saves folder is picked, also written to
   `pad-layout.json` at its root, which wins on load so the layout travels with the saves folder.
   While the editor is open the pad publishes no gamepad at all, so the game falls back to keyboard.
+* **A side menu on Back**: Back while the game runs opens a panel over it (the game keeps running
+  behind) with a switch for whether a controller in use hides the overlay, a **Game position** choice
+  (Top / Center / Bottom) for where the picture sits inside the black letterbox bands, a switch for
+  an **FPS / battery / temperature** readout, two status lines (controller input, where saves go)
+  and **Exit**. Back again, a tap on the dimmed area or Exit closes it; all three settings live in
+  the app's prefs, and nothing is written into the game folder or the saves tree.
 * Resolution can be raised in-game: `640x360 / 960x540 / 1280x720 / 1920x1080 / 2560x1440`.
 * Leaving the app pauses the game: the music stops and the loop stops burning CPU. An Android
   WebView never dispatches the page's `blur`/`focus` (which is how the engine knows it lost the
@@ -60,10 +68,16 @@ pad (persisted across a restart) and a controller event hides the controls until
 later change that hides the pill row too (the whole overlay disappears while a controller is in use)
 was verified on a **Galaxy Z Fold 7 (SM-F971B)**: the row stays hidden while controller events keep
 arriving, a tap where it used to be is not swallowed, and the controls and the row both come back a
-minute after the last event. The emulator pass also covered the layout editor: the pad publishes
-nothing while editing, a dragged control and a resized key reach the engine at their new geometry,
-the layout survives a restart, the saves-folder `pad-layout.json` wins over the prefs copy, and
-`RESET`/`UNDO` flip as described.
+minute after the last event. The side menu was verified on the same Fold 7 (Android 17, API 37):
+Back opens it through the predictive-back dispatcher (and `onBackPressed` covers older devices),
+Back and a scrim tap close it with the WebView keeping focus (a gamepad event still reaches the port
+afterwards), the overlay switch was driven both ways, the three positions measured
+(`236…1612` Center / `0…1376` Top / `471…1847` Bottom), the readout's battery level, temperature and
+thermal word matched `dumpsys battery` and `dumpsys thermalservice`, the engine was confirmed to keep
+polling behind the open panel, and Exit plus a relaunch kept both switches and the position. The
+emulator pass also covered the layout editor: the pad publishes nothing while editing, a dragged
+control and a resized key reach the engine at their new geometry, the layout survives a restart, the
+saves-folder `pad-layout.json` wins over the prefs copy, and `RESET`/`UNDO` flip as described.
 
 ### Download
 
@@ -75,7 +89,7 @@ certificate** — `CN=Alabaster Dawn Android port, O=moronigranja, C=BR`, SHA-25
 install:
 
 ```bash
-apksigner verify --print-certs AlabasterDawn-Android-0.2.apk   # no SDK? keytool -printcert -jarfile …
+apksigner verify --print-certs AlabasterDawn-Android-0.3.apk   # no SDK? keytool -printcert -jarfile …
 ```
 
 The APK carries `assets/LICENSE` + `assets/NOTICE.md` inside, so the binary ships the notices it is
@@ -84,6 +98,11 @@ say) needs an uninstall first.
 
 ### Not in this milestone
 
+* **Starting the game twice in the same app process can come up black.** Leaving the game (Back at
+  the side menu, or Exit) and starting it again *without* clearing the app from recents can stop the
+  second boot before the title screen with an unresponsive picture. It predates this release
+  (reproduced on the v0.2 build) and the workaround is to swipe the app away from recents — or
+  force-stop it — before starting again, which always boots. Your files are untouched either way.
 * The on-screen pad's stick **clicks** (L3/R3) are not exposed, and its multi-finger handling has
   unit tests but no real two-thumb pass on a phone yet.
 * The in-game **Load** list was not eyeballed (needs a manual save); everything underneath it —
@@ -122,7 +141,7 @@ keytool -genkeypair -keystore ~/.android/alabasterdawn-release.jks -alias alabas
 # then android/keystore.properties: storeFile / storePassword / keyAlias / keyPassword (chmod 600)
 
 android/tools/release.sh                       # signed build + digest + signature check
-android/tools/release.sh --upload --publish --notes docs/release-notes-0.2.md
+android/tools/release.sh --upload --publish --notes docs/release-notes-0.3.md
 ```
 
 `tools/release.sh` renames the shipped artifact to `AlabasterDawn-Android-<version>.apk` (never
@@ -178,6 +197,13 @@ Thermals, not CPU, are the limit: the same 720p scene measured 42 fps cool and 1
 * `AdaBridge` exposes the pad (`getGamepadJson()`) and the file calls used for saves; `FsBridge`
   maps the engine's `/saves` namespace onto the picked saves tree and keeps the Steam file names
   exactly (create-or-overwrite, never a deduplicated `Save_ID_0000 (1).save`).
+* `SideMenuView` is the Back-opened panel (a scrim plus a right-edge panel whose descendants are
+  made unfocusable, so the WebView keeps focus and the engine's loop is never blurred). It only
+  reports taps: the Activity owns the three settings (`ViewAlign` is the picture position and its
+  wire format, pure Kotlin and unit-tested) and the shim reads them once per engine frame from
+  `getViewAlign()`/`getStatsEnabled()`, applying the position to the canvas and painting the
+  readout. `Telemetry` is the only thing that reads the phone: the sticky battery broadcast plus
+  `PowerManager.getCurrentThermalStatus()`, cached for 5 s and only sampled while the readout is on.
 * `GamepadState` is the single JSON producer: the physical pad (`Gamepad`, from `KeyEvent`/
   `MotionEvent`) and the on-screen pad both write into it, and it publishes one merged W3C standard
   pad. `OnScreenPadModel` holds the pad's layout and pointer rules (pure Kotlin, unit-tested) and
