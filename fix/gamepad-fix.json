@@ -1,0 +1,7 @@
+{
+  "mapping": "auto",
+  "padIndex": null,
+  "debug": false,
+  "gnUdp": "auto",
+  "gnUdpDelayMs": 3000
+}

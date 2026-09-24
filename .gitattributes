@@ -1,0 +1,21 @@
+# Normalize line endings for text files, keep binaries untouched.
+* text=auto
+
+*.bat           text eol=crlf
+*.sh            text eol=lf
+*.kt            text eol=lf
+*.kts           text eol=lf
+*.py            text eol=lf
+*.js            text eol=lf
+*.mjs           text eol=lf
+
+*.png           binary
+*.jpg           binary
+*.jar           binary
+*.apk           binary
+*.aab           binary
+*.ogg           binary
+*.flac          binary
+
+# Keep diffs readable in review for generated/vendored files.
+android/gradle/wrapper/gradle-wrapper.jar binary

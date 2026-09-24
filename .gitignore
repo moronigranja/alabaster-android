@@ -1,0 +1,34 @@
+# ---- Android / Gradle build output and machine state ------------------------
+android/.gradle/
+android/.kotlin/
+android/build/
+android/app/build/
+android/captures/
+android/local.properties
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# ---- IDE / OS ---------------------------------------------------------------
+.idea/
+*.iml
+*.hprof
+.DS_Store
+Thumbs.db
+
+# ---- Game files -------------------------------------------------------------
+# Never committed: this repo contains no Alabaster Dawn assets, code or files.
+# `fix/terra-index.html.orig` is a working copy of the game's own terra/index.html
+# kept locally as a patch reference; regenerate it from your own installation:
+#   cp "<game dir>/terra/index.html" fix/terra-index.html.orig
+fix/terra-index.html.orig
+terra/
+*.save
+*.pak
+
+# ---- Local scratch ----------------------------------------------------------
+*.log
+logs/*.jsonl
+gp_out.json

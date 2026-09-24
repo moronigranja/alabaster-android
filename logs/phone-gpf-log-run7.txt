@@ -1,0 +1,766 @@
+{"ev":"load","run":1790168137473,"t":1790168137474,"nw":"0.86.0","chrome":null,"node":"21.1.0","platform":"win32","arch":"x64","execPath":"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Alabaster Dawn\\alabaster_dawn.exe","__dirname":null,"ready":"loading","hasGetGamepads":"function","hasFix":true,"dll":{"sys32/xinput1_4.dll":{"size":167936,"machine":"arm64ec/arm64"},"sys32/xinput1_3.dll":{"size":163840,"machine":"arm64ec/arm64"},"sys32/xinput9_1_0.dll":{"size":163840,"machine":"arm64ec/arm64"},"sys32/dinput8.dll":{"size":745472,"machine":"arm64ec/arm64"},"sys32/windows.gaming.input.dll":{"size":475136,"machine":"arm64ec/arm64"},"syswow64/xinput1_4.dll":{"size":86016,"machine":"i386"},"syswow64/xinput1_3.dll":{"size":86016,"machine":"i386"},"syswow64/xinput9_1_0.dll":{"size":81920,"machine":"i386"},"syswow64/dinput8.dll":{"size":364544,"machine":"i386"},"syswow64/windows.gaming.input.dll":{"size":225280,"machine":"i386"}},"shm":[]}
+{"ev":"pads","run":1790168137473,"t":1790168140942,"tick":1,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168144431,"tick":2,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168146142,"tick":3,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168146958,"tick":4,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168151620,"tick":5,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168152797,"tick":6,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168153977,"tick":7,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168159319,"tick":8,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168159895,"tick":9,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168160729,"tick":10,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168161680,"tick":11,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168162637,"tick":12,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168163636,"tick":13,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168164686,"tick":14,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168165619,"tick":15,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168166709,"tick":16,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168167682,"tick":17,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168168653,"tick":18,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168169625,"tick":19,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168170676,"tick":20,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168171669,"tick":21,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168172675,"tick":22,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168173679,"tick":23,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168174663,"tick":24,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168175663,"tick":25,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168176680,"tick":26,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168177692,"tick":27,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168178633,"tick":28,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168179634,"tick":29,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168180624,"tick":30,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168181655,"tick":31,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168182637,"tick":32,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168183630,"tick":33,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168184637,"tick":34,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168185571,"tick":35,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168186618,"tick":36,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168187650,"tick":37,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168188632,"tick":38,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168189645,"tick":39,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168190616,"tick":40,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168191623,"tick":41,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168192675,"tick":42,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168193645,"tick":43,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168194622,"tick":44,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168195690,"tick":45,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168196664,"tick":46,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168197661,"tick":47,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168198656,"tick":48,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168199643,"tick":49,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168200690,"tick":50,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168201664,"tick":51,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168202641,"tick":52,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168203639,"tick":53,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168204638,"tick":54,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168205639,"tick":55,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168206648,"tick":56,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168207622,"tick":57,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168137473,"t":1790168208657,"tick":58,"focus":true,"raw":[],"shim":[]}
+{"ev":"load","run":1790168515359,"t":1790168515359,"nw":"0.86.0","chrome":null,"node":"21.1.0","platform":"win32","arch":"x64","execPath":"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Alabaster Dawn\\alabaster_dawn.exe","__dirname":null,"ready":"loading","hasGetGamepads":"function","hasFix":true,"dll":{"sys32/xinput1_4.dll":{"size":167936,"machine":"arm64ec/arm64"},"sys32/xinput1_3.dll":{"size":163840,"machine":"arm64ec/arm64"},"sys32/xinput9_1_0.dll":{"size":163840,"machine":"arm64ec/arm64"},"sys32/dinput8.dll":{"size":745472,"machine":"arm64ec/arm64"},"sys32/windows.gaming.input.dll":{"size":475136,"machine":"arm64ec/arm64"},"syswow64/xinput1_4.dll":{"size":86016,"machine":"i386"},"syswow64/xinput1_3.dll":{"size":86016,"machine":"i386"},"syswow64/xinput9_1_0.dll":{"size":81920,"machine":"i386"},"syswow64/dinput8.dll":{"size":364544,"machine":"i386"},"syswow64/windows.gaming.input.dll":{"size":225280,"machine":"i386"}},"shm":[]}
+{"ev":"pads","run":1790168515359,"t":1790168519432,"tick":1,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168523577,"tick":2,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168525840,"tick":3,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168527357,"tick":4,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168530978,"tick":5,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168532080,"tick":6,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168532813,"tick":7,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168540269,"tick":8,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168540880,"tick":9,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168541526,"tick":10,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168542549,"tick":11,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168543553,"tick":12,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168544585,"tick":13,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168545597,"tick":14,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168546546,"tick":15,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168547533,"tick":16,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168548585,"tick":17,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168549567,"tick":18,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168550564,"tick":19,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168551581,"tick":20,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168552599,"tick":21,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168553578,"tick":22,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168554532,"tick":23,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168555559,"tick":24,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168556589,"tick":25,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168557536,"tick":26,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168558536,"tick":27,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168559578,"tick":28,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168560570,"tick":29,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168561574,"tick":30,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168562573,"tick":31,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168563593,"tick":32,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168564576,"tick":33,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168565532,"tick":34,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168566570,"tick":35,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168567577,"tick":36,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168597705,"tick":37,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168598559,"tick":38,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168599526,"tick":39,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168600469,"tick":40,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168601500,"tick":41,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168602518,"tick":42,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168603547,"tick":43,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168604550,"tick":44,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168605542,"tick":45,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168606580,"tick":46,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168607531,"tick":47,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168608507,"tick":48,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168609523,"tick":49,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168610498,"tick":50,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168611569,"tick":51,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168612520,"tick":52,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168613486,"tick":53,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168614528,"tick":54,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168615538,"tick":55,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168616547,"tick":56,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168617519,"tick":57,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168618557,"tick":58,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168619550,"tick":59,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168620518,"tick":60,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168621519,"tick":61,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168622560,"tick":62,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168623544,"tick":63,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168624547,"tick":64,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168625542,"tick":65,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168626478,"tick":66,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168627556,"tick":67,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168628523,"tick":68,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168629527,"tick":69,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168630551,"tick":70,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168631536,"tick":71,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168632542,"tick":72,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168633556,"tick":73,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168634560,"tick":74,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168635545,"tick":75,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168636576,"tick":76,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168637571,"tick":77,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168638574,"tick":78,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168639535,"tick":79,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168640529,"tick":80,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168641565,"tick":81,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168642542,"tick":82,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168643547,"tick":83,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168644511,"tick":84,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168645563,"tick":85,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168646526,"tick":86,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168647567,"tick":87,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168648536,"tick":88,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168649562,"tick":89,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168650544,"tick":90,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168651537,"tick":91,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168652520,"tick":92,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168653591,"tick":93,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168654544,"tick":94,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168655580,"tick":95,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168656567,"tick":96,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168657575,"tick":97,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168658574,"tick":98,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168659558,"tick":99,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168660545,"tick":100,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168661537,"tick":101,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168662592,"tick":102,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168663540,"tick":103,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168664549,"tick":104,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168665575,"tick":105,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168666552,"tick":106,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168667590,"tick":107,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168668525,"tick":108,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168669537,"tick":109,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168670469,"tick":110,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168671572,"tick":111,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168672525,"tick":112,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168673533,"tick":113,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168674546,"tick":114,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168675581,"tick":115,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168676542,"tick":116,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168677596,"tick":117,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168678552,"tick":118,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168679583,"tick":119,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168680534,"tick":120,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168681582,"tick":121,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168682530,"tick":122,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168683589,"tick":123,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168684550,"tick":124,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168685593,"tick":125,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168686540,"tick":126,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168687590,"tick":127,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168688540,"tick":128,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168689584,"tick":129,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168690527,"tick":130,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168691534,"tick":131,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168692544,"tick":132,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168693486,"tick":133,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168694579,"tick":134,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168695597,"tick":135,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168696547,"tick":136,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168697568,"tick":137,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168698557,"tick":138,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168699571,"tick":139,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168700526,"tick":140,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168701502,"tick":141,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168702524,"tick":142,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168703524,"tick":143,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168704525,"tick":144,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168705599,"tick":145,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168706553,"tick":146,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168707571,"tick":147,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168708586,"tick":148,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168709590,"tick":149,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168710541,"tick":150,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168711589,"tick":151,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168712596,"tick":152,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168713526,"tick":153,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168714556,"tick":154,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168715568,"tick":155,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168716583,"tick":156,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168717593,"tick":157,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168718526,"tick":158,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168719544,"tick":159,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168720469,"tick":160,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168721574,"tick":161,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168722577,"tick":162,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168723593,"tick":163,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168724550,"tick":164,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168725588,"tick":165,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168726546,"tick":166,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168727540,"tick":167,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168728563,"tick":168,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168729529,"tick":169,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168730535,"tick":170,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168515359,"t":1790168731593,"tick":171,"focus":true,"raw":[],"shim":[]}
+{"ev":"load","run":1790168940428,"t":1790168940428,"nw":"0.86.0","chrome":null,"node":"21.1.0","platform":"win32","arch":"x64","execPath":"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Alabaster Dawn\\alabaster_dawn.exe","__dirname":null,"ready":"loading","hasGetGamepads":"function","hasFix":true,"dll":{"sys32/xinput1_4.dll":{"size":167936,"machine":"arm64ec/arm64"},"sys32/xinput1_3.dll":{"size":163840,"machine":"arm64ec/arm64"},"sys32/xinput9_1_0.dll":{"size":163840,"machine":"arm64ec/arm64"},"sys32/dinput8.dll":{"size":745472,"machine":"arm64ec/arm64"},"sys32/windows.gaming.input.dll":{"size":475136,"machine":"arm64ec/arm64"},"syswow64/xinput1_4.dll":{"size":86016,"machine":"i386"},"syswow64/xinput1_3.dll":{"size":86016,"machine":"i386"},"syswow64/xinput9_1_0.dll":{"size":81920,"machine":"i386"},"syswow64/dinput8.dll":{"size":364544,"machine":"i386"},"syswow64/windows.gaming.input.dll":{"size":225280,"machine":"i386"}},"shm":[]}
+{"ev":"pads","run":1790168940428,"t":1790168943518,"tick":1,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168946786,"tick":2,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168949013,"tick":3,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168950001,"tick":4,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168954259,"tick":5,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168954562,"tick":6,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168955801,"tick":7,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168956984,"tick":8,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168965034,"tick":9,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168965823,"tick":10,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168966575,"tick":11,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168967562,"tick":12,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168968635,"tick":13,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168969620,"tick":14,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168970593,"tick":15,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168971617,"tick":16,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168972562,"tick":17,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168973952,"tick":18,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168974572,"tick":19,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168975573,"tick":20,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168976581,"tick":21,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168977574,"tick":22,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168978663,"tick":23,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168979627,"tick":24,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168980562,"tick":25,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168981615,"tick":26,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168982574,"tick":27,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168983596,"tick":28,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168984589,"tick":29,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168985621,"tick":30,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168986559,"tick":31,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168987627,"tick":32,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168988609,"tick":33,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168989624,"tick":34,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168990563,"tick":35,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168991554,"tick":36,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168992608,"tick":37,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168993553,"tick":38,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168994623,"tick":39,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168995564,"tick":40,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168996614,"tick":41,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168997596,"tick":42,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168998590,"tick":43,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790168999611,"tick":44,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169000624,"tick":45,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169001643,"tick":46,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169002629,"tick":47,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169003605,"tick":48,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169004609,"tick":49,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169005621,"tick":50,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169006589,"tick":51,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169007628,"tick":52,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169008622,"tick":53,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169009636,"tick":54,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169010619,"tick":55,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169011603,"tick":56,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169012591,"tick":57,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169013579,"tick":58,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169014563,"tick":59,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169015622,"tick":60,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169016625,"tick":61,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169017714,"tick":62,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169018642,"tick":63,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169019632,"tick":64,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169020625,"tick":65,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169021618,"tick":66,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169022614,"tick":67,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169023622,"tick":68,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169024608,"tick":69,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169025577,"tick":70,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169026628,"tick":71,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169027584,"tick":72,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169028616,"tick":73,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169029588,"tick":74,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169030590,"tick":75,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169031560,"tick":76,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169032633,"tick":77,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169033603,"tick":78,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169034581,"tick":79,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169035620,"tick":80,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169036603,"tick":81,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169037588,"tick":82,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169038632,"tick":83,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169039518,"tick":84,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169040594,"tick":85,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169041518,"tick":86,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169042608,"tick":87,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169043511,"tick":88,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169044585,"tick":89,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169045625,"tick":90,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169046597,"tick":91,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169047568,"tick":92,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169048602,"tick":93,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169049576,"tick":94,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169050586,"tick":95,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169051569,"tick":96,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169052618,"tick":97,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169053581,"tick":98,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169054552,"tick":99,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169055622,"tick":100,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169056534,"tick":101,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169057625,"tick":102,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169058594,"tick":103,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169059588,"tick":104,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169060601,"tick":105,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169061603,"tick":106,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169062576,"tick":107,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169063574,"tick":108,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169064601,"tick":109,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169065571,"tick":110,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169066626,"tick":111,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169067609,"tick":112,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169068594,"tick":113,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169069578,"tick":114,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169070598,"tick":115,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169071581,"tick":116,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169072622,"tick":117,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169073634,"tick":118,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169074613,"tick":119,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169075670,"tick":120,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169076606,"tick":121,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169077588,"tick":122,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169078628,"tick":123,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169079601,"tick":124,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169080581,"tick":125,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169081551,"tick":126,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169082501,"tick":127,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169083484,"tick":128,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169084630,"tick":129,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169085624,"tick":130,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169086615,"tick":131,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169087580,"tick":132,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169088564,"tick":133,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169089637,"tick":134,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169090618,"tick":135,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169091583,"tick":136,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169092564,"tick":137,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169093563,"tick":138,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169094639,"tick":139,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169095630,"tick":140,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169096599,"tick":141,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169097597,"tick":142,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169098583,"tick":143,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790168940428,"t":1790169099560,"tick":144,"focus":true,"raw":[],"shim":[]}
+{"ev":"load","run":1790169283003,"t":1790169283003,"nw":"0.86.0","chrome":null,"node":"21.1.0","platform":"win32","arch":"x64","execPath":"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Alabaster Dawn\\alabaster_dawn.exe","__dirname":null,"ready":"loading","hasGetGamepads":"function","hasFix":true,"dll":{"sys32/xinput1_4.dll":{"size":356352,"machine":"arm64ec/arm64"},"sys32/xinput1_3.dll":{"size":356352,"machine":"arm64ec/arm64"},"sys32/xinput9_1_0.dll":{"size":356352,"machine":"arm64ec/arm64"},"sys32/dinput8.dll":{"size":2240512,"machine":"arm64ec/arm64"},"sys32/windows.gaming.input.dll":{"size":1822720,"machine":"arm64ec/arm64"},"syswow64/xinput1_4.dll":{"size":167936,"machine":"i386"},"syswow64/xinput1_3.dll":{"size":163840,"machine":"i386"},"syswow64/xinput9_1_0.dll":{"size":163840,"machine":"i386"},"syswow64/dinput8.dll":{"size":991232,"machine":"i386"},"syswow64/windows.gaming.input.dll":{"size":778240,"machine":"i386"}},"shm":[]}
+{"ev":"pads","run":1790169283003,"t":1790169286480,"tick":1,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169290115,"tick":2,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169292035,"tick":3,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169292599,"tick":4,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169297724,"tick":5,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169298754,"tick":6,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169299309,"tick":7,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169303640,"tick":8,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169304107,"tick":9,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169305106,"tick":10,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169306105,"tick":11,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169307107,"tick":12,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169308110,"tick":13,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169309106,"tick":14,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169310108,"tick":15,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169311104,"tick":16,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169312105,"tick":17,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169313109,"tick":18,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169314105,"tick":19,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169315104,"tick":20,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169316105,"tick":21,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169317105,"tick":22,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169318106,"tick":23,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169319106,"tick":24,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169320108,"tick":25,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169321107,"tick":26,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169322105,"tick":27,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169323107,"tick":28,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169324106,"tick":29,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169325107,"tick":30,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169326113,"tick":31,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169327106,"tick":32,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169328105,"tick":33,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169329105,"tick":34,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169330113,"tick":35,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169331106,"tick":36,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169332106,"tick":37,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169333106,"tick":38,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169334104,"tick":39,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169335104,"tick":40,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169336105,"tick":41,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169337104,"tick":42,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169338104,"tick":43,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169339104,"tick":44,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169340104,"tick":45,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169341111,"tick":46,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169342115,"tick":47,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169343105,"tick":48,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169344104,"tick":49,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169345111,"tick":50,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169346104,"tick":51,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169347104,"tick":52,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169348105,"tick":53,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169349111,"tick":54,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169350104,"tick":55,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169351104,"tick":56,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169352105,"tick":57,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169353105,"tick":58,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169354105,"tick":59,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169355106,"tick":60,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169356104,"tick":61,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169357122,"tick":62,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169358104,"tick":63,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169359105,"tick":64,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169360105,"tick":65,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169361105,"tick":66,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169362105,"tick":67,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169363105,"tick":68,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169364111,"tick":69,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169365112,"tick":70,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169366105,"tick":71,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169367107,"tick":72,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169368104,"tick":73,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169369104,"tick":74,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169370104,"tick":75,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169371104,"tick":76,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169372105,"tick":77,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169373105,"tick":78,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169374104,"tick":79,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169375110,"tick":80,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169376108,"tick":81,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169377104,"tick":82,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169378106,"tick":83,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169379105,"tick":84,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169380104,"tick":85,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169381104,"tick":86,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169382104,"tick":87,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169383104,"tick":88,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169384109,"tick":89,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169385104,"tick":90,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169386123,"tick":91,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169387104,"tick":92,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169388111,"tick":93,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169389104,"tick":94,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169390104,"tick":95,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169391104,"tick":96,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169392104,"tick":97,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169393104,"tick":98,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169394104,"tick":99,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169395105,"tick":100,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169396104,"tick":101,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169397106,"tick":102,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169398104,"tick":103,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169399107,"tick":104,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169400104,"tick":105,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169401104,"tick":106,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169402117,"tick":107,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169403104,"tick":108,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169404104,"tick":109,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169405104,"tick":110,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169406104,"tick":111,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169407104,"tick":112,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169408113,"tick":113,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169409106,"tick":114,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169410104,"tick":115,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169411106,"tick":116,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169412104,"tick":117,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169413106,"tick":118,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169414104,"tick":119,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169415104,"tick":120,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169416104,"tick":121,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169417104,"tick":122,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169418104,"tick":123,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169419105,"tick":124,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169420104,"tick":125,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169421104,"tick":126,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169422104,"tick":127,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169423104,"tick":128,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169424105,"tick":129,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169425105,"tick":130,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169426104,"tick":131,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169427104,"tick":132,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169428104,"tick":133,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169429105,"tick":134,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169430104,"tick":135,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169431104,"tick":136,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169432104,"tick":137,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169433104,"tick":138,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169434104,"tick":139,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169435104,"tick":140,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169436104,"tick":141,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169437104,"tick":142,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169438106,"tick":143,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169439105,"tick":144,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169440104,"tick":145,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169441104,"tick":146,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169442105,"tick":147,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169443104,"tick":148,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169444105,"tick":149,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169445104,"tick":150,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169446104,"tick":151,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169447105,"tick":152,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169448105,"tick":153,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169449105,"tick":154,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169450105,"tick":155,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169451104,"tick":156,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169452105,"tick":157,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169453109,"tick":158,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169454104,"tick":159,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169455113,"tick":160,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169456104,"tick":161,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169457104,"tick":162,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169458109,"tick":163,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169459104,"tick":164,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169460104,"tick":165,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169461119,"tick":166,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169283003,"t":1790169462104,"tick":167,"focus":true,"raw":[],"shim":[]}
+{"ev":"load","run":1790169752688,"t":1790169752689,"nw":"0.86.0","chrome":null,"node":"21.1.0","platform":"win32","arch":"x64","execPath":"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Alabaster Dawn\\alabaster_dawn.exe","__dirname":null,"ready":"loading","hasGetGamepads":"function","hasFix":true,"dll":{"sys32/xinput1_4.dll":{"size":188416,"machine":"x86_64"},"sys32/xinput1_3.dll":{"size":184320,"machine":"x86_64"},"sys32/xinput9_1_0.dll":{"size":77824,"machine":"x86_64"},"sys32/dinput8.dll":{"size":1130496,"machine":"x86_64"},"sys32/windows.gaming.input.dll":{"size":913408,"machine":"x86_64"},"syswow64/xinput1_4.dll":{"size":163840,"machine":"i386"},"syswow64/xinput1_3.dll":{"size":163840,"machine":"i386"},"syswow64/xinput9_1_0.dll":{"size":73728,"machine":"i386"},"syswow64/dinput8.dll":{"size":995328,"machine":"i386"},"syswow64/windows.gaming.input.dll":{"size":778240,"machine":"i386"}},"shm":[]}
+{"ev":"pads","run":1790169752688,"t":1790169755373,"tick":1,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169759914,"tick":2,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169763546,"tick":3,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169767269,"tick":4,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169769546,"tick":5,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169770293,"tick":6,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169774906,"tick":7,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169779427,"tick":8,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169780213,"tick":9,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169781643,"tick":10,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169789729,"tick":11,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169790838,"tick":12,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169791779,"tick":13,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169792784,"tick":14,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169793778,"tick":15,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169794791,"tick":16,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169795779,"tick":17,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169796785,"tick":18,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169797776,"tick":19,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169798776,"tick":20,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169799777,"tick":21,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169800779,"tick":22,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169801807,"tick":23,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169802777,"tick":24,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169803777,"tick":25,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169804777,"tick":26,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169805777,"tick":27,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169806777,"tick":28,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169807786,"tick":29,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169808782,"tick":30,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169809779,"tick":31,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169810785,"tick":32,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169811779,"tick":33,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169812782,"tick":34,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169813780,"tick":35,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169814777,"tick":36,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169815778,"tick":37,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169816777,"tick":38,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169817779,"tick":39,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169818775,"tick":40,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169819778,"tick":41,"focus":true,"raw":[],"shim":[]}
+{"ev":"pads","run":1790169752688,"t":1790169820776,"tick":42,"focus":true,"raw":[],"shim":[]}
+{"ev":"load","run":1790174705185,"t":1790174705186,"nw":"0.86.0","chrome":null,"node":"21.1.0","platform":"win32","arch":"x64","execPath":"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Alabaster Dawn\\alabaster_dawn.exe","ready":"loading","hasGetGamepads":"function","hasFix":true,"shmProbe":{"path":null,"error":"no gamepad.mem readable","candidates":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"},"connected":null,"raw":null},"lsZroot":[".DS_Store",".winlator","bin","etc","home","generate_interfaces_file.exe","lib","opt","tmp","share","usr","Steamless","var","storage"],"lsFiles":"ERR:ENOENT","lsShm":"ERR:ENOENT","dll":{"sys32/xinput1_4.dll":{"size":188416,"machine":"x86_64"},"sys32/xinput1_3.dll":{"size":184320,"machine":"x86_64"},"sys32/dinput8.dll":{"size":1130496,"machine":"x86_64"},"sys32/windows.gaming.input.dll":{"size":913408,"machine":"x86_64"},"sys32/hid.dll":{"size":176128,"machine":"x86_64"}}}
+{"ev":"pads","run":1790174705185,"t":1790174707665,"tick":1,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174705185,"t":1790174711700,"tick":2,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174705185,"t":1790174714622,"tick":3,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174705185,"t":1790174716661,"tick":4,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"load","run":1790174828815,"t":1790174828816,"nw":"0.86.0","chrome":null,"node":"21.1.0","platform":"win32","arch":"x64","execPath":"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Alabaster Dawn\\alabaster_dawn.exe","ready":"loading","hasGetGamepads":"function","hasFix":true,"shmProbe":{"path":null,"error":"no gamepad.mem readable","candidates":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"},"connected":null,"raw":null},"lsZroot":[".DS_Store",".winlator","bin","etc","home","generate_interfaces_file.exe","lib","opt","tmp","share","usr","Steamless","var","storage"],"lsFiles":"ERR:ENOENT","lsShm":"ERR:ENOENT","dll":{"sys32/xinput1_4.dll":{"size":188416,"machine":"x86_64"},"sys32/xinput1_3.dll":{"size":184320,"machine":"x86_64"},"sys32/dinput8.dll":{"size":1130496,"machine":"x86_64"},"sys32/windows.gaming.input.dll":{"size":913408,"machine":"x86_64"},"sys32/hid.dll":{"size":176128,"machine":"x86_64"}}}
+{"ev":"pads","run":1790174828815,"t":1790174832001,"tick":1,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174837133,"tick":2,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174841180,"tick":3,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174845115,"tick":4,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174847173,"tick":5,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174850931,"tick":6,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174853319,"tick":7,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174854107,"tick":8,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174859193,"tick":9,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174859981,"tick":10,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174860905,"tick":11,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174861903,"tick":12,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174862901,"tick":13,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174863901,"tick":14,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174864922,"tick":15,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174865909,"tick":16,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174866929,"tick":17,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174867901,"tick":18,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174868916,"tick":19,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174869902,"tick":20,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174870900,"tick":21,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174871901,"tick":22,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174872902,"tick":23,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174873910,"tick":24,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174874902,"tick":25,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174875901,"tick":26,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174876900,"tick":27,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174877902,"tick":28,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174878912,"tick":29,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174879905,"tick":30,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174880904,"tick":31,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174881912,"tick":32,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174882901,"tick":33,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174883903,"tick":34,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174884901,"tick":35,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174885901,"tick":36,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174886906,"tick":37,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174887902,"tick":38,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174888912,"tick":39,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174889919,"tick":40,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174890901,"tick":41,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174891901,"tick":42,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174892905,"tick":43,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174893902,"tick":44,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174894902,"tick":45,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174895901,"tick":46,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174896904,"tick":47,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174897904,"tick":48,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174898904,"tick":49,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174899905,"tick":50,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174900904,"tick":51,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174901922,"tick":52,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174902904,"tick":53,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174903902,"tick":54,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174904904,"tick":55,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174905905,"tick":56,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174906901,"tick":57,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174907904,"tick":58,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174908904,"tick":59,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174909902,"tick":60,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174910919,"tick":61,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174911905,"tick":62,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174912901,"tick":63,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174913922,"tick":64,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174914901,"tick":65,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174915918,"tick":66,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174916902,"tick":67,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174917901,"tick":68,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174918901,"tick":69,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174919900,"tick":70,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174920913,"tick":71,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174921900,"tick":72,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174922900,"tick":73,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174923903,"tick":74,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174924900,"tick":75,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174925904,"tick":76,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174926910,"tick":77,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174927904,"tick":78,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174928899,"tick":79,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174929903,"tick":80,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174930903,"tick":81,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174931903,"tick":82,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174932901,"tick":83,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174933901,"tick":84,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174934901,"tick":85,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174935900,"tick":86,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174936903,"tick":87,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174937903,"tick":88,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174938900,"tick":89,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174939918,"tick":90,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174940900,"tick":91,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174941906,"tick":92,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174942903,"tick":93,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174943900,"tick":94,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174944914,"tick":95,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174945906,"tick":96,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174946903,"tick":97,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174947903,"tick":98,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174948901,"tick":99,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174949902,"tick":100,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174950905,"tick":101,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174951903,"tick":102,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"pads","run":1790174828815,"t":1790174952911,"tick":103,"focus":true,"raw":[],"shim":[],"shm":{"path":null,"err":"no gamepad.mem readable","connected":null,"raw":null,"tried":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\user\\0\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\imagefs\\tmp\\gamepad.mem":"ENOENT"}}}
+{"ev":"load","run":1790175242102,"t":1790175242122,"nw":"0.86.0","node":"21.1.0","platform":"win32","arch":"x64","execPath":"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Alabaster Dawn\\alabaster_dawn.exe","drives":{"A":true,"C":true,"D":true,"E":true,"Z":true},"shmProbe":{"path":"Z:\\tmp\\gamepad.mem","error":null,"candidates":{"Z:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","Z:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","E:\\gamepad_shm\\gamepad.mem":"ENOENT","E:\\files\\gamepad_shm\\gamepad.mem":"ENOENT","C:\\data\\data\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT","C:\\data\\user\\0\\app.gamenative\\files\\gamepad_shm\\gamepad.mem":"ENOENT"},"search":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}},"lsZroot":[".DS_Store",".winlator","bin","etc","home","generate_interfaces_file.exe","lib","opt","tmp","share","usr","Steamless","var","storage"],"lsZtmp":[".sound","wine-720f5-esync",".X11-unix",".sysvshm","gamepad.mem","gamepad1.mem","gamepad2.mem","ifaddrs","gamepad3.mem"],"lsZdata":"ERR:ENOENT","lsCroot":[".DS_Store","data","Program Files","Program Files (x86)","users","windows","ProgramData"],"lsCdata":["user"],"lsCdata2":"ERR:ENOENT","lsEroot":[],"lsDroot":[".exmu-cfg1.data","01054251410-2023.pdf","apk","01054251410-IRPF-A-2025-2024-ORIGI.zip","35240816731043000187550010000244561346913175.pdf","0qsh12q8ggqd1.png","0u8zi02smthq_boardingpass.jpg","0xProto.zip","1000062998-edited.png","1741372188-20250307.png","20220503085845!The_Celestial_Zoo_infographic_wikimedia.png","20251208_155303.jpg","242890979359.JPEG","4m0fd0w3d98c1.jpeg","5422622011355704485_correios_sedex.pdf","9939396.pdf","8d419101e2a3858f362af36e90646cfe574cb4bce019ada9c796723abdec0cd2.png","Ampath 13.03.2026.pdf","Air-RDP_3.jpg","alabaster-dawn-fix","Ampath 20.03.2026.pdf","AliceL01_001.avif","Ampath 19.03.2026.pdf","Ampath 2026.pdf","Ampath 21.03.2026.pdf","Ampath 22.03.2026.pdf","Ampath 23.03.2026.pdf","Ampath 24.03.2026.pdf","Ampath micro 2026.pdf","Ampath 25.03.2026.pdf"]}
+{"ev":"pads","run":1790175242102,"t":1790175245182,"tick":1,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175251340,"tick":2,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175255597,"tick":3,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175259323,"tick":4,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175261594,"tick":5,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175265183,"tick":6,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175268012,"tick":7,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175268232,"tick":8,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175274054,"tick":9,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175274336,"tick":10,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175275283,"tick":11,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175276225,"tick":12,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175277222,"tick":13,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175278231,"tick":14,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175279224,"tick":15,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175280225,"tick":16,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175281233,"tick":17,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175282288,"tick":18,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175283233,"tick":19,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175284223,"tick":20,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175285232,"tick":21,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175286227,"tick":22,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175287222,"tick":23,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175288221,"tick":24,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175289222,"tick":25,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175290222,"tick":26,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175291222,"tick":27,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175292224,"tick":28,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175293231,"tick":29,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175294222,"tick":30,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175295221,"tick":31,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175296236,"tick":32,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175297221,"tick":33,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175298232,"tick":34,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175299224,"tick":35,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175300233,"tick":36,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175301224,"tick":37,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175302228,"tick":38,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175303224,"tick":39,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175304221,"tick":40,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175305232,"tick":41,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175306224,"tick":42,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175307221,"tick":43,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175308237,"tick":44,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175309224,"tick":45,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175310222,"tick":46,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175311222,"tick":47,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175312251,"tick":48,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175313224,"tick":49,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175314226,"tick":50,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175315222,"tick":51,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175316227,"tick":52,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175317224,"tick":53,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175318228,"tick":54,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175319222,"tick":55,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175320227,"tick":56,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175321222,"tick":57,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175322225,"tick":58,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175323223,"tick":59,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175324229,"tick":60,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175325233,"tick":61,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175326221,"tick":62,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175327229,"tick":63,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175328222,"tick":64,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175329223,"tick":65,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175330234,"tick":66,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175331222,"tick":67,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175332223,"tick":68,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
+{"ev":"pads","run":1790175242102,"t":1790175333222,"tick":69,"focus":true,"raw":[],"shim":[],"shm":{"path":"Z:\\tmp\\gamepad.mem","err":null,"connected":0,"raw":{"seq":0,"lx":0,"ly":0,"rx":0,"ry":0,"lt":0,"rt":0,"btn":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"hat":0}}}
