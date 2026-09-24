@@ -34,6 +34,9 @@ Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`)
 * Gamepad: Android `InputDevice` → W3C-standard gamepad for the engine. Left/right stick, d-pad,
   face buttons, shoulders, analog and digital triggers, start/select.
 * Resolution can be raised in-game: `640x360 / 960x540 / 1280x720 / 1920x1080 / 2560x1440`.
+* Leaving the app pauses the game: the music stops and the loop stops burning CPU. An Android
+  WebView never dispatches the page's `blur`/`focus` (which is how the engine knows it lost the
+  foreground), so the port dispatches them on `onPause`/`onResume`.
 * Immersive fullscreen, screen kept awake, renderer crashes recovered by rebuilding the WebView.
 
 Verified end-to-end on **Samsung Galaxy S22 Ultra (SM-S908U1), Android 16 (API 36)**, with a

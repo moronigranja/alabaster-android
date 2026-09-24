@@ -621,6 +621,30 @@ Every served-byte rewrite is **anchored**: if an anchor is missing (game update)
 * Digital triggers (Switch Pro's ZL/ZR = `KEYCODE_BUTTON_L2/R2`) map onto W3C trigger indices 6/7.
 * Y sign confirmed on hardware: pushing the stick up gives a negative Android Y and the character
   moves the right way, so `Y_SIGN = 1` is correct.
+* **The game kept playing behind the launcher** — music audible, renderer at ~19–20 % CPU
+  (`top` on the app's `webview:sandboxed_process`) and its AudioTrack still `(active)` in
+  `dumpsys media.audio_flinger` 12 s after HOME. Cause: the engine pauses itself only from the
+  page's `blur` (`g_system.setWindowFocus(true)` → `AudioContext.suspend()` + `runInner` returns
+  before any update/draw), and an Android WebView dispatches neither `blur` nor `focus` when the
+  app leaves the foreground. `PortActivity` now dispatches them itself
+  (`window.dispatchEvent(new Event('blur'|'focus'))`) on `onPause`/`onResume`, blur first so the
+  suspension is not queued behind the `pauseTimers()` that follows.
+
+  A/B on the same build pair, same menu scene, launcher on screen (pre-fix APK rebuilt from the
+  stashed source, then restored):
+
+  | | pre-fix fg | pre-fix bg | fixed fg | fixed bg |
+  |---|---|---|---|---|
+  | GPU busy (`gpubusy`) | 75.9 % | 0 (counter reads `0 0`, clock parked at 222 MHz) | 76.0–76.2 % | 0 (same) |
+  | CPU app / renderer | — | 2–3 % / 5–7 % (19–20 % renderer while in-gameplay) | 42–45 % / 27–32 % | **0.0 % / 0.0 %** |
+  | AudioTrack | `(active)` | `(active)`, session only ended when the process was replaced | `(active)` | `AT::remove` ~0.4–1 s after HOME, `(idle)` |
+
+  **GPU was never the background cost**: a hidden WebView stops producing frames either way, so
+  `gpubusy` reads 0 in both builds — the fix's win is the CPU + the audio pipeline (what you hear).
+  Independent confirmation that pre-fix audio really outlived the foreground: `dumpsys
+  media.audio_flinger` logged `frozen-while-active: 1 last: 23:50:58` for the app's uid — the audio
+  framework freezing a still-active track when the process was later replaced. Post-fix sessions
+  show `AT::add` (boot) → `AT::remove` (HOME) and no freeze.
 
 ### 9.4 Dead ends — measured, do not retry
 
@@ -651,11 +675,26 @@ Booster performance mode, prefer 640×360 (54 % GPU) unless the sharper 960×540
 
 ### 9.6 Measurement recipes (these work — reuse them)
 
-* **GPU busy** = `/sys/class/kgsl/kgsl-3d0/gpubusy`, a *rolling* `busy total` in µs (not cumulative
-  — a later read can be smaller). Sample ≥ 10× at ~0.4 s and report median + min/max. This is the
-  sensitive metric; it moves within a second.
+* **GPU busy** = `/sys/class/kgsl/kgsl-3d0/gpubusy`, two numbers, `busy` and `total`, µs **inside a
+  rolling ~1 s window** (`total` hovers around 1 004 000 and is *not* monotonic) — so the ratio
+  comes from **one read**: `busy/total * 100`, sampled ≥ 10× at ~0.4 s, reported as median + min/max.
+  **Never diff two reads** (the window slides and wraps: deltas produce nonsense like 455 189 %).
+  When nothing is drawing the file reads literally `0 0` (ratio undefined → report 0) and
+  `clock_mhz` parks at its minimum (222 MHz; 282 MHz is the working point at 640×360). It is
+  **system-wide** — there is no per-process GPU attribution on this driver. This is the sensitive
+  metric; it moves within a second.
+* **Who owns the screen** = `dumpsys activity activities | grep -m1 ResumedActivity`; needed before
+  any "background" GPU/CPU number, because a launcher that is itself animating is not a baseline.
+  A *hidden* WebView stops producing frames, so `gpubusy` reads 0 with the app backgrounded whether
+  or not the game is still simulating — judge background cost by CPU + the AudioTrack, not by GPU.
 * **Per-thread CPU** = `/proc/<pid>/task/*/stat` `utime+stime` deltas, `CLK_TCK = 100`. The app is a
   single process here (in-process GPU threads: `Chrome_InProcGp`, `RenderThread`, `VizWebView`).
+* **Is it still running when backgrounded?** = `dumpsys media.audio_flinger`, grepped for the app's
+  uid: WebAudio's AudioTrack is listed with its `AT::add`/`AT::remove` history and a live
+  `(active)`/`(idle)` state. `dumpsys audio`'s `players:` list is MediaPlayer/`AudioPlaybackConfiguration`
+  only and shows **nothing** for WebAudio — don't trust it for "is the game silent". Pair it with
+  `top -b -n 3 -d 1 -o PID,%CPU,ARGS` on the app + its `webview:sandboxed_process` (foreground
+  41 %/29 %, background 0.0 %/0.0 % after the blur/focus fix in §9.3).
 * **Frame rate** = `requestAnimationFrame` deltas inside the page (p50/p95), never an average over a
   boot (the boot is GPU-heavy and skews it).
 * **Noise floor**: ±7 fps and ±7 pp GPU between boots at a fixed resolution → only chase changes that

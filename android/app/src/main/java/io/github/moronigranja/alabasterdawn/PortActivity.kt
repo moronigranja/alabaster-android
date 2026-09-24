@@ -381,17 +381,35 @@ class PortActivity : Activity() {
 
     /* ------------------------------------------------------------------- lifecycle ---- */
 
+    /**
+     * The engine stops itself on the page's `blur` (it suspends its AudioContext, makes the run
+     * loop return before any update or draw, and clears held inputs) and starts again on `focus`.
+     * An Android WebView dispatches neither when the app leaves the foreground, so the music and
+     * the loop survive behind the launcher: measured on the SM-S908U1, the AudioTrack stayed
+     * `active` and the renderer kept ~20% CPU. Dispatched here instead.
+     */
+    private fun setPageFocus(focused: Boolean) {
+        webView?.evaluateJavascript(if (focused) PAGE_FOCUS_JS else PAGE_BLUR_JS, null)
+    }
+
     override fun onResume() {
         super.onResume()
         applyImmersive()
         webView?.let {
+            it.resumeTimers()
             it.onResume()
             it.requestFocus()
         }
+        setPageFocus(true)
     }
 
     override fun onPause() {
+        /* Blur before the timers stop, or the AudioContext suspension waits for the app to come
+         * back. pauseTimers() then covers the loop the engine drives with setInterval (an fps
+         * below 60) and any other page timer. */
+        setPageFocus(false)
         webView?.onPause()
+        webView?.pauseTimers()
         super.onPause()
     }
 
@@ -408,8 +426,9 @@ class PortActivity : Activity() {
         super.onDestroy()
     }
 
+    /** A tap must restore audio if the WebView refused to start it without a gesture. */
     private fun resumeAudio() {
-        webView?.evaluateJavascript(AUDIO_RESUME_JS, null)
+        setPageFocus(true)
     }
 
     private fun applyImmersive() {
@@ -454,8 +473,10 @@ class PortActivity : Activity() {
         private const val SHIM_ASSET = "ada-shim.js"
         private const val ORIGIN = "https://appassets.androidplatform.net"
         private const val INDEX_URL = "$ORIGIN/game/terra/index.html"
-        private const val AUDIO_RESUME_JS =
-            "(function(){try{var c=window.g&&window.g.audio&&window.g.audio.context;" +
-                "if(c&&c.state!=='running'){c.resume();}}catch(e){}})()"
+
+        /* The engine's only pause/resume entry point (see setPageFocus). A plain non-bubbling
+         * Event is all it takes: both listeners sit on `window` itself. */
+        private const val PAGE_BLUR_JS = "window.dispatchEvent(new Event('blur'))"
+        private const val PAGE_FOCUS_JS = "window.dispatchEvent(new Event('focus'))"
     }
 }
