@@ -24,6 +24,7 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.webkit.WebViewAssetLoader
@@ -51,6 +52,7 @@ class PortActivity : Activity() {
     private var fsBridge: FsBridge? = null
     private var saveStore: SaveStore? = null
     private var webView: WebView? = null
+    private var padView: OnScreenPadView? = null
     private var shimSource: String = ""
 
     /** Last axes we logged, so a held stick does not flood logcat. */
@@ -296,7 +298,29 @@ class PortActivity : Activity() {
             false
         }
         webView = view
-        setContentView(view)
+        /* The pad sits above the WebView, so it receives touches first; when it does not claim a
+         * gesture (a hidden pad, or a tap on empty space with it hidden) it returns false and the
+         * FrameLayout passes the event on to the WebView. */
+        val frame = FrameLayout(this)
+        frame.addView(
+            view,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
+        val pad = OnScreenPadView(this).apply {
+            padEnabled = prefs.getBoolean(KEY_PAD, true)
+            onToggle = { prefs.edit().putBoolean(KEY_PAD, it).apply() }
+            onFirstTouch = { resumeAudio() }
+        }
+        padView = pad
+        frame.addView(
+            pad,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
+        setContentView(frame)
         view.requestFocus()
         Log.i(TAG, "loading $INDEX_URL")
         view.loadUrl(INDEX_URL)
@@ -338,6 +362,7 @@ class PortActivity : Activity() {
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (isGamepad(event.source)) {
+            padView?.noteControllerActivity()
             Gamepad.onKey(event)
             if (event.action == KeyEvent.ACTION_DOWN) {
                 Log.d(TAG, "key ${KeyEvent.keyCodeToString(event.keyCode)} -> pad")
@@ -349,6 +374,7 @@ class PortActivity : Activity() {
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
         if (isGamepad(event.source)) {
+            padView?.noteControllerActivity()
             Gamepad.onMotion(event)
             logAxesIfChanged()
             return true
@@ -423,6 +449,7 @@ class PortActivity : Activity() {
             Log.w(TAG, "WebView teardown failed", e)
         }
         webView = null
+        padView = null
         super.onDestroy()
     }
 
@@ -467,6 +494,9 @@ class PortActivity : Activity() {
         private const val PREF = "ada"
         private const val KEY_GAME = "game_tree_uri"
         private const val KEY_SAVES = "saves_tree_uri"
+
+        /* Whether the on-screen pad draws its controls. */
+        private const val KEY_PAD = "on_screen_pad"
         private const val REQ_GAME = 101
         private const val REQ_SAVES = 102
         private const val BRIDGE_NAME = "AdaBridge"

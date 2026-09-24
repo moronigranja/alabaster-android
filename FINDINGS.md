@@ -10,11 +10,19 @@ Repo layout:
 ```
 README.md / LICENSE            project overview; MIT (this repo's own code only)
 FINDINGS.md                    this document
+ON_SCREEN_GAMEPAD_PLAN.md      design + status of the on-screen pad (geometry, hit rules, on-device
+                               verification method and results)
 android/  app/                 the native Android port (§9): Kotlin, WebView + SAF, no permissions
+          app/src/main/.../GamepadState.kt     single JSON producer (physical + on-screen pad)
+          app/src/main/.../OnScreenPadModel.kt pad layout + pointer rules, pure Kotlin (unit-tested)
+          app/src/main/.../OnScreenPadView.kt  draws the pad, touches -> model calls
           app/src/main/assets/ada-shim.js    document-start shim (ported from tools/)
-          app/src/test/.../GamepadStateTest.kt   7 JVM tests, all pass
+          app/src/test/.../GamepadStateTest.kt   12 JVM tests (7 mapping/state + 5 overlay merge)
+          app/src/test/.../OnScreenPadModelTest.kt  16 JVM tests (layout, hit rules, dead zone)
 docs/     setup.png            screenshots for README.md (Alabaster Dawn art (c) Radical Fish Games)
           title-screen.png
+          on-screen-pad.png
+          release-notes-0.1.md  the 0.1 release notes (no on-screen pad yet; see ON_SCREEN_GAMEPAD_PLAN.md)
 fix/    gamepad-fix.js         controller fix for the desktop build (drop-in, tested)
         gamepad-fix.json        its config
         install.sh              installer / revert for a game directory

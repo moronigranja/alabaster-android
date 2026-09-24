@@ -89,4 +89,70 @@ class GamepadStateTest {
         assertEquals(0.25, axes.getDouble(2), 0.0001)
         assertEquals(-0.25, axes.getDouble(3), 0.0001)
     }
+
+    @Test
+    fun `an enabled overlay alone reports a connected neutral pad`() {
+        val state = state()
+        state.setOverlayEnabled(true)
+        val json = state.json()
+        assertTrue(json.isNotEmpty())
+        val axes = axesOf(json)
+        for (axis in 0 until GamepadState.AXES) assertEquals(0.0, axes.getDouble(axis), 0.0001)
+        val buttons = buttonsOf(json)
+        for (button in 0 until GamepadState.BUTTONS) {
+            assertFalse("button $button", buttons.getJSONObject(button).getBoolean("pressed"))
+            assertEquals(0.0, buttons.getJSONObject(button).getDouble("value"), 0.0001)
+        }
+    }
+
+    @Test
+    fun `an overlay press is a pressed button and releasing clears it`() {
+        val state = state()
+        state.setOverlayEnabled(true)
+        state.overlayButton(0, true)
+        assertTrue(buttonsOf(state.json()).getJSONObject(0).getBoolean("pressed"))
+        state.overlayButton(0, false)
+        assertFalse(buttonsOf(state.json()).getJSONObject(0).getBoolean("pressed"))
+    }
+
+    @Test
+    fun `the overlay merges with a physical pad`() {
+        val state = state()
+        state.setOverlayEnabled(true)
+        state.setAxes(leftX = 0.4f, leftY = 0f, rightX = 0f, rightY = 0f)
+        /* The further-deflected source wins, in both directions. */
+        state.overlayAxes(leftX = -0.9f, leftY = 0f, rightX = 0f, rightY = 0.3f)
+        assertEquals(-0.9, axesOf(state.json()).getDouble(0), 0.0001)
+        assertEquals(0.0, axesOf(state.json()).getDouble(1), 0.0001)
+        assertEquals(0.3, axesOf(state.json()).getDouble(3), 0.0001)
+        state.press(1)
+        state.overlayButton(2, true)
+        val buttons = buttonsOf(state.json())
+        assertTrue(buttons.getJSONObject(1).getBoolean("pressed"))
+        assertTrue(buttons.getJSONObject(2).getBoolean("pressed"))
+    }
+
+    @Test
+    fun `a disabled overlay leaves no stuck state`() {
+        val state = state()
+        state.setOverlayEnabled(true)
+        state.overlayButton(0, true)
+        state.overlayAxes(leftX = 1f, leftY = 0f, rightX = 0f, rightY = 0f)
+        state.setOverlayEnabled(false)
+        /* No hardware pad has been seen, so the shim must report no pads at all. */
+        assertEquals("", state.json())
+        state.setOverlayEnabled(true)
+        val json = state.json()
+        assertFalse(buttonsOf(json).getJSONObject(0).getBoolean("pressed"))
+        assertEquals(0.0, axesOf(json).getDouble(0), 0.0001)
+    }
+
+    @Test
+    fun `a stray overlay event while disabled changes nothing`() {
+        val state = state()
+        state.setOverlayEnabled(false)
+        state.overlayButton(0, true)
+        state.overlayAxes(leftX = 1f, leftY = 0f, rightX = 0f, rightY = 0f)
+        assertEquals("", state.json())
+    }
 }

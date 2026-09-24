@@ -5,18 +5,18 @@ Two independent pieces of work for [Alabaster Dawn](https://store.steampowered.c
 
 1. **A native Android port** (`android/`) — runs the game in an Android WebView with no Wine, no
    Box64 and no NW.js, reading your own game files from a folder you pick, playing through a
-   physical controller read natively from `InputDevice`, and keeping saves in a second folder you
-   pick, in the Steam build's own layout.
+   physical controller read natively from `InputDevice` **or the built-in on-screen pad**, and
+   keeping saves in a second folder you pick, in the Steam build's own layout.
 2. **A controller fix for the desktop build** (`fix/`) — repairs how the game decodes gamepads on
    Linux and inside Wine containers (GameNative / Winlator / Proton).
 
 Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`) that produced them.
 
-| Setup screen | Running under the port |
-|---|---|
-| ![Game files and saves pickers](docs/setup.png) | ![Title screen](docs/title-screen.png) |
+| Setup screen | Running under the port | On-screen pad |
+|---|---|---|
+| ![Game files and saves pickers](docs/setup.png) | ![Title screen](docs/title-screen.png) | ![On-screen pad over the title screen](docs/on-screen-pad.png) |
 
-*Screenshot contains Alabaster Dawn artwork and text, © Radical Fish Games, shown for documentation.*
+*Screenshots contain Alabaster Dawn artwork and text, © Radical Fish Games, shown for documentation.*
 
 ---
 
@@ -33,6 +33,11 @@ Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`)
   so a save folder can be copied in from the desktop and copied back out.
 * Gamepad: Android `InputDevice` → W3C-standard gamepad for the engine. Left/right stick, d-pad,
   face buttons, shoulders, analog and digital triggers, start/select.
+* **On-screen pad**: the same standard gamepad drawn over the game, for playing with no controller —
+  both sticks, d-pad, A/B/X/Y, L1/R1, L2/R2, Select/Start/HOME, with a small always-tappable toggle
+  that hides the pad (the choice is kept). It feeds the *same* pad state as the hardware one, so the
+  engine sees one standard pad; the controls hide themselves while a real controller is in use and
+  come back after a minute of no controller input.
 * Resolution can be raised in-game: `640x360 / 960x540 / 1280x720 / 1920x1080 / 2560x1440`.
 * Leaving the app pauses the game: the music stops and the loop stops burning CPU. An Android
   WebView never dispatches the page's `blur`/`focus` (which is how the engine knows it lost the
@@ -41,7 +46,11 @@ Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`)
 
 Verified end-to-end on **Samsung Galaxy S22 Ultra (SM-S908U1), Android 16 (API 36)**, with a
 Switch Pro Controller: title screen, in-game input, save rotation (`Default` → `Backups` →
-`Backups2`), `System.save` round-trip, and options persisted.
+`Backups2`), `System.save` round-trip, and options persisted. The on-screen pad was verified on an
+**Android 14 emulator**: it draws over the running game, the engine reports one connected standard
+pad with *no* controller attached, a held stick and every button reach the engine with the expected
+values, the d-pad steps the title menu and A opens the highlighted entry, the toggle hides/shows the
+pad (persisted across a restart) and a controller event hides the controls until it goes quiet.
 
 ### Download
 
@@ -62,7 +71,8 @@ say) needs an uninstall first.
 
 ### Not in this milestone
 
-* No on-screen touch controls (phase 2).
+* The on-screen pad's stick **clicks** (L3/R3) are not exposed, and its multi-finger handling has
+  unit tests but no real two-thumb pass on a phone yet.
 * The in-game **Load** list was not eyeballed (needs a manual save); everything underneath it —
   file naming, rotation, metadata, `mtime` — is verified.
 * Performance is GPU-bound; see the ledger below before expecting 1080p.
@@ -71,7 +81,7 @@ say) needs an uninstall first.
 
 * JDK 17, Android SDK with **platform 36** and **build-tools 36.0.0**.
 * Phone or tablet on **Android 8.0+** (`minSdk 26`).
-* A Bluetooth/USB controller.
+* A Bluetooth/USB controller, or the on-screen pad (no controller required).
 * Your own copy of the game (Steam). Its files are **not** distributed here.
 
 ### Build and install
@@ -83,7 +93,7 @@ echo "sdk.dir=$ANDROID_HOME" > local.properties      # or point it at your SDK
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Unit tests (gamepad mapping and state):
+Unit tests (gamepad state and overlay merge, pad layout and hit rules):
 
 ```bash
 cd android && ./gradlew :app:testDebugUnitTest
@@ -155,6 +165,10 @@ Thermals, not CPU, are the limit: the same 720p scene measured 42 fps cool and 1
 * `AdaBridge` exposes the pad (`getGamepadJson()`) and the file calls used for saves; `FsBridge`
   maps the engine's `/saves` namespace onto the picked saves tree and keeps the Steam file names
   exactly (create-or-overwrite, never a deduplicated `Save_ID_0000 (1).save`).
+* `GamepadState` is the single JSON producer: the physical pad (`Gamepad`, from `KeyEvent`/
+  `MotionEvent`) and the on-screen pad both write into it, and it publishes one merged W3C standard
+  pad. `OnScreenPadModel` holds the pad's layout and pointer rules (pure Kotlin, unit-tested) and
+  `OnScreenPadView` draws it and turns touches into model calls.
 * `FINDINGS.md` documents the measurements, the dead ends and the reason for every patch.
 
 ---

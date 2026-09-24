@@ -23,6 +23,16 @@ object Gamepad {
     /** JSON for the shim's `getGamepadJson()`; `""` until a controller has been seen. */
     fun json(): String = state.json()
 
+    /* The on-screen pad's contribution, merged with the physical pad by GamepadState.publish(). The
+     * overlay is owned by the View (it knows when to be visible); this is only the plumbing. */
+
+    fun setOverlayEnabled(enabled: Boolean) = state.setOverlayEnabled(enabled)
+
+    fun overlayButton(index: Int, down: Boolean) = state.overlayButton(index, down)
+
+    fun overlayAxes(leftX: Float, leftY: Float, rightX: Float, rightY: Float) =
+        state.overlayAxes(leftX, leftY, rightX, rightY)
+
     fun onKey(event: KeyEvent) {
         val action = event.action
         if (action != KeyEvent.ACTION_DOWN && action != KeyEvent.ACTION_UP) return
