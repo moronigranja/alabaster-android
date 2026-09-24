@@ -36,25 +36,6 @@ purchased copy of the game.
   from the release key by design. Installing over v0.1 itself upgrades in place.
 * There is no in-app update check: watch this repository's Releases page.
 
-### Verify the download
-
-The APK attached to this release:
-
-```
-sha256  c7d18f3afd5e9534da9bff2122ab898d5c335228a522ec956209b8d9b5528885
-```
-
-Check it with `sha256sum AlabasterDawn-Android-0.1.apk`, and confirm the signer is this project's
-own release certificate (never the debug key, never another app's key):
-
-```
-Signer #1 certificate DN: CN=Alabaster Dawn Android port, O=moronigranja, C=BR
-Signer #1 certificate SHA-256 digest: ab31dd8874bf28fb06c783c8df0d3f6abeec719240165605ce27070e676b9604
-```
-
-`apksigner verify --print-certs AlabasterDawn-Android-0.1.apk` prints the same fingerprint, and
-`keytool -printcert -jarfile AlabasterDawn-Android-0.1.apk` works without the Android SDK.
-
 ## First run
 
 1. Put the game on the phone (the folder you pick must contain a `terra/` child), e.g.
@@ -75,7 +56,6 @@ Signer #1 certificate SHA-256 digest: ab31dd8874bf28fb06c783c8df0d3f6abeec719240
 * **The in-game Load list has not been eyeballed** (it needs a manual save made on the device).
   Everything underneath it is verified: file naming, the `Default → Backups → Backups2` rotation,
   save metadata and timestamps.
-* **No launcher icon yet** — the app uses the system default.
 * **One device tested.** The shim carries workarounds for the WebView GL stack it met there
   (missing `OES_draw_buffers_indexed`, an Adreno-rejected dead shader attribute). Other GPUs may
   need their own; if the port misbehaves, `adb logcat -s AdaPort:*` shows what the shim did.
