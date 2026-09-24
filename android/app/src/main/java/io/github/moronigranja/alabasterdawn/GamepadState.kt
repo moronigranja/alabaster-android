@@ -1,4 +1,4 @@
-package dev.moroni.alabasterdawn
+package io.github.moronigranja.alabasterdawn
 
 import org.json.JSONArray
 import org.json.JSONObject

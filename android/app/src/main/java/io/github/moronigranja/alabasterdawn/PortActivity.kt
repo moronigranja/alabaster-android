@@ -1,4 +1,4 @@
-package dev.moroni.alabasterdawn
+package io.github.moronigranja.alabasterdawn
 
 import android.app.Activity
 import android.content.Intent

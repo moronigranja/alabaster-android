@@ -586,7 +586,7 @@ Test device for everything in §9: **SM-S908U1** (Galaxy S22 Ultra, Android 16 /
 controller = Switch Pro over Bluetooth. The desktop-shim checkpoint (§3 of the plan) ran in stock
 Chromium on the host.
 
-`android/` (Gradle root + `:app`, package `dev.moroni.alabasterdawn`, one runtime dependency
+`android/` (Gradle root + `:app`, package `io.github.moronigranja.alabasterdawn`, one runtime dependency
 `androidx.webkit:webkit:1.17.1`, `minSdk 26`, **no permissions**). Sources: `PortActivity.kt`
 (pre-game screen with two SAF pickers, index thread, WebView, gamepad dispatch, renderer-crash
 rebuild, immersive fullscreen), `GameFiles.kt` (tree index: 286 dirs / 2652 files in 7–9 s),

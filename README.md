@@ -40,6 +40,23 @@ Verified end-to-end on **Samsung Galaxy S22 Ultra (SM-S908U1), Android 16 (API 3
 Switch Pro Controller: title screen, in-game input, save rotation (`Default` → `Backups` →
 `Backups2`), `System.save` round-trip, and options persisted.
 
+### Download
+
+Grab `AlabasterDawn-Android-<version>.apk` from
+[Releases](https://github.com/moronigranja/alabaster-android/releases) (allow "install unknown
+apps" for your browser or file manager). Each release lists the SHA-256 and the signer
+certificate of exactly the file it uploaded, so you can check what you install:
+
+```bash
+sha256sum AlabasterDawn-Android-0.1.apk
+apksigner verify --print-certs AlabasterDawn-Android-0.1.apk   # no SDK? keytool -printcert -jarfile …
+```
+
+The APK is signed with **this project's own release key** — never the debug key, never another
+app's key — and it carries `assets/LICENSE` + `assets/NOTICE.md` inside, so the binary ships the
+notices it is distributed under. Installing it over a build signed with a different key (a local
+debug build, say) needs an uninstall first.
+
 ### Not in this milestone
 
 * No on-screen touch controls (phase 2).
@@ -68,6 +85,24 @@ Unit tests (gamepad mapping and state):
 ```bash
 cd android && ./gradlew :app:testDebugUnitTest
 ```
+
+Publishing a signed release (maintainers): the release keystore lives **outside** the repo and is
+wired through the gitignored `android/keystore.properties`; clones without that file still build,
+but the release variant comes out unsigned.
+
+```bash
+keytool -genkeypair -keystore ~/.android/alabasterdawn-release.jks -alias alabasterdawn \
+  -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=Alabaster Dawn Android port, O=moronigranja, C=BR"
+# then android/keystore.properties: storeFile / storePassword / keyAlias / keyPassword (chmod 600)
+
+android/tools/release.sh                       # signed build + digest + signature check
+android/tools/release.sh --upload --publish --notes docs/release-notes-0.1.md
+```
+
+`tools/release.sh` renames the shipped artifact to `AlabasterDawn-Android-<version>.apk` (never
+`app-release-unsigned.apk`, never `app-debug.apk`) and runs the digest and signature checks on that
+exact file. Back the keystore and `keystore.properties` up off-machine: losing them locks updates
+on every device that installed a build signed with them.
 
 ### First run
 
@@ -156,13 +191,16 @@ in `gamepad-fix.json`, or use `fix/gpf-diagnose.js` and `tools/inpage-probe.js`.
 
 ```
 android/    the port (Gradle root + :app; Kotlin, no permissions, one runtime dependency)
-docs/       screenshots used by this README
+            tools/release.sh builds, verifies and publishes the signed APK
+docs/       screenshots used by this README, plus the release notes for each version
 fix/        controller fix for the desktop / Wine build (installer, config, tests, diagnosis)
 tools/      measurement harness: uinput virtual gamepad, in-page probe, fast static server,
             the Node/NW.js browser shim that proved the port feasible
 logs/       raw diagnostic logs captured inside GameNative (evidence for FINDINGS.md)
 FINDINGS.md research notes: the controller bug, the boot requirements, the port design,
             the performance ledger, and the dead ends not worth retrying
+NOTICE.md   attribution: what the game is, what ships inside the APK, what was not copied
+LICENSE     MIT (this repository's own code and documentation only)
 ```
 
 ## Legal
@@ -178,7 +216,10 @@ FINDINGS.md research notes: the controller bug, the boot requirements, the port 
 
 ## License
 
-The code and documentation in this repository are **MIT** licensed — see [LICENSE](LICENSE).
+The code and documentation in this repository are **MIT** licensed — see [LICENSE](LICENSE), and
+[NOTICE.md](NOTICE.md) for the game/third-party attribution. MIT requires its notice to travel with
+copies of the software, so the released APK carries both files inside itself as `assets/LICENSE`
+and `assets/NOTICE.md` (copied at build time from the repo root, one source of truth).
 This covers this repository's own source only, not the game and not the third-party components
 below. If you would rather have a copyleft or patent-granting license, swapping `LICENSE` is the
 only change needed (at which point the sub-projects here follow automatically).

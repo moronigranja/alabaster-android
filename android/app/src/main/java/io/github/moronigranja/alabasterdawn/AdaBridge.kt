@@ -1,4 +1,4 @@
-package dev.moroni.alabasterdawn
+package io.github.moronigranja.alabasterdawn
 
 import android.util.Log
 import android.webkit.JavascriptInterface

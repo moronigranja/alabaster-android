@@ -5,6 +5,11 @@ android/build/
 android/app/build/
 android/captures/
 android/local.properties
+# Release signing: the keystore lives outside the repo; only the gitignored properties file
+# (storeFile/storePassword/keyAlias/keyPassword) is local to a machine that publishes.
+android/keystore.properties
+*.jks
+*.keystore
 .cxx/
 *.apk
 *.aab
