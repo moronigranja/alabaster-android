@@ -44,18 +44,18 @@ Switch Pro Controller: title screen, in-game input, save rotation (`Default` →
 
 Grab `AlabasterDawn-Android-<version>.apk` from
 [Releases](https://github.com/moronigranja/alabaster-android/releases) (allow "install unknown
-apps" for your browser or file manager). Each release lists the SHA-256 and the signer
-certificate of exactly the file it uploaded, so you can check what you install:
+apps" for your browser or file manager). Every release is signed by **this project's own release
+certificate** — `CN=Alabaster Dawn Android port, O=moronigranja, C=BR`, SHA-256
+`ab31dd8874bf28fb06c783c8df0d3f6abeec719240165605ce27070e676b9604` — so you can confirm what you
+install:
 
 ```bash
-sha256sum AlabasterDawn-Android-0.1.apk
 apksigner verify --print-certs AlabasterDawn-Android-0.1.apk   # no SDK? keytool -printcert -jarfile …
 ```
 
-The APK is signed with **this project's own release key** — never the debug key, never another
-app's key — and it carries `assets/LICENSE` + `assets/NOTICE.md` inside, so the binary ships the
-notices it is distributed under. Installing it over a build signed with a different key (a local
-debug build, say) needs an uninstall first.
+The APK carries `assets/LICENSE` + `assets/NOTICE.md` inside, so the binary ships the notices it is
+distributed under. Installing it over a build signed with a different key (a local debug build,
+say) needs an uninstall first.
 
 ### Not in this milestone
 
