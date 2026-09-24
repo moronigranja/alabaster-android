@@ -18,6 +18,7 @@
 #   tools/release.sh --upload --publish   # ... and make it live
 #   tools/release.sh --notes FILE         # release notes file (implies --upload)
 set -euo pipefail
+ORIG_PWD="$PWD"
 cd "$(dirname "$0")/.."
 
 if [ ! -f keystore.properties ]; then
@@ -36,6 +37,12 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
+
+# The script runs in android/, but --notes is documented relative to the repo root
+# (`android/tools/release.sh ... --notes docs/release-notes-0.2.md`): resolve it there too.
+if [ -n "$NOTES_FILE" ] && [ ! -f "$NOTES_FILE" ] && [ -f "$ORIG_PWD/$NOTES_FILE" ]; then
+  NOTES_FILE="$ORIG_PWD/$NOTES_FILE"
+fi
 
 VERSION=$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts | head -1)
 APK=app/build/outputs/apk/release/app-release.apk
