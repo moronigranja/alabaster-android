@@ -38,6 +38,12 @@ Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`)
   that hides the pad (the choice is kept). It feeds the *same* pad state as the hardware one, so the
   engine sees one standard pad; the controls hide themselves while a real controller is in use and
   come back after a minute of no controller input.
+* **Pad layout editor**: an `EDIT` pill in the same row opens an editor — drag any control to move
+  it, drag the selected control's corner handle to resize it, `-`/`+` to size the whole pad, `RESET`
+  to restore the stock layout (`UNDO` while that reset is still unsaved) and `DONE` to save. The
+  layout is kept in the app's prefs and, when a saves folder is picked, also written to
+  `pad-layout.json` at its root, which wins on load so the layout travels with the saves folder.
+  While the editor is open the pad publishes no gamepad at all, so the game falls back to keyboard.
 * Resolution can be raised in-game: `640x360 / 960x540 / 1280x720 / 1920x1080 / 2560x1440`.
 * Leaving the app pauses the game: the music stops and the loop stops burning CPU. An Android
   WebView never dispatches the page's `blur`/`focus` (which is how the engine knows it lost the
@@ -50,7 +56,10 @@ Switch Pro Controller: title screen, in-game input, save rotation (`Default` →
 **Android 14 emulator**: it draws over the running game, the engine reports one connected standard
 pad with *no* controller attached, a held stick and every button reach the engine with the expected
 values, the d-pad steps the title menu and A opens the highlighted entry, the toggle hides/shows the
-pad (persisted across a restart) and a controller event hides the controls until it goes quiet.
+pad (persisted across a restart) and a controller event hides the controls until it goes quiet. The
+same emulator pass covered the layout editor: the pad publishes nothing while editing, a dragged
+control and a resized key reach the engine at their new geometry, the layout survives a restart,
+the saves-folder `pad-layout.json` wins over the prefs copy, and `RESET`/`UNDO` flip as described.
 
 ### Download
 
@@ -62,7 +71,7 @@ certificate** — `CN=Alabaster Dawn Android port, O=moronigranja, C=BR`, SHA-25
 install:
 
 ```bash
-apksigner verify --print-certs AlabasterDawn-Android-0.1.apk   # no SDK? keytool -printcert -jarfile …
+apksigner verify --print-certs AlabasterDawn-Android-0.2.apk   # no SDK? keytool -printcert -jarfile …
 ```
 
 The APK carries `assets/LICENSE` + `assets/NOTICE.md` inside, so the binary ships the notices it is
@@ -109,7 +118,7 @@ keytool -genkeypair -keystore ~/.android/alabasterdawn-release.jks -alias alabas
 # then android/keystore.properties: storeFile / storePassword / keyAlias / keyPassword (chmod 600)
 
 android/tools/release.sh                       # signed build + digest + signature check
-android/tools/release.sh --upload --publish --notes docs/release-notes-0.1.md
+android/tools/release.sh --upload --publish --notes docs/release-notes-0.2.md
 ```
 
 `tools/release.sh` renames the shipped artifact to `AlabasterDawn-Android-<version>.apk` (never
@@ -168,7 +177,9 @@ Thermals, not CPU, are the limit: the same 720p scene measured 42 fps cool and 1
 * `GamepadState` is the single JSON producer: the physical pad (`Gamepad`, from `KeyEvent`/
   `MotionEvent`) and the on-screen pad both write into it, and it publishes one merged W3C standard
   pad. `OnScreenPadModel` holds the pad's layout and pointer rules (pure Kotlin, unit-tested) and
-  `OnScreenPadView` draws it and turns touches into model calls.
+  `OnScreenPadView` draws it and turns touches into model calls. `PadLayout` is the persisted
+  override set (its JSON, pure Kotlin) and `PadLayoutStore` keeps the two copies — the app prefs and
+  `pad-layout.json` in the picked saves folder.
 * `FINDINGS.md` documents the measurements, the dead ends and the reason for every patch.
 
 ---

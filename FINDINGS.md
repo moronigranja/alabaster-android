@@ -15,14 +15,18 @@ ON_SCREEN_GAMEPAD_PLAN.md      design + status of the on-screen pad (geometry, h
 android/  app/                 the native Android port (§9): Kotlin, WebView + SAF, no permissions
           app/src/main/.../GamepadState.kt     single JSON producer (physical + on-screen pad)
           app/src/main/.../OnScreenPadModel.kt pad layout + pointer rules, pure Kotlin (unit-tested)
-          app/src/main/.../OnScreenPadView.kt  draws the pad, touches -> model calls
+          app/src/main/.../OnScreenPadView.kt  draws the pad, touches -> model calls; layout editor
+          app/src/main/.../PadLayout.kt        the persisted layout override set + its JSON (pure Kotlin)
+          app/src/main/.../PadLayoutStore.kt   prefs copy + pad-layout.json in the saves folder
           app/src/main/assets/ada-shim.js    document-start shim (ported from tools/)
           app/src/test/.../GamepadStateTest.kt   12 JVM tests (7 mapping/state + 5 overlay merge)
-          app/src/test/.../OnScreenPadModelTest.kt  16 JVM tests (layout, hit rules, dead zone)
+          app/src/test/.../OnScreenPadModelTest.kt  25 JVM tests (layout, hit rules, dead zone, editor)
+          app/src/test/.../PadLayoutTest.kt     6 JVM tests (wire format, precedence)
 docs/     setup.png            screenshots for README.md (Alabaster Dawn art (c) Radical Fish Games)
           title-screen.png
           on-screen-pad.png
           release-notes-0.1.md  the 0.1 release notes (no on-screen pad yet; see ON_SCREEN_GAMEPAD_PLAN.md)
+          release-notes-0.2.md  the 0.2 release notes (on-screen pad + layout editor)
 fix/    gamepad-fix.js         controller fix for the desktop build (drop-in, tested)
         gamepad-fix.json        its config
         install.sh              installer / revert for a game directory

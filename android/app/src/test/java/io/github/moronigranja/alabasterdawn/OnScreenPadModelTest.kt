@@ -28,7 +28,7 @@ class OnScreenPadModelTest {
             for (control in 0 until OnScreenPadModel.CONTROLS) {
                 assertInside(model.shape(control), width, height, "${width}x$height control $control")
             }
-            assertInside(model.toggle, width, height, "${width}x$height toggle")
+            assertInside(model.pill(OnScreenPadModel.PILL_A), width, height, "${width}x$height toggle")
             for (a in 0 until OnScreenPadModel.CONTROLS) {
                 for (b in a + 1 until OnScreenPadModel.CONTROLS) {
                     assertFalse(
@@ -236,13 +236,183 @@ class OnScreenPadModelTest {
         for (button in 0 until GamepadState.BUTTONS) assertFalse(model.buttons[button])
     }
 
-    /* -------------------------------------------------------------------------- toggle ---- */
+    /* --------------------------------------------------------------------------- pills ---- */
 
     @Test
-    fun `the toggle is hit only inside its pill`() {
+    fun `the pad pill is hit only inside its pill`() {
         val model = model()
-        assertTrue(model.toggleHit(model.toggle.x, model.toggle.y))
-        assertFalse(model.toggleHit(model.toggle.x, model.toggle.y + model.toggle.halfHeight * 2f))
-        assertFalse(model.toggleHit(model.toggle.x, 1080f))
+        val pill = model.pill(OnScreenPadModel.PILL_A)
+        assertEquals(OnScreenPadModel.PILL_A, model.pillAt(pill.x, pill.y))
+        assertEquals(
+            OnScreenPadModel.PILL_NONE,
+            model.pillAt(pill.x, pill.y + pill.halfHeight * 2f)
+        )
+        assertEquals(OnScreenPadModel.PILL_NONE, model.pillAt(pill.x, 1080f))
+    }
+
+    /* ------------------------------------------------------------------- layout editor ---- */
+
+    @Test
+    fun `opening the editor releases a held control`() {
+        val model = model()
+        val a = model.shape(OnScreenPadModel.FACE_A)
+        val stick = model.shape(OnScreenPadModel.LEFT_STICK)
+        assertTrue(model.down(1, a.x, a.y))
+        assertTrue(model.down(2, stick.x, stick.y))
+        model.move(2, stick.x + stick.radius, stick.y)
+        assertTrue(model.buttons[0])
+        assertEquals(1.0, model.axes[0].toDouble(), 0.0001)
+        model.releaseAll()
+        assertFalse(model.buttons[0])
+        assertEquals(0.0, model.axes[0].toDouble(), 0.0001)
+    }
+
+    @Test
+    fun `a default layout reproduces the stock pad`() {
+        val fresh = model()
+        val model = model()
+        model.layout = PadLayout().also {
+            it.global = 1.3f
+            it.offsetX[OnScreenPadModel.FACE_A] = 2f
+            it.scale[OnScreenPadModel.FACE_A] = 1.5f
+        }
+        model.layout = PadLayout()
+        for (control in 0 until OnScreenPadModel.CONTROLS) {
+            val a = fresh.shape(control)
+            val b = model.shape(control)
+            assertEquals("control $control x", a.x, b.x, 0.0001f)
+            assertEquals("control $control y", a.y, b.y, 0.0001f)
+            assertEquals("control $control radius", a.radius, b.radius, 0.0001f)
+            assertEquals("control $control halfWidth", a.halfWidth, b.halfWidth, 0.0001f)
+            assertEquals("control $control halfHeight", a.halfHeight, b.halfHeight, 0.0001f)
+        }
+    }
+
+    @Test
+    fun `dragging moves a control by the finger delta and stores the placed offset`() {
+        val model = model()
+        val u = model.unit
+        val start = model.shape(OnScreenPadModel.LEFT_STICK)
+        val startX = start.x
+        val startY = start.y
+        model.beginDrag(OnScreenPadModel.LEFT_STICK, startX, startY)
+        model.dragTo(OnScreenPadModel.LEFT_STICK, startX + 2f * u, startY - 1f * u)
+        val moved = model.shape(OnScreenPadModel.LEFT_STICK)
+        assertEquals(startX + 2f * u, moved.x, 0.01f)
+        assertEquals(startY - 1f * u, moved.y, 0.01f)
+        assertEquals(2f, model.layout.offsetX[OnScreenPadModel.LEFT_STICK], 0.01f)
+        assertEquals(-1f, model.layout.offsetY[OnScreenPadModel.LEFT_STICK], 0.01f)
+        /* The stored offset reproduces the placed shape in a fresh model. */
+        val fresh = OnScreenPadModel().apply {
+            resize(1920f, 1080f)
+            layout = model.layout.snapshot()
+        }
+        assertEquals(moved.x, fresh.shape(OnScreenPadModel.LEFT_STICK).x, 0.001f)
+        assertEquals(moved.y, fresh.shape(OnScreenPadModel.LEFT_STICK).y, 0.001f)
+    }
+
+    @Test
+    fun `dragging past an edge stops with the control inside the viewport`() {
+        val model = model()
+        val u = model.unit
+        val stick = model.shape(OnScreenPadModel.LEFT_STICK)
+        val radius = stick.radius
+        model.beginDrag(OnScreenPadModel.LEFT_STICK, stick.x, stick.y)
+        model.dragTo(OnScreenPadModel.LEFT_STICK, stick.x + 20f * u, stick.y + 20f * u)
+        val moved = model.shape(OnScreenPadModel.LEFT_STICK)
+        assertEquals(1920f - radius - 0.2f * u, moved.x, 0.01f)
+        assertEquals(1080f - radius - 0.2f * u, moved.y, 0.01f)
+    }
+
+    @Test
+    fun `scaling the handle doubles the radius and clamps to the limits`() {
+        val model = model()
+        val up = model.shape(OnScreenPadModel.DPAD_UP)
+        val grab = up.radius
+        model.beginScale(OnScreenPadModel.DPAD_UP, up.x + grab, up.y)
+        model.scaleTo(OnScreenPadModel.DPAD_UP, up.x + 2f * grab, up.y)
+        assertEquals(2f * grab, model.shape(OnScreenPadModel.DPAD_UP).radius, 0.01f)
+        model.scaleTo(OnScreenPadModel.DPAD_UP, model.shape(OnScreenPadModel.DPAD_UP).x + 100f * model.unit, model.shape(OnScreenPadModel.DPAD_UP).y)
+        assertEquals(PadLayout.MAX_SCALE, model.layout.scale[OnScreenPadModel.DPAD_UP], 0.01f)
+        model.scaleTo(OnScreenPadModel.DPAD_UP, model.shape(OnScreenPadModel.DPAD_UP).x, model.shape(OnScreenPadModel.DPAD_UP).y)
+        assertEquals(PadLayout.MIN_SCALE, model.layout.scale[OnScreenPadModel.DPAD_UP], 0.01f)
+    }
+
+    @Test
+    fun `growing the pad scales every control but not the pill row`() {
+        val model = model()
+        val u = model.unit
+        val radius = model.shape(OnScreenPadModel.LEFT_STICK).radius
+        val pill = model.pill(OnScreenPadModel.PILL_A)
+        val pillX = pill.x
+        val pillY = pill.y
+        val pillWidth = pill.halfWidth
+        model.addGlobal(0.5f)
+        assertEquals(1.5f, model.layout.global, 0.001f)
+        assertEquals(1.5f * radius, model.shape(OnScreenPadModel.LEFT_STICK).radius, 0.01f)
+        assertEquals(pillX, model.pill(OnScreenPadModel.PILL_A).x, 0.001f)
+        assertEquals(pillY, model.pill(OnScreenPadModel.PILL_A).y, 0.001f)
+        assertEquals(pillWidth, model.pill(OnScreenPadModel.PILL_A).halfWidth, 0.001f)
+        model.addGlobal(99f)
+        assertEquals(PadLayout.MAX_GLOBAL, model.layout.global, 0.001f)
+        assertEquals(u, model.unit, 0.0001f)
+    }
+
+    @Test
+    fun `the handle sits at the selected control's corner and follows the selection`() {
+        val model = model()
+        assertFalse("nothing selected", model.handleHit(0f, 0f))
+        val up = model.shape(OnScreenPadModel.DPAD_UP)
+        model.beginDrag(OnScreenPadModel.DPAD_UP, up.x, up.y)
+        val handle = model.handle
+        assertEquals(up.x + up.radius, handle.x, 0.001f)
+        assertEquals(up.y + up.radius, handle.y, 0.001f)
+        assertTrue(model.handleHit(handle.x, handle.y))
+        assertFalse(model.handleHit(handle.x + 2f * model.unit, handle.y))
+        val a = model.shape(OnScreenPadModel.FACE_A)
+        model.beginDrag(OnScreenPadModel.FACE_A, a.x, a.y)
+        assertEquals(a.x + a.radius, model.handle.x, 0.001f)
+        assertFalse(model.handleHit(up.x + up.radius, up.y + up.radius))
+    }
+
+    @Test
+    fun `the pill row exposes the four slots in edit mode and two in play mode`() {
+        val model = model()
+        val u = model.unit
+        val y = 0.8f * u + 0.35f * u
+        assertEquals(960f - 1.45f * u, model.pill(OnScreenPadModel.PILL_A).x, 0.01f)
+        assertEquals(960f + 1.45f * u, model.pill(OnScreenPadModel.PILL_B).x, 0.01f)
+        assertEquals(y, model.pill(OnScreenPadModel.PILL_A).y, 0.01f)
+        assertEquals(
+            OnScreenPadModel.PILL_A,
+            model.pillAt(model.pill(OnScreenPadModel.PILL_A).x, model.pill(OnScreenPadModel.PILL_A).y)
+        )
+        assertEquals(
+            OnScreenPadModel.PILL_B,
+            model.pillAt(model.pill(OnScreenPadModel.PILL_B).x, model.pill(OnScreenPadModel.PILL_B).y)
+        )
+        assertEquals(OnScreenPadModel.PILL_NONE, model.pillAt(960f, y))
+        assertEquals(OnScreenPadModel.PILL_NONE, model.pillAt(960f, 300f))
+        model.setEditing(true)
+        assertEquals(960f - 3.15f * u, model.pill(OnScreenPadModel.PILL_A).x, 0.01f)
+        assertEquals(960f - 0.85f * u, model.pill(OnScreenPadModel.PILL_MINUS).x, 0.01f)
+        assertEquals(960f + 0.85f * u, model.pill(OnScreenPadModel.PILL_PLUS).x, 0.01f)
+        assertEquals(960f + 3.15f * u, model.pill(OnScreenPadModel.PILL_B).x, 0.01f)
+        assertEquals(OnScreenPadModel.PILL_MINUS, model.pillAt(960f - 0.85f * u, y))
+        assertEquals(OnScreenPadModel.PILL_PLUS, model.pillAt(960f + 0.85f * u, y))
+    }
+
+    @Test
+    fun `a custom layout stays inside a narrow window`() {
+        val model = OnScreenPadModel().apply { resize(800f, 600f) }
+        model.layout = PadLayout().also {
+            it.global = 1.4f
+            it.offsetX[OnScreenPadModel.FACE_A] = 5f
+            it.offsetY[OnScreenPadModel.FACE_A] = 5f
+            it.scale[OnScreenPadModel.LEFT_STICK] = 1.8f
+        }
+        for (control in 0 until OnScreenPadModel.CONTROLS) {
+            assertInside(model.shape(control), 800f, 600f, "800x600 control $control")
+        }
     }
 }

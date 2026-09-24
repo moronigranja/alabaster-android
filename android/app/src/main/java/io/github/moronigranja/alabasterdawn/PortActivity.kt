@@ -51,6 +51,7 @@ class PortActivity : Activity() {
     private var index: GameIndex? = null
     private var fsBridge: FsBridge? = null
     private var saveStore: SaveStore? = null
+    private var padLayoutStore: PadLayoutStore? = null
     private var webView: WebView? = null
     private var padView: OnScreenPadView? = null
     private var shimSource: String = ""
@@ -232,6 +233,7 @@ class PortActivity : Activity() {
                 index = built
                 Log.i(TAG, "indexed in ${System.currentTimeMillis() - started} ms")
                 saveStore = openSaveStore()
+                padLayoutStore = PadLayoutStore(prefs, saveStore!!)
                 fsBridge = FsBridge(contentResolver, tree, built, saveStore!!)
                 status.text = "Loaded ${built.size} files."
                 launchWebView()
@@ -310,7 +312,9 @@ class PortActivity : Activity() {
         )
         val pad = OnScreenPadView(this).apply {
             padEnabled = prefs.getBoolean(KEY_PAD, true)
+            layout = padLayoutStore?.load() ?: PadLayout()
             onToggle = { prefs.edit().putBoolean(KEY_PAD, it).apply() }
+            onLayoutChanged = { padLayoutStore?.save(it) }
             onFirstTouch = { resumeAudio() }
         }
         padView = pad
@@ -430,6 +434,9 @@ class PortActivity : Activity() {
     }
 
     override fun onPause() {
+        /* An edit in progress is saved when the app goes to the background, so it is not lost if
+         * the process is killed. */
+        padView?.commitIfEditing()
         /* Blur before the timers stop, or the AudioContext suspension waits for the app to come
          * back. pauseTimers() then covers the loop the engine drives with setInterval (an fps
          * below 60) and any other page timer. */

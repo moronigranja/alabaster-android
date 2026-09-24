@@ -8,15 +8,17 @@ import android.graphics.Path
 import android.view.MotionEvent
 import android.view.View
 import kotlin.math.abs
+import kotlin.math.min
 
 /**
  * The on-screen pad: draws [OnScreenPadModel] and feeds what it holds into [Gamepad], which merges
  * it with the physical pad's state into the one standard pad the engine polls.
  *
  * Drawing and hit rules live in the model; this class only turns Android's `MotionEvent` stream into
- * model calls and the model's state into canvas primitives. Its own state is just the two switches
- * — the user's `padEnabled` preference and `controllerInUse` — and their one combined effect,
- * [applyOverlay].
+ * model calls and the model's state into canvas primitives. Its own state is the two switches — the
+ * user's `padEnabled` preference and `controllerInUse` — and their one combined effect,
+ * [applyOverlay], plus the layout editor: the [editing] mode, the [layout] being edited, and the
+ * pointer bookkeeping for the drags.
  *
  * This View is a control surface, not a clickable widget, hence the accessibility lint suppression.
  */
@@ -39,9 +41,30 @@ class OnScreenPadView(context: Context) : View(context) {
         invalidate()
     }
 
+    /** The layout being edited and drawn; assigning it re-places every control. */
+    var layout: PadLayout
+        get() = model.layout
+        set(value) {
+            model.layout = value
+            invalidate()
+        }
+
+    /** Fired on every commit (DONE, detach, background), so the Activity can persist the layout. */
+    var onLayoutChanged: ((PadLayout) -> Unit)? = null
+
+    /** True while the layout editor is open. */
+    val editing: Boolean get() = model.editing
+
+    /** The RESET snapshot: what UNDO restores. Cleared on commit and on entering the editor. */
+    private var undo: PadLayout? = null
+
+    /** Pointer id → control being moved / resized, so a MOVE can route each finger. */
+    private val dragPointer = HashMap<Int, Int>()
+    private val scalePointer = HashMap<Int, Int>()
+
     /**
      * The user's choice, set from the saved preference by the Activity and flipped by a tap on the
-     * toggle. Assigning it re-applies the overlay contribution, so a pad started hidden never
+     * PAD/HIDE pill. Assigning it re-applies the overlay contribution, so a pad started hidden never
      * publishes state.
      */
     var padEnabled = true
@@ -74,6 +97,7 @@ class OnScreenPadView(context: Context) : View(context) {
 
     /** A controller event: hide the controls now, and show them again once it has gone quiet. */
     fun noteControllerActivity() {
+        if (model.editing) return
         if (!controllerInUse) {
             controllerInUse = true
             applyOverlay()
@@ -84,11 +108,42 @@ class OnScreenPadView(context: Context) : View(context) {
     }
 
     override fun onDetachedFromWindow() {
+        /* The WebView is rebuilt on a renderer crash; save an edit in progress first. */
+        commitIfEditing()
         removeCallbacks(showAgain)
         super.onDetachedFromWindow()
     }
 
+    /**
+     * Saves the edited layout and leaves the editor. False when not editing. Fires
+     * [onLayoutChanged] even when nothing changed: the write is idempotent, and it re-syncs the
+     * prefs copy after a hand-edited `pad-layout.json`.
+     */
+    fun commitIfEditing(): Boolean {
+        if (!model.editing) return false
+        undo = null
+        model.setEditing(false)
+        dragPointer.clear()
+        scalePointer.clear()
+        onLayoutChanged?.invoke(layout)
+        applyOverlay()
+        invalidate()
+        return true
+    }
+
+    private fun setEditing(editing: Boolean) {
+        undo = null
+        /* A control held when the editor opens must not stay held when it closes. */
+        if (editing) model.releaseAll()
+        model.setEditing(editing)
+        applyOverlay()
+        invalidate()
+    }
+
     private fun controlsDrawn(): Boolean = padEnabled && !controllerInUse
+
+    /** Whether the overlay is a pad right now: the controls are drawn and no editor is open. */
+    private fun overlayActive(): Boolean = controlsDrawn() && !model.editing
 
     /**
      * The one place the overlay contributes to the gamepad. Disabling clears what the overlay last
@@ -96,9 +151,9 @@ class OnScreenPadView(context: Context) : View(context) {
      * re-enabling republishes instead of diffing, because that clearing happened on Gamepad's side.
      */
     private fun applyOverlay() {
-        val drawn = controlsDrawn()
-        Gamepad.setOverlayEnabled(drawn)
-        if (drawn) pushState(force = true)
+        val active = overlayActive()
+        Gamepad.setOverlayEnabled(active)
+        if (active) pushState(force = true)
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -110,10 +165,16 @@ class OnScreenPadView(context: Context) : View(context) {
         var consumed = false
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
-                if (model.toggleHit(x, y)) {
-                    padEnabled = !padEnabled
-                    onToggle?.invoke(padEnabled)
-                    consumed = true
+                val pill = model.pillAt(x, y)
+                if (pill != OnScreenPadModel.PILL_NONE) {
+                    onPill(pill)
+                } else if (model.editing && model.handleHit(x, y) && model.selected != OnScreenPadModel.NO_CONTROL) {
+                    model.beginScale(model.selected, x, y)
+                    scalePointer[id] = model.selected
+                } else if (model.editing && model.controlAt(x, y) != OnScreenPadModel.NO_CONTROL) {
+                    val control = model.controlAt(x, y)
+                    model.beginDrag(control, x, y)
+                    dragPointer[id] = control
                 } else if (controlsDrawn()) {
                     /* While the controls are drawn the pad consumes the whole gesture: the page has
                      * no touch UI, and the engine has no touch input device to fall back on. */
@@ -121,12 +182,25 @@ class OnScreenPadView(context: Context) : View(context) {
                     if (pushState()) invalidate()
                     consumed = true
                 }
+                consumed = consumed || model.editing || controlsDrawn() || pill != OnScreenPadModel.PILL_NONE
+                if (model.editing || pill != OnScreenPadModel.PILL_NONE) invalidate()
                 /* A consumed DOWN never reaches the WebView's own touch listener. */
                 if (consumed && event.actionMasked == MotionEvent.ACTION_DOWN) onFirstTouch?.invoke()
             }
 
             MotionEvent.ACTION_MOVE -> {
-                if (controlsDrawn()) {
+                if (model.editing) {
+                    var changed = false
+                    for (p in 0 until event.pointerCount) {
+                        val pid = event.getPointerId(p)
+                        val px = event.getX(p)
+                        val py = event.getY(p)
+                        dragPointer[pid]?.let { model.dragTo(it, px, py); changed = true }
+                        scalePointer[pid]?.let { model.scaleTo(it, px, py); changed = true }
+                    }
+                    if (changed) invalidate()
+                    consumed = true
+                } else if (controlsDrawn()) {
                     var tracked = false
                     for (p in 0 until event.pointerCount) {
                         tracked = model.move(event.getPointerId(p), event.getX(p), event.getY(p)) || tracked
@@ -137,17 +211,61 @@ class OnScreenPadView(context: Context) : View(context) {
             }
 
             MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
-                if (model.up(id) && pushState()) invalidate()
-                consumed = controlsDrawn()
+                if (model.editing) {
+                    dragPointer.remove(id)
+                    scalePointer.remove(id)
+                    consumed = true
+                } else {
+                    if (model.up(id) && pushState()) invalidate()
+                    consumed = controlsDrawn()
+                }
             }
 
             MotionEvent.ACTION_CANCEL -> {
-                for (p in 0 until event.pointerCount) model.up(event.getPointerId(p))
-                if (pushState()) invalidate()
+                if (model.editing) {
+                    dragPointer.clear()
+                    scalePointer.clear()
+                } else {
+                    for (p in 0 until event.pointerCount) model.up(event.getPointerId(p))
+                    if (pushState()) invalidate()
+                }
                 consumed = true
             }
         }
         return consumed
+    }
+
+    /** A tap on one of the top-row pills; the meaning of [PILL_A]/[PILL_B] depends on the mode. */
+    private fun onPill(pill: Int) {
+        when (pill) {
+            OnScreenPadModel.PILL_A -> if (model.editing) {
+                /* RESET takes a snapshot only when there is something to undo, which is exactly what
+                 * makes the label flip to UNDO right after a press that changed something. */
+                val saved = undo
+                if (saved != null) {
+                    layout.copyFrom(saved)
+                    undo = null
+                    model.layout = layout
+                } else if (!layout.isDefault()) {
+                    undo = layout.snapshot()
+                    layout.setDefault()
+                    model.layout = layout
+                }
+                invalidate()
+            } else {
+                padEnabled = !padEnabled
+                onToggle?.invoke(padEnabled)
+            }
+
+            OnScreenPadModel.PILL_MINUS ->
+                if (model.editing) model.addGlobal(-PadLayout.GLOBAL_STEP)
+
+            OnScreenPadModel.PILL_PLUS ->
+                if (model.editing) model.addGlobal(PadLayout.GLOBAL_STEP)
+
+            OnScreenPadModel.PILL_B ->
+                if (model.editing) commitIfEditing() else setEditing(true)
+        }
     }
 
     /** Publishes the model's state to [Gamepad], one call per value that actually changed. */
@@ -177,11 +295,9 @@ class OnScreenPadView(context: Context) : View(context) {
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
         if (model.unit <= 0f) return
-        val u = model.unit
-        stroke.strokeWidth = u * STROKE_UNITS
-        label.textSize = u * TEXT_UNITS
+        stroke.strokeWidth = model.layoutUnit * STROKE_UNITS
         val drawn = controlsDrawn()
-        if (drawn) {
+        if (drawn || model.editing) {
             drawStick(canvas, OnScreenPadModel.LEFT_STICK, 0)
             drawDpad(canvas)
             drawStick(canvas, OnScreenPadModel.RIGHT_STICK, 2)
@@ -189,23 +305,87 @@ class OnScreenPadView(context: Context) : View(context) {
             drawDisc(canvas, OnScreenPadModel.FACE_A, "A")
             drawDisc(canvas, OnScreenPadModel.FACE_X, "X")
             drawDisc(canvas, OnScreenPadModel.FACE_B, "B")
-            drawPill(canvas, OnScreenPadModel.L1, "L1")
-            drawPill(canvas, OnScreenPadModel.L2, "L2")
-            drawPill(canvas, OnScreenPadModel.R1, "R1")
-            drawPill(canvas, OnScreenPadModel.R2, "R2")
-            drawPill(canvas, OnScreenPadModel.SELECT, "SEL")
-            drawPill(canvas, OnScreenPadModel.START, "START")
-            drawPill(canvas, OnScreenPadModel.HOME, "HOME")
+            drawControlPill(canvas, OnScreenPadModel.L1, "L1")
+            drawControlPill(canvas, OnScreenPadModel.L2, "L2")
+            drawControlPill(canvas, OnScreenPadModel.R1, "R1")
+            drawControlPill(canvas, OnScreenPadModel.R2, "R2")
+            drawControlPill(canvas, OnScreenPadModel.SELECT, "SEL")
+            drawControlPill(canvas, OnScreenPadModel.START, "START")
+            drawControlPill(canvas, OnScreenPadModel.HOME, "HOME")
         }
-        /* The toggle is drawn last and always, so the pad can be brought back after hiding it. */
-        drawPill(canvas, model.toggle, false, if (drawn) "HIDE" else "PAD")
+        if (model.editing) drawEditorChrome(canvas)
+        /* The pill row is drawn last and always, so the pad can be brought back after hiding it. */
+        stroke.strokeWidth = model.unit * STROKE_UNITS
+        label.textSize = model.unit * TEXT_UNITS
+        drawRowPill(canvas, OnScreenPadModel.PILL_A, pillLabelA(drawn))
+        drawRowPill(canvas, OnScreenPadModel.PILL_MINUS, "-")
+        drawRowPill(canvas, OnScreenPadModel.PILL_PLUS, "+")
+        drawRowPill(canvas, OnScreenPadModel.PILL_B, if (model.editing) "DONE" else "EDIT")
+    }
+
+    private fun pillLabelA(drawn: Boolean): String = when {
+        model.editing -> if (undo != null) "UNDO" else "RESET"
+        drawn -> "HIDE"
+        else -> "PAD"
+    }
+
+    /** The selected control's outline, its corner handle, and the hint line. */
+    private fun drawEditorChrome(canvas: Canvas) {
+        val selected = model.selected
+        if (selected != OnScreenPadModel.NO_CONTROL) {
+            val shape = model.shape(selected)
+            stroke.color = COLOR_PRESSED
+            if (shape.circular) {
+                canvas.drawCircle(shape.x, shape.y, shape.radius, stroke)
+            } else {
+                canvas.drawRoundRect(
+                    shape.x - shape.halfWidth,
+                    shape.y - shape.halfHeight,
+                    shape.x + shape.halfWidth,
+                    shape.y + shape.halfHeight,
+                    shape.halfHeight,
+                    shape.halfHeight,
+                    stroke
+                )
+            }
+        }
+        val handle = model.handle
+        if (handle.x != OnScreenPadModel.OFF_SCREEN) {
+            fill.color = COLOR_PRESSED
+            canvas.drawRoundRect(
+                handle.x - handle.halfWidth,
+                handle.y - handle.halfHeight,
+                handle.x + handle.halfWidth,
+                handle.y + handle.halfHeight,
+                handle.halfWidth,
+                handle.halfWidth,
+                fill
+            )
+            stroke.color = COLOR_LABEL
+            canvas.drawRoundRect(
+                handle.x - handle.halfWidth,
+                handle.y - handle.halfHeight,
+                handle.x + handle.halfWidth,
+                handle.y + handle.halfHeight,
+                handle.halfWidth,
+                handle.halfWidth,
+                stroke
+            )
+        }
+        label.textSize = model.unit * HINT_UNITS
+        canvas.drawText(
+            "drag to move · corner to resize · size %.2fx".format(layout.global),
+            width / 2f,
+            centreLine(model.unit * HINT_Y),
+            label
+        )
     }
 
     private fun drawStick(canvas: Canvas, control: Int, axis: Int) {
         val shape = model.shape(control)
         stroke.color = COLOR_STROKE
         canvas.drawCircle(shape.x, shape.y, shape.radius, stroke)
-        val knob = model.unit * OnScreenPadModel.STICK_KNOB
+        val knob = model.knobRadius(control)
         val travel = shape.radius - knob
         val x = shape.x + model.axes[axis] * travel
         val y = shape.y + model.axes[axis + 1] * travel
@@ -250,12 +430,19 @@ class OnScreenPadView(context: Context) : View(context) {
         canvas.drawCircle(shape.x, shape.y, shape.radius, fill)
         stroke.color = COLOR_STROKE
         canvas.drawCircle(shape.x, shape.y, shape.radius, stroke)
+        label.textSize = min(model.layoutUnit * TEXT_UNITS, 0.9f * shape.radius)
         canvas.drawText(text, shape.x, centreLine(shape.y), label)
     }
 
-    private fun drawPill(canvas: Canvas, control: Int, text: String) {
+    private fun drawControlPill(canvas: Canvas, control: Int, text: String) {
         val shape = model.shape(control)
-        drawPill(canvas, shape, model.buttons[model.buttonIndex(control)], text)
+        val held = model.buttons[model.buttonIndex(control)]
+        label.textSize = min(model.layoutUnit * TEXT_UNITS, 0.9f * shape.halfHeight)
+        drawPill(canvas, shape, held, text)
+    }
+
+    private fun drawRowPill(canvas: Canvas, which: Int, text: String) {
+        drawPill(canvas, model.pill(which), false, text)
     }
 
     private fun drawPill(canvas: Canvas, shape: OnScreenPadModel.Shape, held: Boolean, text: String) {
@@ -297,6 +484,10 @@ class OnScreenPadView(context: Context) : View(context) {
         private const val AXIS_EPSILON = 1e-4f
         private const val STROKE_UNITS = 0.06f
         private const val TEXT_UNITS = 0.42f
+        private const val HINT_UNITS = 0.34f
+
+        /** The hint line's centre height, in raw touch units. */
+        private const val HINT_Y = 2.1f
 
         /* The launcher icon's palette. Plain vals: the alpha-lit hex values exceed Int.MAX_VALUE, so
          * Kotlin would infer Long for them. */

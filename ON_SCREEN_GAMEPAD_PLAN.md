@@ -442,3 +442,30 @@ both folders picked, game files in `/sdcard/Download/AlabasterDawn` and saves in
   second layout.
 - **No version bump or release step here**: `android/tools/release.sh` already builds, verifies and
   publishes the signed APK when a release is wanted.
+
+## Later: an editor for the pad layout (added after the pad shipped)
+
+The pad above is fixed geometry. A follow-up added a **layout editor** on top of it, in the same
+three files plus two new ones:
+
+- `PadLayout.kt` — the persisted override set: one global multiplier for the touch unit plus, per
+  control, an offset in raw `u` units and a scale on the control's extent. Serialised with
+  `org.json` (the library `GamepadState` already uses), versioned, and `of(file, prefs)` picks the
+  saves-folder `pad-layout.json` over the prefs copy over the default. Pure Kotlin, unit-tested.
+- `PadLayoutStore.kt` — the two copies: `prefs[pad_layout_json]` always, `pad-layout.json` at the
+  picked saves folder's root when there is one (a default layout is written, not deleted).
+- `OnScreenPadModel.kt` — the geometry gains a base/derived split (`base[]` at the layout's effective
+  unit `u * global`, each live shape = base + offset/scale, clamped `0.2u` inside the viewport) and
+  the editor math (`beginDrag`/`dragTo`, `beginScale`/`scaleTo`, `addGlobal`, `handleHit`,
+  `knobRadius`). The single `toggle` becomes a mode-aware four-slot pill row
+  (`PILL_A`/`PILL_MINUS`/`PILL_PLUS`/`PILL_B`), so play mode shows `PAD|HIDE` + `EDIT` and edit mode
+  shows `RESET`/`UNDO`, `-`, `+`, `DONE`.
+- `OnScreenPadView.kt` — the editor branch in `onTouchEvent` (the editor consumes every gesture and
+  publishes no gamepad), the editor chrome (the selected control's outline, its corner handle, a
+  size hint) and `commitIfEditing()` (called by `DONE`, `onDetachedFromWindow` and `onPause`).
+- `PortActivity.kt` — owns the `PadLayoutStore`, hands the loaded layout to the pad and persists
+  every commit.
+
+Deliberate choices: offsets are raw-`u` and scales dimensionless, so one layout serves every window
+size and orientation; the editor is entered/left only by its pills; and the saves-folder file wins
+on load so the layout travels with the saves folder.
