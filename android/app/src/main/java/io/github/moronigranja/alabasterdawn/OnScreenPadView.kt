@@ -77,6 +77,19 @@ class OnScreenPadView(context: Context) : View(context) {
 
     /** True while a physical controller is being used: the controls hide until it goes quiet. */
     var controllerInUse = false
+        private set
+
+    /**
+     * Whether a controller in use hides the overlay at all; the side menu's switch. Off leaves the
+     * controls and the pill row drawn — and the overlay publishing — while a pad is being used.
+     */
+    var hideWithController = true
+        set(value) {
+            if (field == value) return
+            field = value
+            applyOverlay()
+            invalidate()
+        }
 
     var onToggle: ((Boolean) -> Unit)? = null
 
@@ -140,16 +153,20 @@ class OnScreenPadView(context: Context) : View(context) {
         invalidate()
     }
 
-    private fun controlsDrawn(): Boolean = padEnabled && !controllerInUse
+    /** Whether the controller is hiding the overlay right now. */
+    private fun controllerHides(): Boolean = hideWithController && controllerInUse
+
+    private fun controlsDrawn(): Boolean = padEnabled && !controllerHides()
 
     /**
      * Whether the pill row is drawn and can be hit. It hides with the controls while a physical
      * controller is being used, so a controller player sees no touch chrome at all, and [showAgain]
      * brings it back with them once the controller has gone quiet. [noteControllerActivity] ignores
      * controller events while the editor is open, so editing never hides the row that closes it —
-     * RESET/DONE stay reachable for as long as they are needed.
+     * RESET/DONE stay reachable for as long as they are needed. With the switch off the pill row
+     * stays while a controller is used.
      */
-    private fun pillsDrawn(): Boolean = !controllerInUse
+    private fun pillsDrawn(): Boolean = !controllerHides()
 
     /** Whether the overlay is a pad right now: the controls are drawn and no editor is open. */
     private fun overlayActive(): Boolean = controlsDrawn() && !model.editing

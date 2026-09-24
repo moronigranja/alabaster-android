@@ -17,6 +17,7 @@ import android.view.ViewGroup
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
+import android.window.OnBackInvokedDispatcher
 import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
@@ -54,6 +55,10 @@ class PortActivity : Activity() {
     private var padLayoutStore: PadLayoutStore? = null
     private var webView: WebView? = null
     private var padView: OnScreenPadView? = null
+    private var menuView: SideMenuView? = null
+    private var hideWithController = true
+    private var viewAlign = ViewAlign.DEFAULT
+    private var statsEnabled = false
     private var shimSource: String = ""
 
     /** Last axes we logged, so a held stick does not flood logcat. */
@@ -65,8 +70,18 @@ class PortActivity : Activity() {
         gameTreeUri = validateGrant(prefs.getString(KEY_GAME, null), wantWrite = false)
         savesTreeUri = validateGrant(prefs.getString(KEY_SAVES, null), wantWrite = true)
         shimSource = readAsset(SHIM_ASSET)
+        hideWithController = prefs.getBoolean(KEY_HIDE_CONTROLLER, true)
+        viewAlign = ViewAlign.fromWire(prefs.getString(KEY_VIEW_ALIGN, null))
+        statsEnabled = prefs.getBoolean(KEY_STATS, false)
         buildPreGameUi()
         applyImmersive()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            /* On Android 16 with targetSdk 36 the framework routes back to the dispatcher and never
+             * calls onBackPressed; older devices only ever use onBackPressed. */
+            onBackInvokedDispatcher.registerOnBackInvokedCallback(
+                OnBackInvokedDispatcher.PRIORITY_DEFAULT
+            ) { handleBack() }
+        }
     }
 
     /* ---------------------------------------------------------------- pre-game screen ---- */
@@ -285,7 +300,16 @@ class PortActivity : Activity() {
         view.setBackgroundColor(Color.BLACK)
         view.isFocusable = true
         view.isFocusableInTouchMode = true
-        view.addJavascriptInterface(AdaBridge(bridge), BRIDGE_NAME)
+        val telemetry = Telemetry(this)
+        view.addJavascriptInterface(
+            AdaBridge(
+                bridge,
+                viewAlign = { viewAlign },
+                statsEnabled = { statsEnabled },
+                telemetry = telemetry,
+            ),
+            BRIDGE_NAME
+        )
         if (!injectShim) {
             try {
                 WebViewCompat.addDocumentStartJavaScript(view, shimSource, setOf(ORIGIN))
@@ -312,6 +336,7 @@ class PortActivity : Activity() {
         )
         val pad = OnScreenPadView(this).apply {
             padEnabled = prefs.getBoolean(KEY_PAD, true)
+            hideWithController = this@PortActivity.hideWithController
             layout = padLayoutStore?.load() ?: PadLayout()
             onToggle = { prefs.edit().putBoolean(KEY_PAD, it).apply() }
             onLayoutChanged = { padLayoutStore?.save(it) }
@@ -324,6 +349,33 @@ class PortActivity : Activity() {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
             )
         )
+        val menu = SideMenuView(this).apply {
+            setHideWithController(this@PortActivity.hideWithController)
+            setStatsEnabled(statsEnabled)
+            setAlign(viewAlign)
+            onHideWithController = {
+                this@PortActivity.hideWithController = it
+                prefs.edit().putBoolean(KEY_HIDE_CONTROLLER, it).apply()
+                padView?.hideWithController = it
+            }
+            onStatsEnabled = {
+                this@PortActivity.statsEnabled = it
+                prefs.edit().putBoolean(KEY_STATS, it).apply()
+            }
+            onAlign = {
+                this@PortActivity.viewAlign = it
+                prefs.edit().putString(KEY_VIEW_ALIGN, it.wire).apply()
+            }
+            onExit = { finish() }
+            onScrimTap = { closeMenu() }
+        }
+        frame.addView(
+            menu,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
+            )
+        )
+        menuView = menu
         setContentView(frame)
         view.requestFocus()
         Log.i(TAG, "loading $INDEX_URL")
@@ -360,6 +412,44 @@ class PortActivity : Activity() {
     private fun setStatus(text: String) {
         status.text = text
         Log.i(TAG, text)
+    }
+
+    /** Back opens the port's menu, closes it when it is open; pre-game it still exits the app. */
+    private fun handleBack() {
+        val menu = menuView
+        if (menu == null) {
+            finish()
+        } else if (menu.isOpen) {
+            closeMenu()
+        } else {
+            openMenu()
+        }
+    }
+
+    private fun openMenu() {
+        val menu = menuView ?: return
+        menu.setStatus(padView?.controllerInUse == true, savesStatusLine())
+        menu.open()
+    }
+
+    /**
+     * Closing re-focuses the WebView and re-dispatches the page focus the way `resumeAudio` does:
+     * the panel blocks focus, but a stray blur would otherwise leave the engine's loop stopped
+     * until the next resume or pad touch.
+     */
+    private fun closeMenu() {
+        menuView?.close()
+        webView?.requestFocus()
+        setPageFocus(true)
+    }
+
+    /** Without a saves folder the port saves into app storage, which cannot be copied out. */
+    private fun savesStatusLine(): String =
+        savesTreeUri?.let { GameFiles.displayNameOf(it) } ?: "app storage (not exportable)"
+
+    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
+    override fun onBackPressed() {
+        handleBack()
     }
 
     /* ------------------------------------------------------------------------- input ---- */
@@ -457,6 +547,7 @@ class PortActivity : Activity() {
         }
         webView = null
         padView = null
+        menuView = null
         super.onDestroy()
     }
 
@@ -504,6 +595,12 @@ class PortActivity : Activity() {
 
         /* Whether the on-screen pad draws its controls. */
         private const val KEY_PAD = "on_screen_pad"
+        /* Whether a controller in use hides the on-screen overlay (the side menu's switch). */
+        private const val KEY_HIDE_CONTROLLER = "hide_with_controller"
+        /* Where the picture sits vertically: a ViewAlign.wire value. */
+        private const val KEY_VIEW_ALIGN = "view_align"
+        /* Whether the shim draws its frame-rate/resolution/battery/thermal readout. */
+        private const val KEY_STATS = "stats_overlay"
         private const val REQ_GAME = 101
         private const val REQ_SAVES = 102
         private const val BRIDGE_NAME = "AdaBridge"

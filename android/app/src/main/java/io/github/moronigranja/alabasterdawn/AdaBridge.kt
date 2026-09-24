@@ -9,10 +9,29 @@ import android.webkit.JavascriptInterface
  * Every method here is synchronous on purpose: the shim mirrors Node's synchronous fs, so the app
  * must answer inline. Nothing throws across the boundary - failures come back as `false` / `null`.
  */
-class AdaBridge(private val fs: FsBridge) {
+class AdaBridge(
+    private val fs: FsBridge,
+    /** Read once per engine frame by the shim, which polls like it polls `getGamepadJson`. */
+    private val viewAlign: () -> ViewAlign,
+    private val statsEnabled: () -> Boolean,
+    /** Battery/thermal numbers, asked for only when the shim repaints the readout. */
+    private val telemetry: Telemetry,
+) {
 
     @JavascriptInterface
     fun getGamepadJson(): String = Gamepad.json()
+
+    /** Where the picture goes: "top" | "center" | "bottom" (see [ViewAlign]). */
+    @JavascriptInterface
+    fun getViewAlign(): String = viewAlign().wire
+
+    /** Whether the shim draws its frame-rate/resolution/battery readout. */
+    @JavascriptInterface
+    fun getStatsEnabled(): Boolean = statsEnabled()
+
+    /** `{"level":65,"temp":388,"thermal":"critical"}`; a field is null when it is unavailable. */
+    @JavascriptInterface
+    fun getTelemetry(): String = telemetry.json()
 
     @JavascriptInterface
     fun fsExists(path: String): Boolean = fs.exists(path)

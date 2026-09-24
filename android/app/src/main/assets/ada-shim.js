@@ -391,6 +391,8 @@
     }
 
     function pollGamepads() {
+        applyViewAlign();
+        updateStats();
         var st = parseJson(call(function (b) { return b.getGamepadJson(); }, ""));
         if (!st) {
             pad.connected = false;
@@ -441,14 +443,108 @@
         }
     })();
 
+    /* ---- port overlays ---------------------------------------------------
+     * Both are driven by the Kotlin side and both are applied on the gamepad poll, which the engine
+     * performs exactly once per frame (System.runInner -> g_input.update -> updateGamepads). */
+
+    var portCanvas = null;
+
+    /* The render canvas, cached: re-queried only when the engine replaces it. Shared by the picture
+     * alignment and the stats readout, which reports its drawing buffer as the resolution. */
+    function gameCanvas() {
+        if (!portCanvas || !portCanvas.isConnected) portCanvas = document.querySelector(".xgCanvas");
+        return portCanvas;
+    }
+
+    /* Picture alignment. The engine has two display scales, so the position is written with both
+     * knobs: with `sharp-pixels` off the canvas element fills the window and `object-fit: contain`
+     * letterboxes the render buffer inside it, so the picture moves with `object-position`; with it
+     * on the element box is pinned to an integer multiple of the buffer and centred by
+     * `margin: auto`, so the box itself moves with `top`/`bottom`. Each knob is a no-op in the mode
+     * that does not use it, and "" restores the stylesheet's centred default. */
+    var alignApplied = null;
+    var alignElement = null;
+
+    function applyViewAlign() {
+        var mode = call(function (b) { return b.getViewAlign(); }, "center");
+        var canvas = gameCanvas();
+        if (!canvas) return;
+        if (mode === alignApplied && canvas === alignElement) return;
+        alignApplied = mode;
+        alignElement = canvas;
+        canvas.style.objectPosition = mode === "top" ? "50% 0%" : (mode === "bottom" ? "50% 100%" : "");
+        canvas.style.top = mode === "top" ? "0px" : (mode === "bottom" ? "auto" : "");
+        canvas.style.bottom = mode === "bottom" ? "0px" : (mode === "top" ? "auto" : "");
+    }
+
+    /* Frame-rate/resolution/battery readout, drawn as its own DOM layer so it costs the renderer
+     * nothing and survives any resolution change. `statsFrames` counts gamepad polls = engine
+     * frames; the battery and thermal numbers are asked for only when the text is repainted (twice
+     * a second), never per frame. */
+    var FPS_WINDOW_MS = 500;
+    var statsDiv = null;
+    var statsOn = false;
+    var statsFrames = 0;
+    var statsStart = 0;
+
+    function statsLayer() {
+        if (statsDiv || !document.body) return statsDiv;
+        statsDiv = document.createElement("div");
+        statsDiv.style.cssText = "position:fixed;left:8px;top:8px;z-index:2147483647;" +
+            "padding:2px 6px;border-radius:4px;background:rgba(0,0,0,0.55);" +
+            "color:#e8dcc8;font:12px/1.4 monospace;pointer-events:none";
+        document.body.appendChild(statsDiv);
+        return statsDiv;
+    }
+
+    function updateStats() {
+        var on = call(function (b) { return b.getStatsEnabled(); }, false) === true;
+        if (on !== statsOn) {
+            statsOn = on;
+            statsFrames = 0;
+            statsStart = 0;
+            var fresh = statsLayer();
+            if (fresh) fresh.style.display = on ? "" : "none";
+        }
+        if (!statsOn) return;
+        var div = statsLayer();
+        if (!div) return;
+        var t = now();
+        if (!statsStart) {
+            statsStart = t;
+            statsFrames = 0;
+            return;
+        }
+        statsFrames++;
+        if (t - statsStart < FPS_WINDOW_MS) return;
+        var canvas = gameCanvas();
+        var parts = [
+            Math.round(statsFrames * 1000 / (t - statsStart)) + " fps",
+            canvas ? canvas.width + "x" + canvas.height : "?"
+        ];
+        var phone = parseJson(call(function (b) { return b.getTelemetry(); }, ""));
+        if (phone) {
+            var battery = phone.level === null || phone.level === undefined
+                ? "" : "bat " + phone.level + "%";
+            if (phone.temp !== null && phone.temp !== undefined) {
+                battery += (battery ? " " : "bat ") + (phone.temp / 10).toFixed(1) + "\u00b0C";
+            }
+            if (battery) parts.push(battery);
+            if (phone.thermal) parts.push("therm " + phone.thermal);
+        }
+        div.textContent = parts.join(" \u00b7 ");
+        statsStart = t;
+        statsFrames = 0;
+    }
+
     /* ---- canvas geometry -------------------------------------------------
-     * Deliberately left alone. The engine owns the canvas layout: with
-     * `sharp-pixels` off it keeps `width/height: 100%` and `object-fit: contain`
-     * so the render buffer is scaled to fill the window (its "Resolution" option
-     * documents exactly that), and with it on it pins the CSS size to an integer
-     * multiple of the buffer. Pinning the CSS size to `canvas.width` from here
-     * breaks that: at Resolution 640x360 the game shrank to a small picture in
-     * the middle of the screen instead of filling it. */
+     * The engine owns the canvas layout: with `sharp-pixels` off it keeps
+     * `width/height: 100%` and `object-fit: contain`, so the render buffer is scaled to fill the
+     * window (its "Resolution" option documents exactly that), and with it on it pins the CSS size
+     * to an integer multiple of the buffer. The port writes the picture's *position* only (below,
+     * for the side menu's Top/Centre/Bottom). Never pin the CSS size to `canvas.width` from here:
+     * at Resolution 640x360 that shrank the game to a small picture in the middle of the screen
+     * instead of filling it. */
 
     /* ---- error surfacing -------------------------------------------------
      * A device-only failure is otherwise a black screen: forward everything to
