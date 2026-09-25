@@ -109,7 +109,12 @@ tracker to complete over the same CDP connection produced `ENGINE boot: complete
 followed, within the next 2 s tick, by `log file off: the game completed its first boot`, with
 `log_to_saves=false` and no `log_to_saves_user_set` in the prefs and that line last in the file;
 after tapping the switch on (setting `log_to_saves_user_set=true`), a second completed boot printed no
-auto-off line and the switch stayed on across a force-stop and relaunch.
+auto-off line and the switch stayed on across a force-stop and relaunch. The **shipped release
+artifact** was then exercised the same way: `android/tools/release.sh`'s signed
+`AlabasterDawn-Android-0.4.apk` was installed on that emulator over a debug uninstall (the keys
+differ), granted the two folders from scratch through the picker, started, and it booted to the same
+12 % stall while writing `app 0.4 (4) …` and `rewrite cached=40 hits=0 …` to the log file, with
+`(x12)` visible in the collapsed repeat.
 
 ### Download
 
@@ -121,7 +126,7 @@ certificate** — `CN=Alabaster Dawn Android port, O=moronigranja, C=BR`, SHA-25
 install:
 
 ```bash
-apksigner verify --print-certs AlabasterDawn-Android-0.3.apk   # no SDK? keytool -printcert -jarfile …
+apksigner verify --print-certs AlabasterDawn-Android-0.4.apk   # no SDK? keytool -printcert -jarfile …
 ```
 
 The APK carries `assets/LICENSE` + `assets/NOTICE.md` inside, so the binary ships the notices it is
@@ -181,7 +186,7 @@ keytool -genkeypair -keystore ~/.android/alabasterdawn-release.jks -alias alabas
 # then android/keystore.properties: storeFile / storePassword / keyAlias / keyPassword (chmod 600)
 
 android/tools/release.sh                       # signed build + digest + signature check
-android/tools/release.sh --upload --publish --notes docs/release-notes-0.3.md
+android/tools/release.sh --upload --publish --notes docs/release-notes-0.4.md
 ```
 
 `tools/release.sh` renames the shipped artifact to `AlabasterDawn-Android-<version>.apk` (never

@@ -857,9 +857,11 @@ not blurred by the dialog) — verified: a stalled-but-alive boot produced 0 sil
 
 Three changes, each measured on the A14/SwiftShader emulator (§10.4's frozen boot is the test state;
 the emulator was started with `-avd ayvu34 -no-window -no-audio -gpu swiftshader_indirect -no-boot-anim
--no-snapshot`, and its `disk.dataPartition.path = <temp>` means `/data` is fresh every boot while
-`/sdcard` persists — the app has to be reinstalled and its two SAF grants re-picked after a restart,
-which is why the emulator was left running for the whole pass).
+-no-snapshot` and left running for the whole pass). Two facts about that AVD cost time here: it is
+configured `disk.dataPartition.path = <temp>`, and after the emulator was killed by the shell that
+started it, the app was no longer installed while `/sdcard` and DocumentsUI's remembered location
+were — so the package had to be installed again and both SAF folders re-picked through the picker
+(Download → the folder → USE THIS FOLDER → ALLOW; the Download root itself is not selectable).
 
 | change | measurement |
 |---|---|
@@ -872,3 +874,13 @@ database, `.frag` files, and `index.html` when the shim is injected) and an entr
 than evicted once `maxBytes` would be exceeded — the bundle alone is 12 861 435 of the 33 554 432
 bytes, so the cache is sized for "the bundle plus the shader set", not for the tree. Caching every
 response would cost tens of MB for assets that are read exactly once per boot.
+
+Release check for v0.4 (`android/tools/release.sh`): the shipped `AlabasterDawn-Android-0.4.apk` is
+1.1 MB and signed by the same key as 0.1–0.3 (cert SHA-256 `ab31dd88…`), so it upgrades in place.
+That exact artifact was installed on the emulator — over a *debug* uninstall, since the keys differ —
+and driven from scratch through the picker and START: it indexed the same 2 937 entries, booted to the
+same 12 % stall, and wrote `app 0.4 (4) …` with `rewrite cached=40 hits=0 12861435/33554432 bytes`
+and `(x12)` in the collapsed repeat, so the release build behaves as the debug one does. One
+difference on purpose: the release build is not debuggable, so WebView devtools is off and the CDP
+driving of the page from §10.6 is unavailable there — `adb logcat -s AdaPort:I` is the raw-line
+channel on a shipped build.
