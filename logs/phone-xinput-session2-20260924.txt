@@ -1,0 +1,40 @@
+# SM-S908U1 device session (2026-09-24 late) - virtual XInput verification
+
+## adb
+R5CT119ZTMX            device usb:5-1 product:b0quew model:SM_S908U1 device:b0q transport_id:8
+192.168.0.120:5555     device product:b0quew model:SM_S908U1 device:b0q transport_id:9
+
+
+## container STEAM_3110760 (Alabaster Dawn)
+game process command lines (flag injection):
+
+game process environment:
+pid=26659
+
+container opt-in + proxy:
+GN_XINPUT_VIRTUAL=1
+"virtual_xinput": "yes"
+xinput1_4"="native,builtin
+8192
+
+## phone-wide settings (must be untouched)
+null
+1
+
+## Captured while the game was running (11:53)
+
+container processes:
+  wine start.exe /exec explorer /desktop=shell,1280x720 winhandler.exe "C:\Program Files (x86)\Steam\steamclient_loader_x64.exe"
+  wine ... explorer.exe /desktop=shell,1280x720 winhandler.exe "C:\Program Files (x86)\Steam\steamclient_loader_x64.exe" --disable-features=EnableWindowsGamingInputDataFetcher
+  wine winhandler.exe "C:\Program Files (x86)\Steam\steamclient_loader_x64.exe" --disable-features=EnableWindowsGamingInputDataFetcher
+  wine C:\Program Files (x86)\Steam\steamapps\common\Alabaster Dawn\alabaster_dawn.exe --disable-features=EnableWindowsGamingInputDataFetcher
+  ... plus 7 more alabaster_dawn.exe children (--type=gpu-process/renderer/utility/crashpad)
+
+game process environment (pid 12210, /proc/<pid>/environ as the app uid):
+  EVSHIM_BASE_PATH=/data/user/0/app.gamenative.xv/files
+  GN_XINPUT_LOG=1
+  GN_XINPUT_VIRTUAL=1
+
+never happened: xinput1_4.dll mapping in any of those processes (grep -c xinput1_4 /proc/<pid>/maps == 0),
+no gaming/hid/xinput/dinput module mapped at all, no proxy trace -> the page never called
+navigator.getGamepads(), i.e. the title's page never ran in this container.

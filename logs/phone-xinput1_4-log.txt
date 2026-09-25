@@ -1,0 +1,12 @@
+48801132ms:xinput1_4 (virtual pad) attached
+48801224ms:shm: opened EVSHIM_BASE_PATH candidate
+48801236ms:shm: slot connected
+48801260ms:shm: opened EVSHIM_BASE_PATH candidate
+48801276ms:shm: opened EVSHIM_BASE_PATH candidate
+48801294ms:shm: opened EVSHIM_BASE_PATH candidate
+49213063ms:xinput1_4 (virtual pad) attached
+49213078ms:shm: opened EVSHIM_BASE_PATH candidate
+49213083ms:shm: slot connected
+49213098ms:shm: opened EVSHIM_BASE_PATH candidate
+49213124ms:shm: opened EVSHIM_BASE_PATH candidate
+49213142ms:shm: opened EVSHIM_BASE_PATH candidate

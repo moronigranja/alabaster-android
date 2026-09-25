@@ -733,3 +733,142 @@ Booster performance mode, prefer 640×360 (54 % GPU) unless the sharper 960×540
   38902/38900/38864 B across `Default`/`Backups`/`Backups2`, plus `System.save` revisions, names
   intact (no `(1)` suffixes). The in-game *Load* list was never eyeballed (needs a manual save);
   everything underneath it is verified.
+
+---
+
+## 10. The frozen boot bar (2026-09-25) — issue #1, an AYN Odin 3
+
+Symptom: "the game freezes loading the game files, it does not boot, forcing a shut down", with a
+screenshot of a thin blue bar at ~9-12% and no other UI. The reporter's one hardware fact was that
+the on-screen pad's pills still hide when the controller is touched — which is the clue that matters:
+**the app is alive**, so this is not a frozen process.
+
+### 10.1 What that bar is
+
+`TriRenderer.renderBooting(bootingProgress)` draws it: the canvas is cleared to black, a 16 px-high
+bar centred and `size.x / 2` wide, framed `rgb(0, 64, 128)`, and the fill `rgb(128, 192, 255)` grows
+from the left by `bootingProgress` (screenshot: frame + a light fill starting at the left end =
+exactly this, at ~0.1). And:
+
+```
+bootingProgress = LoadTracker.progress = 1 - resources.length / maxResource
+```
+
+over `g_resource.bootTracker` — `boot()` wraps the listener, `onLoadingUpdate` copies
+`tracker.progress` into `g_system.bootingProgress`, and the tracker only empties when **every**
+staged resource finalizes. So the bar stops at N% when the *boot resource set* stops completing; the
+port's process, main thread and input are untouched, which is precisely what the reporter saw.
+
+### 10.2 The boot set, stage by stage (measured, not guessed)
+
+Desktop Chromium against the real game tree (local logging server + an in-page sampler reading
+`g.resource.bootTracker`: requests, `progress`, `maxResource`, pending `identification()`s — recipe in
+§10.6): **1743 resources**, complete in ~11.5 s; the asset burst is over at ~10 s and the rest of the
+way to the title screen is the intro sequence (§8 item 3).
+
+| progress | what is still pending |
+|---|---|
+| 2-7% | `data/database/*.json` (global-vars, tilesets, prefabs, changelog, …) + the first Spritesheets |
+| 8-14% | GUI Spritesheets (`media/gui/menu.png`, `hud.png`, …) **and ~100 `media/audio/sfx/**.wav`** |
+| 40-60% | half audio, half map/effect data |
+| 87-95% | the Spritesheet tail (this is the slow part — 5.3 s to 8.8 s of the 11.5 s) |
+| 99.5% | a handful of `Effect[ FX:… ]` / `Figure[ FIG:… ]` |
+
+The audio batch sits in the critically-early 8-14% band, i.e. **inside the reporter's frozen range**.
+On the A14 emulator the same tracker read 1755 / 2633 / 2938 resources depending on which save was in
+place (map effects are staged from the save), so the total is save-state dependent, the ordering is not.
+
+### 10.3 Which load path can hang
+
+* Images (`ImageRes.loadImpl` → `new Image()` + `src`): `onload`/`onerror` always fire; a failure ends
+  in `g_resource.reportError`.
+* Data (XHR/`fetch` via `AjaxUtils`): promises/rejections settle.
+* **`SoundRes.onLoad` (bundle ~2049-2090) is the exception**: it calls
+  `context.decodeAudioData(data, ok, fail)` and `finalizeBuild(true)` lives **only in the success
+  callback**. If a device's WebView delivers neither callback — an audio thread that never starts —
+  the resource never finalizes, the tracker never drains and the bar freezes with **no exception
+  anywhere**.
+* Ruled out: a *suspended* `AudioContext`. Re-running the boot with
+  `--autoplay-policy=document-user-activation-required` still completed (Chromium decodes while
+  suspended), so that sub-case is not the mechanism.
+* Therefore the port now counts the decode callbacks (`started/done/failed`) and reports the context
+  state whenever a boot stalls: a stall whose pending set is audio with `started > done` is this
+  mechanism, a stall with `inFlight` asset reads is the next one.
+
+### 10.4 The same symptom, reproduced — a GL stack that rejects the shaders
+
+On the A14 emulator (`-gpu swiftshader_indirect`; page reports
+`gl=Android Emulator OpenGL ES Translator (Google SwiftShader)`) the boot dies at 8-12% and the log
+repeats, every frame:
+
+```
+Uncaught Error: An error occurred compiling the shader "data/shader/vertex/clouds.vert"
+   (also gui.vert, fx-mesh.vert, fx-decal.vert, weather-drops.vert)
+Uncaught Error: There are unwrapped loadTrackers
+```
+
+`checkTrackers()` throws when the tracker list is non-empty at loop end, so the boot can never
+complete and the bar freezes at the same low percentage as the report.
+
+**A/B'd against stock 0.3** (built from `a57699d` in a worktree, same AVD, same app data): 11 shader
+errors and the same `unwrapped loadTrackers` — identical. The port rewrites `.frag` bytes only and the
+failing files are `.vert`, served verbatim, so this is the device's GL/driver stack, not the port.
+The emulator was started with the guest GL as SwiftShader; a host-GPU or `-gpu host` run is the way to
+get a *booting* emulator for other work.
+
+### 10.5 What the app now reports, and why each field exists
+
+`Diag` (bounded in-memory log + frame clock, pure Kotlin, unit-tested), `AssetTracker` (unfinished
+asset reads, pure Kotlin, unit-tested), `DiagnosticsDialog` (renders and shares the record), the
+shim's `watchBoot`, and two native watchdogs:
+
+| field | what it decides |
+|---|---|
+| app/device/Android/ABI | which build, which hardware |
+| WebView package + version, document-start support, UA | the implementation actually running (a device without Play can be far behind) |
+| `gl=` (from the page: `g.gl` + `WEBGL_debug_renderer_info`) | which GL backend the WebView picked — the shader-failure class above is backend-specific |
+| `audio=` (`g.audio.context.state`) + `decodes started/done/failed` | §10.3, told apart from a hung read |
+| `boot stall … % of N resources; pending M (kind=count …)` + first pending names | the frozen bar, named |
+| `engine silent for Xms; last bridge call: …` | the *other* failure: the page's JS thread stopped — `getGamepadJson()` is called once per frame, and `AdaBridge` records the fs call in flight, so a hung SAF read is named instead of guessed at |
+| `asset read stuck: path (Ns)` | `shouldInterceptRequest` reads that never returned (a slow/hung DocumentsProvider) |
+| `slow asset <ms> path` (>1.5 s) | a struggling tree before it fails outright |
+| `assets served/missed/inFlight/slowest` | throughput and backlog at a glance |
+
+The watchdog reports silence only while the page is *meant* to be running (`engineActive`: resumed and
+not blurred by the dialog) — verified: a stalled-but-alive boot produced 0 silence reports over 30 s.
+
+### 10.6 Recipes used here (reusable)
+
+* **Boot-stage mapping**: serve the tree with a request-logging server that injects the shim, and
+  sample page-side in `setInterval` — `{progress, maxResource, pending: bootTracker.resources.map(r =>
+  r.identification())}` — then join samples to the request log by timestamp. `window.g.system` is
+  **not** published by this bundle; `window.g.resource.bootTracker` is the way in (and its `progress`
+  is the same number `renderBooting` receives).
+* **Driving a page on the device**: debug builds enable WebView devtools —
+  `adb forward tcp:9222 localabstract:webview_devtools_remote_<pid>`, then CDP
+  `Runtime.evaluate` (default context) on the page target. `Runtime.evaluate("while(true){}")` blocks
+  the page's JS thread on purpose, which is how the silence watchdog was verified end to end
+  (it logged `engine silent for 6601ms; last bridge call: -` within 2 s of the threshold).
+* **Screenshots on the emulator**: `adb exec-out screencap -p`, and read button geometry off the
+  pixels (the panel's buttons are `rgb(90,89,91)` bands) before tapping — two taps one band off
+  exited the app during this session.
+
+### 10.7 Hardening the record, and what it cost to read the boot path again (2026-09-25)
+
+Three changes, each measured on the A14/SwiftShader emulator (§10.4's frozen boot is the test state;
+the emulator was started with `-avd ayvu34 -no-window -no-audio -gpu swiftshader_indirect -no-boot-anim
+-no-snapshot`, and its `disk.dataPartition.path = <temp>` means `/data` is fresh every boot while
+`/sdcard` persists — the app has to be reinstalled and its two SAF grants re-picked after a restart,
+which is why the emulator was left running for the whole pass).
+
+| change | measurement |
+|---|---|
+| `Diag.line` collapses an immediately repeated message in place (`… loadTrackers (x412)`), sink keeps every raw line | the stuck boot's per-frame error, previously 1 line/frame against a 400-line ring (~6 s of history for 60 fps), now occupies one slot: the shader names, the `facts` line and the `boot stall` line were all still present in a 36-line record |
+| rewritten bodies cached (`RewriteCache`, 32 MB budget) + a fragment shader's paired `.vert` read once per process | first boot: `rewrite cached=40 hits=0 12861435/33554432 bytes` with `slowest=510ms terra/dist/bundle.js`; after a CDP `location.reload()` on the same process: `hits=40`, `served` 328 → 651, `slowest` unchanged at 510 ms — the 12.7 MB read and all 39 other rewrites were skipped |
+| the record kept as `ada-diagnostics.log` in the saves folder, on by default, off by itself after the first completed boot unless the user touched the switch | the file grew while the boot was stuck (5 780 bytes, 29 lines, holding the `facts`, shader and `boot stall` lines); forcing `g.resource.bootTracker` to `progress=1, state=2` over CDP produced `ENGINE boot: complete in 35000ms …` and then `log file off: the game completed its first boot` on the next 2 s tick, with the file's last line that one and the prefs holding `log_to_saves=false` (`log_to_saves_user_set` absent, i.e. still untouched); after a tap set `log_to_saves_user_set=true`, a second completed boot printed no auto-off line and the switch stayed on across force-stop + relaunch |
+
+Budget note for a future change: only four response kinds are cached (the bundle, the option
+database, `.frag` files, and `index.html` when the shim is injected) and an entry is refused rather
+than evicted once `maxBytes` would be exceeded — the bundle alone is 12 861 435 of the 33 554 432
+bytes, so the cache is sized for "the bundle plus the shader set", not for the tree. Caching every
+response would cost tens of MB for assets that are read exactly once per boot.

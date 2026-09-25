@@ -1,6 +1,7 @@
 package io.github.moronigranja.alabasterdawn
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
@@ -8,6 +9,8 @@ import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.view.InputDevice
 import android.view.KeyEvent
@@ -32,10 +35,12 @@ import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import org.json.JSONObject
+import java.io.File
 
 /**
  * Hosts the game: the user's own folder served from SAF, the Node/NW.js shim injected at document
- * start, native controller input, and saves in a second SAF folder that keeps the Steam layout.
+ * start, native controller input, saves in a second SAF folder that keeps the Steam layout, and a
+ * copy of the diagnostics record in that folder so it survives a force-stop.
  *
  * Nothing under the game folder is ever written to.
  */
@@ -61,18 +66,64 @@ class PortActivity : Activity() {
     private var statsEnabled = false
     private var shimSource: String = ""
 
+    /** Whether the record is also kept as [LogFile.FILE] in the saves folder. */
+    private var logToSaves = true
+
+    /* Written from the diagnostic sink (the JS bridge thread) and read by the watchdog (main), so
+     * these are volatile; only the main thread decides to write. */
+    @Volatile
+    private var logDirty = false
+    @Volatile
+    private var logWriting = false
+    @Volatile
+    private var logFailures = 0
+
+    /** The app's own log and frame clock; everything device-specific is reported through it. */
+    private lateinit var diag: Diag
+    private var assetHandler: GameAssetHandler? = null
+
+    /** The last report the injected shim made, shown in the side menu (a boot stall names itself). */
+    @Volatile
+    private var lastEngineReport: String = "-"
+
+    /* The watchdog that tells a blocked page apart from a page waiting for a hung asset read. */
+    private val watchdog = Handler(Looper.getMainLooper())
+    private var webViewStartedAt = 0L
+    private var lastSilentLogAt = 0L
+
+    /**
+     * Whether the page is meant to be running right now: the engine's loop only polls once per frame
+     * while it has window focus, and the port pauses it on purpose (app backgrounded, or the
+     * diagnostics dialog in front). Silence in those states is expected, not a hang.
+     */
+    @Volatile
+    private var engineActive = false
+
     /** Last axes we logged, so a held stick does not flood logcat. */
     private val lastLoggedAxes = FloatArray(4)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         prefs = getSharedPreferences(PREF, MODE_PRIVATE)
+        /* Everything logged here is also written to logcat, so nothing is lost on a device where
+         * the diagnostics panel cannot be read. The sink also marks the persistent record dirty and
+         * posts the auto-off check on the shim's boot report: it runs inside Diag's lock, so it must
+         * not call back into Diag (a field write and a post allocate nothing per line). */
+        diag = Diag().also { it.attachSink { line ->
+            Log.i(TAG, line)
+            if (line.contains(" ENGINE ")) lastEngineReport = line.substringAfter("ENGINE ")
+            logDirty = true
+            if (line.contains(" ENGINE boot: ")) watchdog.post { autoDisableLog() }
+        } }
+        diag.line("port ${appVersion()} on ${Build.MANUFACTURER} ${Build.MODEL}, Android " +
+            "${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT}, ${Build.SUPPORTED_ABIS.firstOrNull()})")
         gameTreeUri = validateGrant(prefs.getString(KEY_GAME, null), wantWrite = false)
         savesTreeUri = validateGrant(prefs.getString(KEY_SAVES, null), wantWrite = true)
         shimSource = readAsset(SHIM_ASSET)
         hideWithController = prefs.getBoolean(KEY_HIDE_CONTROLLER, true)
         viewAlign = ViewAlign.fromWire(prefs.getString(KEY_VIEW_ALIGN, null))
         statsEnabled = prefs.getBoolean(KEY_STATS, false)
+        logToSaves = prefs.getBoolean(LogFile.PREF_KEY, true)
         buildPreGameUi()
         applyImmersive()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -113,10 +164,21 @@ class PortActivity : Activity() {
             setOnClickListener { startGame() }
         }
         root.addView(
-            startButton,
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
-            )
+            LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                addView(
+                    startButton,
+                    LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
+                )
+                /* A device-only failure is reported from here: the record names the WebView, the GL
+                 * backend and what the engine was doing, without adb. */
+                addView(Button(this@PortActivity).apply {
+                    text = "Diagnostics"
+                    setOnClickListener { showDiagnostics() }
+                })
+            }
         )
         setContentView(root)
         refreshUi()
@@ -166,6 +228,7 @@ class PortActivity : Activity() {
             startActivityForResult(intent, requestCode)
         } catch (e: Exception) {
             Log.e(TAG, "no document picker", e)
+            diag.line("no document picker: ${e.message}")
             status.text = "No document picker available: ${e.message}"
         }
     }
@@ -187,12 +250,13 @@ class PortActivity : Activity() {
             Log.e(TAG, "cannot persist grant for $uri (flags=$flags)", e)
         }
         if (!granted) {
+            diag.line("grant refused for ${GameFiles.displayNameOf(uri)} (flags=$flags)")
             status.text = "Access to ${GameFiles.displayNameOf(uri)} could not be kept. Choose it again."
             return
         }
         if (!wantWrite && (flags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != 0) {
             /* Harmless, but the game folder is never written to. */
-            Log.i(TAG, "game folder grant is writable; writes are still refused by the bridge")
+            diag.line("game folder grant is writable; writes are still refused by the bridge")
         }
         if (wantWrite) {
             savesTreeUri = uri
@@ -201,7 +265,7 @@ class PortActivity : Activity() {
             gameTreeUri = uri
             prefs.edit().putString(KEY_GAME, uri.toString()).apply()
         }
-        Log.i(TAG, "granted ${if (wantWrite) "saves" else "game"}: $uri (flags=$flags)")
+        diag.line("granted ${if (wantWrite) "saves" else "game"}: $uri (flags=$flags)")
         status.text = ""
         refreshUi()
     }
@@ -217,7 +281,7 @@ class PortActivity : Activity() {
         val held = contentResolver.persistedUriPermissions.firstOrNull { it.uri == uri }
         val ok = held != null && held.isReadPermission && (!wantWrite || held.isWritePermission)
         if (!ok) {
-            Log.w(TAG, "stored grant for $uri is no longer valid; asking again")
+            diag.line("stored grant for $uri is no longer valid; asking again")
             return null
         }
         return uri
@@ -230,13 +294,14 @@ class PortActivity : Activity() {
         if (index != null) return
         startButton.isEnabled = false
         setStatus("Indexing game files…")
-        Log.i(TAG, "indexing $tree")
+        diag.line("indexing $tree")
         val started = System.currentTimeMillis()
         Thread({
             val built = try {
                 GameFiles.indexTree(contentResolver, tree)
             } catch (e: Exception) {
                 Log.e(TAG, "indexing failed", e)
+                diag.line("indexing failed: $e")
                 null
             }
             runOnUiThread {
@@ -246,7 +311,7 @@ class PortActivity : Activity() {
                     return@runOnUiThread
                 }
                 index = built
-                Log.i(TAG, "indexed in ${System.currentTimeMillis() - started} ms")
+                diag.line("indexed ${built.size} entries in ${System.currentTimeMillis() - started}ms")
                 saveStore = openSaveStore()
                 padLayoutStore = PadLayoutStore(prefs, saveStore!!)
                 fsBridge = FsBridge(contentResolver, tree, built, saveStore!!)
@@ -273,14 +338,17 @@ class PortActivity : Activity() {
         val built = index ?: return
         val bridge = fsBridge ?: return
         val injectShim = !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
+        diag.line("webView ${webViewPackage()} document-start scripts=" + !injectShim +
+            " ua=${webSettingsUserAgent()}")
         if (injectShim) {
-            Log.w(TAG, "document-start scripts unsupported; the shim is injected via terra/index.html")
+            diag.line("document-start scripts unsupported; the shim is injected via terra/index.html")
         }
+        val handler = GameAssetHandler(
+            contentResolver, gameTreeUri!!, built, assets, injectShim, diag
+        )
+        assetHandler = handler
         val loader = WebViewAssetLoader.Builder()
-            .addPathHandler(
-                "/game/",
-                GameAssetHandler(contentResolver, gameTreeUri!!, built, assets, injectShim)
-            )
+            .addPathHandler("/game/", handler)
             .build()
         val view = WebView(this)
         view.settings.apply {
@@ -307,6 +375,7 @@ class PortActivity : Activity() {
                 viewAlign = { viewAlign },
                 statsEnabled = { statsEnabled },
                 telemetry = telemetry,
+                diag = diag,
             ),
             BRIDGE_NAME
         )
@@ -352,6 +421,7 @@ class PortActivity : Activity() {
         val menu = SideMenuView(this).apply {
             setHideWithController(this@PortActivity.hideWithController)
             setStatsEnabled(statsEnabled)
+            setLogToSaves(logToSaves)
             setAlign(viewAlign)
             onHideWithController = {
                 this@PortActivity.hideWithController = it
@@ -362,11 +432,22 @@ class PortActivity : Activity() {
                 this@PortActivity.statsEnabled = it
                 prefs.edit().putBoolean(KEY_STATS, it).apply()
             }
+            /* An explicit tap ends the auto-off for good, whichever way it went. */
+            onLogToSaves = {
+                this@PortActivity.logToSaves = it
+                prefs.edit()
+                    .putBoolean(LogFile.PREF_KEY, it)
+                    .putBoolean(LogFile.PREF_SET_KEY, true)
+                    .apply()
+                logDirty = true
+                diag.line("log file " + (if (it) "on" else "off") + ": " + LogFile.FILE)
+            }
             onAlign = {
                 this@PortActivity.viewAlign = it
                 prefs.edit().putString(KEY_VIEW_ALIGN, it.wire).apply()
             }
             onExit = { finish() }
+            onDiagnostics = { showDiagnostics() }
             onScrimTap = { closeMenu() }
         }
         frame.addView(
@@ -378,8 +459,36 @@ class PortActivity : Activity() {
         menuView = menu
         setContentView(frame)
         view.requestFocus()
-        Log.i(TAG, "loading $INDEX_URL")
+        setStatus("Loading the game…")
+        diag.line("loading $INDEX_URL")
+        webViewStartedAt = monotonicMs()
+        watchdog.removeCallbacksAndMessages(null)
+        watchdog.postDelayed(watchdogTick, WATCHDOG_TICK_MS)
         view.loadUrl(INDEX_URL)
+    }
+
+    /**
+     * Runs while the game is up. The engine polls `getGamepadJson()` once per frame, so silence
+     * there means the page's JS thread stopped - a different failure from a page that is alive but
+     * waiting for an asset read that never returns. Both are reported with the names involved, which
+     * is what turns a screenshot of a frozen bar into something actionable.
+     */
+    private val watchdogTick = object : Runnable {
+        override fun run() {
+            flushLogIfDirty()
+            val now = monotonicMs()
+            val silent = diag.silentMs()
+            if (webView != null && engineActive && now - webViewStartedAt > SILENT_MS &&
+                silent > SILENT_MS && now - lastSilentLogAt > SILENT_LOG_MS
+            ) {
+                lastSilentLogAt = now
+                diag.line("engine silent for ${silent}ms; last bridge call: ${diag.lastBridgeCall()}")
+                for (stuck in assetHandler?.stuck(STUCK_MS).orEmpty()) {
+                    diag.line("asset read stuck: $stuck")
+                }
+            }
+            watchdog.postDelayed(this, WATCHDOG_TICK_MS)
+        }
     }
 
     private inner class PortWebViewClient(private val loader: WebViewAssetLoader) : WebViewClient() {
@@ -389,7 +498,7 @@ class PortActivity : Activity() {
         ): WebResourceResponse? = loader.shouldInterceptRequest(request.url)
 
         override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
-            Log.e(TAG, "render process gone (crashed=${detail.didCrash()}); rebuilding the WebView")
+            diag.line("render process gone (crashed=${detail.didCrash()}); rebuilding the WebView")
             rebuildWebView()
             return true
         }
@@ -414,6 +523,139 @@ class PortActivity : Activity() {
         Log.i(TAG, text)
     }
 
+    /* ------------------------------------------------------------- diagnostics ---- */
+
+    private fun showDiagnostics() {
+        diag.line("diagnostics opened")
+        val text = diag.snapshot(diagFacts())
+        DiagnosticsDialog(this, text) { shareDiagnostics(text) }.apply {
+            setOnDismissListener {
+                /* The dialog held window focus, which blurred the page; hand it back like closeMenu. */
+                webView?.requestFocus()
+                setPageFocus(true)
+                engineActive = true
+            }
+            /* The dialog blurs the page, and the engine stops its loop on `blur` by design: silence
+             * while it is open is expected, so the watchdog must not call it a hang. */
+            engineActive = false
+            show()
+        }
+    }
+
+    /** What the record is read against: the device, the WebView, the folders and the live counters. */
+    private fun diagFacts(): List<String> = listOf(
+        "app ${appVersion()} on ${Build.MANUFACTURER} ${Build.MODEL}, Android " +
+            "${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT}, ${Build.SUPPORTED_ABIS.firstOrNull()})",
+        "webView ${webViewPackage()} document-start scripts=" +
+            WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT),
+        "game files: ${GameFiles.displayNameOf(gameTreeUri) ?: "(not set)"} " +
+            "(${if (index == null) "not indexed" else "${index!!.size} entries"})",
+        "saves: ${savesStatusLine()}",
+        "engine: silent for ${diag.silentMs()}ms, last bridge call: ${diag.lastBridgeCall()}",
+        assetHandler?.counters() ?: "assets: none served yet",
+    )
+
+    /**
+     * Keeps [LogFile.FILE] in the saves folder current, at most every watchdog tick. The snapshot is
+     * taken here (main thread, the same text the panel shows) and written on [writeLogAsync]'s own
+     * thread: the stores under it are SAF, and a blocked write must never block the UI.
+     */
+    private fun flushLogIfDirty() {
+        if (!LogFile.shouldFlush(logToSaves, logDirty, logWriting, logFailures)) return
+        val store = saveStore ?: return
+        logDirty = false
+        logWriting = true
+        writeLogAsync(store, diag.snapshot(diagFacts()))
+    }
+
+    /**
+     * If this write hangs inside the provider, [logWriting] never clears and no further write is
+     * attempted: no ANR, no spin. [LogFile.MAX_FAILURES] bounds the case where it returns an error.
+     */
+    private fun writeLogAsync(store: SaveStore, text: String) {
+        Thread({
+            val ok = store.write(LogFile.FILE, text)
+            watchdog.post {
+                logWriting = false
+                if (ok) {
+                    logFailures = 0
+                } else if (++logFailures <= LogFile.MAX_FAILURES) {
+                    diag.line("could not write ${LogFile.FILE} (attempt $logFailures)")
+                }
+            }
+        }, "ada-log").start()
+    }
+
+    /**
+     * Called when the shim reports a completed boot: the record is most useful for a boot that
+     * *fails*, so by default it stops growing once one succeeds. Only while the user has never
+     * touched the toggle - and the file itself stays on disk either way.
+     */
+    private fun autoDisableLog() {
+        if (!LogFile.shouldAutoDisable(prefs.getBoolean(LogFile.PREF_SET_KEY, false), logToSaves)) {
+            return
+        }
+        logToSaves = false
+        prefs.edit().putBoolean(LogFile.PREF_KEY, false).apply() // PREF_SET_KEY stays false: untouched
+        menuView?.setLogToSaves(false)
+        diag.line("log file off: the game completed its first boot")
+        /* One final write, after the toggle went off: this is an explicit one-shot, not the
+         * periodic path, so what happened up to and including this boot is on disk. */
+        saveStore?.let { writeLogAsync(it, diag.snapshot(diagFacts())) }
+    }
+
+    /** Writes the record next to the app and hands it to any app that can send text. */
+    private fun shareDiagnostics(text: String): String {
+        val dir = getExternalFilesDir(null) ?: filesDir
+        val file = File(dir, "diagnostics-${System.currentTimeMillis() / 1000}.txt")
+        try {
+            file.writeText(text)
+        } catch (e: Exception) {
+            Log.e(TAG, "cannot write $file", e)
+            return "could not write the file: ${e.message}"
+        }
+        diag.line("diagnostics written to ${file.absolutePath}")
+        return try {
+            startActivity(
+                Intent.createChooser(
+                    Intent(Intent.ACTION_SEND).apply {
+                        type = "text/plain"
+                        putExtra(Intent.EXTRA_SUBJECT, "Alabaster Dawn Android port diagnostics")
+                        putExtra(Intent.EXTRA_TEXT, text)
+                    },
+                    "Share diagnostics"
+                )
+            )
+            "sent from ${file.absolutePath}"
+        } catch (e: ActivityNotFoundException) {
+            "no app to share it with; the record is at ${file.absolutePath}"
+        }
+    }
+
+    private fun appVersion(): String = try {
+        val info = packageManager.getPackageInfo(packageName, 0)
+        @Suppress("DEPRECATION")
+        "${info.versionName} (${info.versionCode})"
+    } catch (e: Exception) {
+        "?"
+    }
+
+    /** The WebView implementation actually running: a device without Play may be far behind. */
+    private fun webViewPackage(): String = try {
+        WebViewCompat.getCurrentWebViewPackage(this)?.let { "${it.packageName} ${it.versionName}" }
+            ?: "unknown (no provider package)"
+    } catch (e: Exception) {
+        "?"
+    }
+
+    private fun webSettingsUserAgent(): String = try {
+        WebSettings.getDefaultUserAgent(this)
+    } catch (e: Exception) {
+        "?"
+    }
+
+    private fun monotonicMs(): Long = System.nanoTime() / 1_000_000
+
     /** Back opens the port's menu, closes it when it is open; pre-game it still exits the app. */
     private fun handleBack() {
         val menu = menuView
@@ -429,6 +671,7 @@ class PortActivity : Activity() {
     private fun openMenu() {
         val menu = menuView ?: return
         menu.setStatus(padView?.controllerInUse == true, savesStatusLine())
+        menu.setLastEngineReport(lastEngineReport)
         menu.open()
     }
 
@@ -521,9 +764,11 @@ class PortActivity : Activity() {
             it.requestFocus()
         }
         setPageFocus(true)
+        engineActive = true
     }
 
     override fun onPause() {
+        engineActive = false
         /* An edit in progress is saved when the app goes to the background, so it is not lost if
          * the process is killed. */
         padView?.commitIfEditing()
@@ -537,6 +782,7 @@ class PortActivity : Activity() {
     }
 
     override fun onDestroy() {
+        watchdog.removeCallbacksAndMessages(null)
         try {
             webView?.apply {
                 removeJavascriptInterface(BRIDGE_NAME)
@@ -607,6 +853,13 @@ class PortActivity : Activity() {
         private const val SHIM_ASSET = "ada-shim.js"
         private const val ORIGIN = "https://appassets.androidplatform.net"
         private const val INDEX_URL = "$ORIGIN/game/terra/index.html"
+
+        /* Diagnostics: how long the page's frame clock may go quiet before it is reported, how often
+         * that is repeated, how long an asset read may be unfinished first, and the poll interval. */
+        private const val SILENT_MS = 5000L
+        private const val SILENT_LOG_MS = 10000L
+        private const val STUCK_MS = 5000L
+        private const val WATCHDOG_TICK_MS = 2000L
 
         /* The engine's only pause/resume entry point (see setPageFocus). A plain non-bubbling
          * Event is all it takes: both listeners sit on `window` itself. */

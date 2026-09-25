@@ -18,6 +18,8 @@ Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`)
 
 ![The side menu, opened with Back: the two switches, the picture position, the status lines and Exit — with the FPS/battery/temperature readout on](docs/side-menu.png)
 
+![The diagnostics record while the engine's boot was stuck: device, WebView, GL backend, asset counters, and the log naming the shader that failed to compile](docs/diagnostics.png)
+
 *Screenshots contain Alabaster Dawn artwork and text, © Radical Fish Games, shown for documentation.*
 
 ---
@@ -49,9 +51,24 @@ Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`)
 * **A side menu on Back**: Back while the game runs opens a panel over it (the game keeps running
   behind) with a switch for whether a controller in use hides the overlay, a **Game position** choice
   (Top / Center / Bottom) for where the picture sits inside the black letterbox bands, a switch for
-  an **FPS / battery / temperature** readout, two status lines (controller input, where saves go)
-  and **Exit**. Back again, a tap on the dimmed area or Exit closes it; all three settings live in
-  the app's prefs, and nothing is written into the game folder or the saves tree.
+  an **FPS / battery / temperature** readout, a switch to **keep a log file with the saves**, two
+  status lines (controller input, where saves go), the last thing the engine reported, and **Exit**.
+  Back again, a tap on the dimmed area or Exit closes it; all four settings live in the app's prefs,
+  and nothing is written into the game folder — the saves tree only ever gains the Steam `Saves/`
+  layout, `pad-layout.json` and that log, all at its root.
+* **Diagnostics without a PC**: the same panel opens the record — device, WebView version and
+  capabilities, GL backend, folders, asset counters and the app's own log — readably on screen (a
+  screenshot is already a usable report), shareable as text, and written to a file next to the app.
+  The record is built for the failure this port actually meets on hardware nobody here owns: when the
+  engine's loading bar stops, it names the resources still unfinished, grouped by kind, with the
+  audio-decode callbacks counted; and when the page's own thread stops instead, it says so and names
+  the file-system call it is stuck in. A line the engine repeats every frame while it is stuck
+  collapses in place (`… There are unwrapped loadTrackers (x412)`), so the lines that name the cause
+  are still in the record when the user opens the panel. With the log switch on, the same text is
+  also kept as `ada-diagnostics.log` in the saves folder — the record survives a force-stop — and the
+  switch turns itself off after the first boot that *completes*, so the default is a file for boots
+  that fail and nothing for the ones that work. There is also a **Diagnostics** button on the setup
+  screen, before the game starts.
 * Resolution can be raised in-game: `640x360 / 960x540 / 1280x720 / 1920x1080 / 2560x1440`.
 * Leaving the app pauses the game: the music stops and the loop stops burning CPU. An Android
   WebView never dispatches the page's `blur`/`focus` (which is how the engine knows it lost the
@@ -78,6 +95,21 @@ polling behind the open panel, and Exit plus a relaunch kept both switches and t
 emulator pass also covered the layout editor: the pad publishes nothing while editing, a dragged
 control and a resized key reach the engine at their new geometry, the layout survives a restart, the
 saves-folder `pad-layout.json` wins over the prefs copy, and `RESET`/`UNDO` flip as described.
+
+The diagnostics hardening (2026-09-25) was verified on the same Android 14 emulator, where SwiftShader
+cannot compile the engine's vertex shaders and the boot therefore freezes at 12 % of 1 755 resources —
+which is exactly the state these features exist for. The log file appeared at
+`Download/AdaSaves/ada-diagnostics.log` and kept growing while the boot stayed stuck: it carried the
+engine facts line, the `boot stall … (effect=301 shader=20 data=1082 …)` line, the ten shader
+`JS ERROR` lines, and the engine's per-frame `There are unwrapped loadTrackers` line collapsed to
+`(x10)` with the newest timestamp. Its header ended `; rewrite cached=40 hits=0 12861435/33554432
+bytes`, and a CDP `location.reload()` moved that to `hits=40` with `served` growing 328 → 651 — the
+12.7 MB bundle and the 38 other rewritten bodies came back from memory. Driving the engine's boot
+tracker to complete over the same CDP connection produced `ENGINE boot: complete in 35000ms …`
+followed, within the next 2 s tick, by `log file off: the game completed its first boot`, with
+`log_to_saves=false` and no `log_to_saves_user_set` in the prefs and that line last in the file;
+after tapping the switch on (setting `log_to_saves_user_set=true`), a second completed boot printed no
+auto-off line and the switch stayed on across a force-stop and relaunch.
 
 ### Download
 
@@ -125,10 +157,18 @@ echo "sdk.dir=$ANDROID_HOME" > local.properties      # or point it at your SDK
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Unit tests (gamepad state and overlay merge, pad layout and hit rules):
+Unit tests (gamepad state and overlay merge, pad layout and hit rules, the diagnostics ring and its
+line collapsing, the asset-read accounting, the rewrite cache's byte budget, and the log-file rules):
 
 ```bash
 cd android && ./gradlew :app:testDebugUnitTest
+```
+
+The diagnostics half of the injected shim (`assets/ada-shim.js`) is driven against a stub engine by
+a Node test — no device, no browser, under a second:
+
+```bash
+node android/tools/test-shim-diagnostics.mjs
 ```
 
 Publishing a signed release (maintainers): the release keystore lives **outside** the repo and is
@@ -172,6 +212,35 @@ afterwards both folders are remembered and it is one tap. The selected saves fol
 
 Exporting a save is a plain file copy, and the files are drop-in portable back to Steam.
 
+### If the game does not boot
+
+A device-only failure is silent by nature: no crash, no log, usually just the engine's loading bar
+stopped at a few percent. The port therefore keeps its own record of what happened, and the record
+can be read on the device itself:
+
+* **Diagnostics** on the setup screen (before the game starts), or **Back → Diagnostics** while the
+  game runs — including while the loading bar is stuck, which is exactly when it matters.
+* The header carries the device, the Android version, the **WebView package and version**, whether
+  the WebView supports document-start scripts, which GL backend the page got, the picked folders, the
+  asset-path counters (`served / missed / inFlight / slowest`) and how long the engine has been quiet.
+* The log below it names the failure: the shader that would not compile, the resources still
+  unfinished when the bar stopped (grouped by kind, with the audio-decode callback counts), or the
+  file-system call the page's own thread is stuck in.
+* **Share** hands the whole record to any installed app as text and writes the same text to
+  `Android/data/io.github.moronigranja.alabasterdawn/files/diagnostics-<epoch>.txt`. The side menu
+  shows the last engine report inline, so a stuck boot announces itself without opening anything.
+* **The record is also kept as a file** in the picked saves folder, `ada-diagnostics.log` (a whole
+  snapshot, overwritten every 2 s while it is dirty), so a failure survives a force-stop, a reboot
+  and a `adb`-less device — send that file instead of a screenshot. The side menu's **Keep a log
+  file with the saves** switch controls it, on by default, and it switches itself off after the
+  first boot that *completes*: the file is for the boots that fail. One tap on the switch, either
+  way, ends that behaviour for good. Nothing deletes an existing log.
+* Everything in the record is also on logcat, tag `AdaPort`, if you do have a PC:
+  `adb logcat -s AdaPort:I` (the raw lines: the on-screen/on-file record collapses a line the engine
+  repeats every frame, logcat keeps every occurrence).
+
+The panel is the shortest way to report a problem: open it and send the screenshot.
+
 ### Resolution and performance
 
 Measured on the S22 Ultra (Snapdragon 8 Gen 1, Adreno 730), `gpubusy` sampling:
@@ -189,7 +258,12 @@ Thermals, not CPU, are the limit: the same 720p scene measured 42 fps cool and 1
 ### How it works (short)
 
 * `WebViewAssetLoader` serves the picked tree in-process from `https://appassets.androidplatform.net/game/`;
-  a tree index built once makes the game's ~1 240 per-boot `.flac` probes instant 404s.
+  a tree index built once makes the game's ~1 240 per-boot `.flac` probes instant 404s. The few
+  responses that are rewritten (the 12.7 MB bundle's resolution ladder, the option labels, the
+  patched `.frag` shaders, the injected index) are then served from a byte-bounded `RewriteCache`
+  instead of being read and rewritten again, and a fragment shader's paired `.vert` is read once per
+  process rather than once per request; the diagnostics header reports both as
+  `; rewrite cached=N hits=N bytes/max`.
 * `WebViewCompat.addDocumentStartJavaScript` injects `assets/ada-shim.js` before the page's own
   scripts: a `require`/`nw` shim plus the device-specific workarounds the game needs on Android's
   WebView GL stack (no `OES_draw_buffers_indexed`, a dead shader attribute the Adreno driver
@@ -199,7 +273,7 @@ Thermals, not CPU, are the limit: the same 720p scene measured 42 fps cool and 1
   exactly (create-or-overwrite, never a deduplicated `Save_ID_0000 (1).save`).
 * `SideMenuView` is the Back-opened panel (a scrim plus a right-edge panel whose descendants are
   made unfocusable, so the WebView keeps focus and the engine's loop is never blurred). It only
-  reports taps: the Activity owns the three settings (`ViewAlign` is the picture position and its
+  reports taps: the Activity owns the four settings (`ViewAlign` is the picture position and its
   wire format, pure Kotlin and unit-tested) and the shim reads them once per engine frame from
   `getViewAlign()`/`getStatsEnabled()`, applying the position to the canvas and painting the
   readout. `Telemetry` is the only thing that reads the phone: the sticky battery broadcast plus
@@ -210,6 +284,22 @@ Thermals, not CPU, are the limit: the same 720p scene measured 42 fps cool and 1
   `OnScreenPadView` draws it and turns touches into model calls. `PadLayout` is the persisted
   override set (its JSON, pure Kotlin) and `PadLayoutStore` keeps the two copies — the app prefs and
   `pad-layout.json` in the picked saves folder.
+* `Diag` is the app's own bounded log and its frame clock: `getGamepadJson()` is called exactly once
+  per engine frame, so its silence means the page's JS thread stopped, which is a *different* failure
+  from a page waiting for an asset read that never returns. A line that repeats immediately — what a
+  fault thrown once per frame looks like — is collapsed in place to `(xN)` with the newest timestamp,
+  so the ring keeps the context around a fault instead of only its last seconds, while an attached
+  sink still sees every raw occurrence (logcat keeps full fidelity). A 2 s watchdog on the main thread
+  reports that silence together with the bridge call in flight, `AssetTracker` (pure Kotlin,
+  unit-tested) reports asset reads that have been unfinished for seconds, and the shim's own
+  `watchBoot` samples the engine's boot tracker on a timer — not on a frame, because during BOOTING
+  the engine renders without running the game loop — naming the resources still pending, grouped by
+  kind, plus the `decodeAudioData` callback counts (the one load path in this engine that can stay
+  unfinished without an error: a sound finalizes from its success callback alone).
+  `DiagnosticsDialog` renders that record and hands it to any text share target; `LogFile` (pure
+  Kotlin, unit-tested) is the name and the two rules behind the saves-folder copy — the same
+  `snapshot` text, written on its own thread at most every watchdog tick, and switched off by itself
+  after a boot completes unless the user has touched the switch.
 * `FINDINGS.md` documents the measurements, the dead ends and the reason for every patch.
 
 ---

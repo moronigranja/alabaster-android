@@ -13,14 +13,15 @@ import android.widget.TextView
 
 /**
  * The port's side panel, opened by Back: a scrim over the whole window plus a panel pinned to the
- * right edge carrying the overlay switch, the frame-readout switch, the picture position, two
- * read-only status lines and Exit.
+ * right edge carrying the overlay switch, the frame-readout switch, the keep-a-log-file switch, the
+ * picture position, three read-only status lines and Exit.
  *
  * Two things decide the details. The switches and the position are stored and owned by the
  * Activity, so this view is only told what to show ([setHideWithController], [setStatsEnabled],
- * [setAlign]) and reports taps through callbacks. And nothing inside it may take view focus: the
- * engine stops its loop and suspends audio on the page's `blur` (see PortActivity.setPageFocus),
- * so the descendants are made unfocusable and the WebView keeps focus while the panel is open.
+ * [setLogToSaves], [setAlign]) and reports taps through callbacks. And nothing inside it may take
+ * view focus: the engine stops its loop and suspends audio on the page's `blur` (see
+ * PortActivity.setPageFocus), so the descendants are made unfocusable and the WebView keeps focus
+ * while the panel is open.
  */
 class SideMenuView(context: Context) : FrameLayout(context) {
 
@@ -30,27 +31,36 @@ class SideMenuView(context: Context) : FrameLayout(context) {
     /** A tap on the frame-readout switch. */
     var onStatsEnabled: ((Boolean) -> Unit)? = null
 
+    /** A tap on the keep-a-log-file switch. */
+    var onLogToSaves: ((Boolean) -> Unit)? = null
+
     /** A tap on one of the three position radios. */
     var onAlign: ((ViewAlign) -> Unit)? = null
 
     /** A tap on Exit. */
     var onExit: (() -> Unit)? = null
 
+    /** A tap on Diagnostics: the owner shows the record, which it owns. */
+    var onDiagnostics: (() -> Unit)? = null
+
     /** A tap on the scrim; the owner closes the panel, because it owns the WebView re-focus. */
     var onScrimTap: (() -> Unit)? = null
 
     private val hideToggle = Switch(context)
     private val statsToggle = Switch(context)
+    private val logToggle = Switch(context)
     private val alignGroup = RadioGroup(context)
     private val radios = LinkedHashMap<ViewAlign, RadioButton>()
     private val controllerStatus = TextView(context)
     private val savesStatus = TextView(context)
+    private val engineStatus = TextView(context)
 
     /** True while [sync] assigns the widget state, so a programmatic set fires no callback. */
     private var syncing = false
 
     private var hideWithController = true
     private var statsEnabled = false
+    private var logToSaves = true
     private var align = ViewAlign.DEFAULT
 
     val isOpen: Boolean get() = visibility == VISIBLE
@@ -69,6 +79,11 @@ class SideMenuView(context: Context) : FrameLayout(context) {
         sync()
     }
 
+    fun setLogToSaves(value: Boolean) {
+        logToSaves = value
+        sync()
+    }
+
     fun setAlign(value: ViewAlign) {
         align = value
         sync()
@@ -78,6 +93,16 @@ class SideMenuView(context: Context) : FrameLayout(context) {
     fun setStatus(controllerActive: Boolean, saves: String) {
         controllerStatus.text = "Controller input: " + (if (controllerActive) "active" else "idle")
         savesStatus.text = "Saves: " + saves
+    }
+
+    /**
+     * The last thing the injected shim reported — in particular a boot that stopped advancing, which
+     * is exactly what a user with a frozen loading bar needs to be told (and to report). Long reports
+     * are cut here and read in full in the diagnostics panel.
+     */
+    fun setLastEngineReport(report: String) {
+        val cut = if (report.length > 160) report.take(160) + "…" else report
+        engineStatus.text = "Engine: $cut\n(see Diagnostics)"
     }
 
     init {
@@ -132,6 +157,16 @@ class SideMenuView(context: Context) : FrameLayout(context) {
         }
         panel.addView(statsToggle)
 
+        logToggle.apply {
+            text = "Keep a log file with the saves"
+            textSize = 15f
+            setTextColor(COLOR_TEXT)
+            setOnCheckedChangeListener { _, checked ->
+                if (!syncing) onLogToSaves?.invoke(checked)
+            }
+        }
+        panel.addView(logToggle)
+
         panel.addView(TextView(context).apply {
             text = "Game position"
             textSize = 14f
@@ -160,6 +195,18 @@ class SideMenuView(context: Context) : FrameLayout(context) {
         }
         panel.addView(savesStatus)
 
+        engineStatus.apply {
+            textSize = 12f
+            setTextColor(COLOR_DIM)
+            setPadding(0, dp(4), 0, dp(8))
+        }
+        panel.addView(engineStatus)
+
+        panel.addView(Button(context).apply {
+            text = "Diagnostics"
+            setOnClickListener { onDiagnostics?.invoke() }
+        })
+
         panel.addView(Button(context).apply {
             text = "Exit"
             setOnClickListener { onExit?.invoke() }
@@ -185,6 +232,7 @@ class SideMenuView(context: Context) : FrameLayout(context) {
         syncing = true
         hideToggle.isChecked = hideWithController
         statsToggle.isChecked = statsEnabled
+        logToggle.isChecked = logToSaves
         for ((value, radio) in radios) radio.isChecked = value == align
         syncing = false
     }

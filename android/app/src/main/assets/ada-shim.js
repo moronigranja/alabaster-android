@@ -546,6 +546,155 @@
      * at Resolution 640x360 that shrank the game to a small picture in the middle of the screen
      * instead of filling it. */
 
+    /* ---- engine-side diagnostics ------------------------------------------
+     * A device-only boot failure leaves the boot screen's bar frozen at a low percentage with no
+     * exception anywhere, so the port reports the engine's own state instead of guessing:
+     *
+     *  - The bar is `1 - pending/total` over `g_resource.bootTracker` (see
+     *    TriRenderer.renderBooting and LoadTracker.progress), and it only completes when *every*
+     *    staged resource finishes. `watchBoot` samples that tracker on a timer - not on a frame,
+     *    because during BOOTING the engine renders but does not run the game loop - and reports
+     *    what is still pending once the number stops moving.
+     *  - Only one load path in this engine can stay unfinished forever *without* an error: a sound's
+     *    `decodeAudioData(data, ok, fail)` (bundle, SoundRes.onLoad) finalizes the resource from the
+     *    success callback alone. If neither callback is delivered - a device whose WebView cannot
+     *    start its audio thread, say - the resource never finalizes, the tracker never completes and
+     *    the bar freezes while the app itself stays alive. `trackDecode` counts the callbacks so the
+     *    report can tell that apart from an asset read that simply never returns. */
+    var DECODE = { started: 0, done: 0, failed: 0 };
+
+    (function trackDecode() {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC || !AC.prototype.decodeAudioData) return;
+        var original = AC.prototype.decodeAudioData;
+        AC.prototype.decodeAudioData = function (data, ok, fail) {
+            DECODE.started++;
+            if (typeof ok !== "function" && typeof fail !== "function") {
+                var promise = original.call(this, data);
+                if (promise && typeof promise.then === "function") {
+                    promise.then(function () { DECODE.done++; }, function () { DECODE.failed++; });
+                }
+                return promise;
+            }
+            return original.call(this, data,
+                function (buffer) { DECODE.done++; if (typeof ok === "function") ok(buffer); },
+                function (error) { DECODE.failed++; if (typeof fail === "function") fail(error); });
+        };
+    })();
+
+    function reportDiag(kind, text) {
+        try {
+            if (HAS_BRIDGE) window.AdaBridge.reportDiag(kind, text);
+        } catch (e) { /* nothing left to do */ }
+    }
+
+    function idOf(resource) {
+        try { return String(resource.identification()); } catch (e) { return "?"; }
+    }
+
+    function audioState() {
+        try {
+            var audio = window.g && window.g.audio;
+            return audio && audio.context ? String(audio.context.state) : "?";
+        } catch (e) { return "?"; }
+    }
+
+    /* The thresholds, in ms. `__adaBootDiag` is the test hook (android/tools/test-shim-diagnostics.mjs)
+     * that lets the diagnostic logic be exercised in a second instead of eight. */
+    var diagConf = window.__adaBootDiag || {};
+    var BOOT_STALL_MS = diagConf.stallMs || 8000;
+    var BOOT_STALL_REPORT_MS = diagConf.reportEveryMs || 15000;
+    var BOOT_POLL_MS = diagConf.pollMs || 500;
+    var boot = {
+        lastProgress: -1, lastChangeAt: 0, reportedAt: -1e9, done: false,
+        factsSent: false, factsHadGl: false, startedAt: now(),
+    };
+
+    function pendingSummary(pending) {
+        var classes = {};
+        for (var i = 0; i < pending.length; i++) {
+            var s = pending[i];
+            var cls = s.indexOf("media/audio/") === 0 ? "audio"
+                : s.indexOf("SpriteSheet[") === 0 ? "spritesheet"
+                    : s.indexOf("SHADER") === 0 ? "shader"
+                        : s.indexOf("Effect[") === 0 ? "effect"
+                            : s.indexOf("Figure[") === 0 ? "figure"
+                                : s.indexOf("FrameAnim[") === 0 ? "frameAnim" : "data";
+            classes[cls] = (classes[cls] || 0) + 1;
+        }
+        var parts = [];
+        for (var key in classes) parts.push(key + "=" + classes[key]);
+        return parts.join(" ");
+    }
+
+    /* The device facts the app cannot see from Kotlin: which GL backend the WebView picked (if any),
+     * and what the AudioContext did at boot. Sent once the engine exists - and deliberately *not*
+     * gated on `g.gl`, because "the page never got a GL context" is itself the answer on a device
+     * that cannot run this game; a later line adds the backend's name if it appears afterwards. */
+    var FACTS_WAIT_MS = 5000;
+
+    function glDescription(gl) {
+        if (!gl) return "none";
+        var info = gl.getExtension("WEBGL_debug_renderer_info");
+        return info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.VERSION);
+    }
+
+    function sendFacts(gl) {
+        var parts = ["webgl2=" + !!window.WebGL2RenderingContext, "gl=" + glDescription(gl),
+            "audio=" + audioState()];
+        reportDiag("facts", parts.join("; "));
+    }
+
+    function maybeSendFacts() {
+        var gl = window.g && window.g.gl;
+        var engineUp = !!(window.g && window.g.resource);
+        if (!engineUp && now() - boot.startedAt < FACTS_WAIT_MS) return;
+        if (!boot.factsSent) {
+            boot.factsSent = true;
+            boot.factsHadGl = !!gl;
+            sendFacts(gl);
+            return;
+        }
+        if (gl && !boot.factsHadGl) {
+            boot.factsHadGl = true;
+            sendFacts(gl);
+        }
+    }
+
+    function watchBoot() {
+        if (boot.done) return;
+        /* First, and before any engine state is required: a page that never got an engine at all is
+         * exactly the case the facts are for. */
+        maybeSendFacts();
+        var resource = window.g && window.g.resource;
+        var tracker = resource && resource.bootTracker;
+        if (!tracker) return;
+        var t = now();
+        var progress = tracker.progress;
+        if (progress !== boot.lastProgress) {
+            boot.lastProgress = progress;
+            boot.lastChangeAt = t;
+        }
+        if (tracker.state === 2 || progress >= 0.999) {
+            boot.done = true;
+            reportDiag("boot", "complete in " + Math.round(t - boot.startedAt) + "ms, " +
+                tracker.maxResource + " resources; audio=" + audioState() +
+                "; decodes started=" + DECODE.started + " done=" + DECODE.done + " failed=" + DECODE.failed);
+            return;
+        }
+        var still = t - boot.lastChangeAt;
+        if (still < BOOT_STALL_MS || t - boot.reportedAt < BOOT_STALL_REPORT_MS) return;
+        boot.reportedAt = t;
+        var pending = (tracker.resources || []).map(idOf);
+        reportDiag("boot stall", "no progress for " + Math.round(still) + "ms at " +
+            (progress * 100).toFixed(1) + "% of " + tracker.maxResource + " resources; pending " +
+            pending.length + " (" + pendingSummary(pending) + "); audio ctx=" + audioState() +
+            "; decodes started=" + DECODE.started + " done=" + DECODE.done + " failed=" + DECODE.failed +
+            "; first pending: " + pending.slice(0, 12).join(", "));
+    }
+
+    setInterval(watchBoot, BOOT_POLL_MS);
+
     /* ---- error surfacing -------------------------------------------------
      * A device-only failure is otherwise a black screen: forward everything to
      * logcat (tag AdaPort) through the bridge. */

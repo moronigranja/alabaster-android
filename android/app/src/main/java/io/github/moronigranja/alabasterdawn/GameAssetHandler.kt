@@ -16,8 +16,8 @@ import java.io.ByteArrayInputStream
  * response immediately, in-process. That matters: each sound resource probes `.flac` (which this
  * build does not ship) before falling back, and those probes must not become network round trips.
  *
- * `handle` is called on background threads and may run concurrently, so this class holds no mutable
- * state and never touches a view.
+ * `handle` is called on background threads and may run concurrently, so the mutable state it holds
+ * ([rewrite], [barycentric]) is concurrent and it never touches a view.
  */
 class GameAssetHandler(
     private val resolver: ContentResolver,
@@ -26,14 +26,39 @@ class GameAssetHandler(
     private val assets: AssetManager,
     /** Fallback mode: pull the shim in with a script tag, for WebViews without document-start scripts. */
     private val injectShim: Boolean,
+    /** Records every request, and any request that stays in flight too long (a hung SAF read). */
+    private val diag: Diag,
 ) : WebViewAssetLoader.PathHandler {
 
-    private val misses = java.util.concurrent.atomic.AtomicInteger()
+    private val tracker = AssetTracker()
+    private val slowLogged = java.util.concurrent.atomic.AtomicInteger()
+    private val missedLogged = java.util.concurrent.atomic.AtomicInteger()
+
+    /** The rewritten body of every request that was rewritten, so a re-request costs no SAF read. */
+    private val rewrite = RewriteCache()
+
+    /** Whether a fragment shader's paired `.vert` declares the varying: a second SAF read, memoised. */
+    private val barycentric = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
+
+    /** Paths already reported as too large to cache, so the warning is logged once each. */
+    private val cacheWarned = java.util.concurrent.ConcurrentHashMap.newKeySet<String>()
 
     override fun handle(path: String): WebResourceResponse {
         val rel = Uri.decode(path).trimStart('/')
         if (rel.isEmpty() || rel.split('/').any { it == ".." }) return miss(rel)
+        tracker.started(rel)
+        try {
+            return serve(rel)
+        } finally {
+            val took = tracker.finished(rel)
+            /* A tree on a slow card shows up here long before it fails outright. */
+            if (took >= SLOW_MS && slowLogged.incrementAndGet() <= SLOW_LOG_LIMIT) {
+                diag.line("slow asset ${took}ms $rel")
+            }
+        }
+    }
 
+    private fun serve(rel: String): WebResourceResponse {
         if (rel == SHIM_PATH) {
             if (!injectShim) return miss(rel)
             val shim = try {
@@ -48,15 +73,36 @@ class GameAssetHandler(
         val entry = index.find(rel) ?: return miss(rel)
         if (entry.isDir) return miss(rel)
 
+        /* A rewritten asset served before: the bytes are the same for the process lifetime, so this
+         * skips both the 12.7 MB read and the rewrite. ok() builds a fresh stream per call. */
+        rewrite.get(rel)?.let { cached ->
+            val mime = mimeOf(rel)
+            return ok(mime, encodingOf(mime), cached)
+        }
+
         var body = read(entry) ?: return miss(rel)
-        if (injectShim && rel == INDEX_HTML) return ok("text/html", "utf-8", injectShimTag(body))
+        /* Only the assets that are actually rewritten are cached: everything else (images, audio,
+         * `.vert`, JSON) is served verbatim and read once per boot, and caching all 2 652 of them
+         * would cost tens of megabytes for nothing. */
+        val cacheable = rel == BUNDLE_JS || rel == OPTIONS_DB || rel.endsWith(".frag") ||
+            (injectShim && rel == INDEX_HTML)
+        if (injectShim && rel == INDEX_HTML) body = injectShimTag(body)
         if (rel.endsWith(".frag")) body = keepBarycentricAlive(rel, body)
         if (rel == BUNDLE_JS) body = phoneResolutionLadder(rel, body)
         if (rel == OPTIONS_DB) body = relabelResolutions(rel, body)
+        if (cacheable && !rewrite.put(rel, body) && cacheWarned.add(rel)) {
+            Log.w(TAG, "not caching $rel: the rewritten set no longer fits the rewrite cache")
+        }
 
         val mime = mimeOf(rel)
         return ok(mime, encodingOf(mime), body)
     }
+
+    /** Requests still unfinished after [thresholdMs]: a path here is a stalled SAF read, not a stall. */
+    fun stuck(thresholdMs: Long): List<String> = tracker.stuck(thresholdMs)
+
+    /** One line for the diagnostics header: what the asset path has done so far. */
+    fun counters(): String = tracker.counters() + "; rewrite " + rewrite.summary()
 
     /**
      * The engine renders at `SCREEN (640x360) x SCALE` and offers SCALE from `RESOLUTION_MAP`, whose
@@ -136,7 +182,11 @@ class GameAssetHandler(
             .toByteArray(Charsets.UTF_8)
     }
 
-    private fun vertexProvidesBarycentric(fragRel: String): Boolean {
+    /** Memoised: the answer needs a second SAF read of the paired `.vert`, and never changes. */
+    private fun vertexProvidesBarycentric(fragRel: String): Boolean =
+        barycentric.getOrPut(fragRel) { computeVertexProvidesBarycentric(fragRel) }
+
+    private fun computeVertexProvidesBarycentric(fragRel: String): Boolean {
         val name = fragRel.substringAfterLast('/').removeSuffix(".frag")
         val vertRel = "terra/data/shader/vertex/$name.vert"
         val entry = index.find(vertRel) ?: return false
@@ -161,7 +211,8 @@ class GameAssetHandler(
 
     /** No body, no round trip. Misses are rare (the build ships no .flac, and each sound probes one). */
     private fun miss(rel: String): WebResourceResponse {
-        if (misses.incrementAndGet() <= 40) Log.w(TAG, "no such asset: $rel")
+        tracker.missed(rel)
+        if (missedLogged.incrementAndGet() <= 40) Log.w(TAG, "no such asset: $rel")
         return WebResourceResponse(null, null, null)
     }
 
@@ -204,6 +255,9 @@ class GameAssetHandler(
 
     companion object {
         private const val TAG = "AdaPort"
+        /* An asset read this slow means the tree's provider is struggling (a card, a slow volume). */
+        private const val SLOW_MS = 1500L
+        private const val SLOW_LOG_LIMIT = 20
         const val SHIM_PATH = "terra/ada-shim.js"
         const val SHIM_ASSET = "ada-shim.js"
         const val INDEX_HTML = "terra/index.html"
