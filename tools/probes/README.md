@@ -24,6 +24,10 @@ devtools socket; there the app's own log (`adb logcat -s AdaPort:I`) is the chan
 | `atlas-sampler.js` | peak sheets per atlas group over time, plus the engine's `console.error`/`warn` lines, to see an atlas ceiling being hit while playing |
 | `gl-call-ring.js` | wraps every method on the live GL context, keeps the last 40 calls in a ring and pairs a failed `getError()` with them: names the call that raises an error instead of guessing |
 | `packed-table-pixel-test.js` | uploads real atlas slot coords into an unpacked (`uniform2fv` -> `vec2[S]`) and a packed (`uniform4fv` -> `vec4[S/2]`) program and reads the pixels back, to check the packing outside the engine |
+| `slot-table-alternatives.js` | links the *real* served `gui` pair with the slot table carried five ways (unpacked, packed, std140 block, `texelFetch`, as served) and reports the caps a fix would need (FINDINGS §10.11) |
+| `slot-budget-cases.js` | the portable version of the same question - synthetic, every declaration *used* so nothing is eliminated - as a self-contained file for any page; `slot-budget-probe.html` wraps it for devices whose WebView has no devtools (open it in Chrome after `adb reverse tcp:8099 tcp:8099`, and run `tools/serve-fast.py 8099 tools/probes`) |
+| `fetch-table-pixel-test.js` | is a slot table that travels as an RG32F vertex texture bit-exact? Uploads the engine's own interleaved `texSlotCoords` and compares every placed slot in a vertex shader against the atlas float |
+| `slot-table-upload-rate.js` | counts slot-table (and any other uniform-array) uploads against draws and frames while playing: is the engine re-uploading the table per frame, or caching it? |
 | `cdp.py` | the client for all of the above |
 
 Useful engine handles found while doing this (the bundle publishes almost nothing):
@@ -40,3 +44,10 @@ Dead end worth remembering: driving a *browser* (Chrome) on the emulator with a 
 `adb reverse` looked like the cheap way to compile test shaders, but Chrome's first-run/sign-in flow
 blocks the page and the harness was never reached; the WebView devtools socket on the debug build is
 the working route.
+
+For a **release** build (no devtools socket) on a *real* device, that browser route does work - it is
+how §10.11 got its device column: `adb reverse tcp:8099 tcp:8099`,
+`tools/serve-fast.py 8099 tools/probes`, open the probe page in Chrome, then
+`adb forward tcp:9223 localabstract:chrome_devtools_remote` and point `cdp.py` at it (`CDP_PORT=9223`).
+Chrome on the S22 answers `ANGLE (Qualcomm, Adreno (TM) 730, OpenGL ES 3.2)` with the same caps the
+port's own WebView reports (`256/256/31`).

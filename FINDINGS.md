@@ -1071,12 +1071,95 @@ kept in `tools/probes/` with the handles they read:
   of guessing.
 * `packed-table-pixel-test.js` - uploads real slot coords into a `vec2[S]` and a `vec4[S/2]` program and
   reads the pixels back.
+* `slot-table-alternatives.js` / `slot-budget-cases.js` - the table carried five ways (unpacked, packed,
+  std140 block, `texelFetch`, as served) against the real `gui` pair and against a synthetic shader whose
+  every declaration is used; `slot-budget-probe.html` wraps the latter for a device whose WebView has no
+  devtools (§10.11, including the Chrome + `adb reverse` + `serve-fast.py` route for the S22).
+* `fetch-table-pixel-test.js` - the slot table as an RG32F vertex texture, compared slot by slot with the
+  atlas floats.
+* `slot-table-upload-rate.js` - counts uniform-array uploads against draws and frames while playing.
 * `cdp.py` - the client (debug builds only: devtools is gated on `BuildConfig.DEBUG`; on a release build
-  `adb logcat -s AdaPort:I` is the channel).
+  `adb logcat -s AdaPort:I` is the channel, or Chrome's devtools socket for a page probe).
 
 Handles that matter: `g.resource.bootTracker` (`progress`, `resources[]` with `identification()`),
 `g.renderer.shaders` (each `TriShader`; `.vertexShader.source` is the **served** GLSL, `.definitions`
 the engine's `#define` set), `g.renderer.groups.<group>.atlasses[i]` (`sheets`, `texSlotCoords`,
 `uTexSlotCoords`), `g.gl`, and `g.renderer.isPaused/.cineCamera/.viewType/.tags` to tell a cutscene from
-gameplay. A dead end worth remembering: driving Chrome on the emulator through a host server and
-`adb reverse` never got past Chrome's first-run flow - the WebView devtools socket is the route.
+gameplay. A dead end worth remembering: driving Chrome on the *emulator* through a host server and
+`adb reverse` never got past Chrome's first-run flow - the WebView devtools socket is the route. On a
+real device with a release build, that browser route *does* work and is how §10.11's device column was
+taken (Chrome + `adb reverse` + `tools/serve-fast.py`, then `adb forward` to
+`localabstract:chrome_devtools_remote`).
+
+### 10.11 The uniform-budget fix against the SOTA, and where caching actually pays (2026-09-26)
+
+§10.9's fix serves a smaller `TEX_SLOT_COUNT` than the game's own 256. Spike question: how do other
+engines carry a table that cannot fit the vertex-uniform budget, is there a better fix than the
+ladder, and does caching buy anything. Three families exist in the wild:
+
+* **shrink the table to the device's budget** - what 0.4.2 does, and the mainstream answer: three.js
+  derives its bone ceiling from the reported limits (`getMaxBones`: float vertex textures -> 1024,
+  otherwise the vertex-uniform budget), and Godot's bone ceiling is likewise budget-derived.
+* **carry it in a texture and fetch per vertex** - three.js's `Skeleton.boneTexture` exists precisely
+  for this ("a texture holding the bone data for use in the vertex shader", `src/objects/Skeleton.js`);
+  Godot 4's GLES3 backend does it in `drivers/gles3/shaders/skeleton.glsl`:
+  `uniform highp sampler2D skeleton_texture; #define TEX(m) texelFetch(skeleton_texture, ivec2(m % 256u,
+  m / 256u), 0)`. Both index a texel that holds 2-4 floats per element, so the table costs no uniform
+  vectors at all.
+* **carry it in a uniform block** - three.js's WebGL2 node backend puts `skeleton.boneMatrices` and
+  instance matrices in blocks; its failure mode is `GL_MAX_UNIFORM_BLOCK_SIZE` (16 KB on Chrome/ANGLE
+  macOS = 256 `mat4`, issues #33009/#34196), *not* `MAX_VERTEX_UNIFORM_VECTORS` - the spec answer:
+  block members are backed by a buffer and are not part of the default uniform block.
+
+Measured on this port's two stacks with `tools/probes/slot-budget-cases.js` (every declaration is used
+by the shader body - an unused uniform is dead-code-eliminated and the case then passes for the wrong
+reason; `fill80` is 80 vectors: 4 `mat4`, `vec4[16]`, `vec2[16]`, `vec4[32]`):
+
+| stack | max vertex uniforms | blocks / block size | 80 + `vec2[192]` | 80 + `vec2[256]` in a block | 256 via `texelFetch` |
+|---|---|---|---|---|---|
+| S22 UL (Adreno 730, Chrome/ANGLE 153, GLES 3.2) | 256 (frag 256, varyings 31) | 14 / **65536** | fails (272 > 256) | **links**, block 4096 B | links |
+| emulator, SwiftShader-backed WebView | 256 | 12 / 16384 | fails | **fails**: `Vertex shader active uniforms exceed GL_MAX_VERTEX_UNIFORM_VECTORS (256)` | links |
+| emulator, host radeonsi | 4096 | 15 / huge | links | links | links |
+
+* The ladder is the only family that needs no engine change, and 192 *is* the arithmetic ceiling for
+  `gui.vert` inside it: packing both of its tables at 256 would cost 128 + 128 vectors before the ~30
+  the shader needs, and measured `packed_256` does not even compile.
+* On the real device **both** SOTA alternatives work and would serve the game's own 256 slots. The
+  UBO rejection is the *emulator's* GL layer, not Android's: that string is absent from ANGLE's sources
+  (`main` and `chromium/5672`, both grep'd), and the same cases link on the same WebView as soon as the
+  host GPU is a real driver. That is a test-bed problem with teeth: the port's only floor device
+  (SwiftShader) cannot verify a UBO fix, while it *does* verify the texture one.
+* The texture route also fits this engine better than the UBO. The table is **per material**
+  (`SpriteAtlas.assignToMaterial` -> `material.setArray`), and the engine already has a per-material
+  texture path (`material.setTexOrRenderTarget`, sampler indices assigned in `TriShader`), so a texture
+  drops in exactly where the array is; a block is a per-draw binding (`bindBufferBase`) with no
+  per-material mechanism in the engine, std140 would need the coords repacked (a `vec2` array strides
+  16 bytes, the interleaved `texSlotCoords` does not), and the engine's uniform machinery would still
+  see block members through `getActiveUniform`/`getUniformLocation` (null) and try to `glUniform` them.
+* The round trip is exact and cheap: an RG32F 192x1 texture built from the engine's own interleaved
+  `texSlotCoords` (no repack) read back bit-identical for all 31 placed slots in a vertex shader, max
+  coord 3572 - so RG16F (half float, exact integers only to 2048) is *not* enough. Both stacks report
+  `MAX_VERTEX_TEXTURE_IMAGE_UNITS = 16`, so two more samplers per program is nothing.
+* Price of the better fix: rewrite the served `gui`/table shaders to fetch instead of index, plus a
+  patch where the atlas assigns and refreshes the table (`SpriteAtlas.assignToMaterial`/`updateRedraw`,
+  the font atlas at bundle ~267093). Price of the shipped fix: nothing; both stay inside `ShaderSlots`.
+* Nothing observed needs it yet. The game says so itself when the served table is too small
+  (`ATLAS ERROR: Exceeded maximum TEX_SLOT_COUNT of 192`, forwarded to the record since 0.4.2); §10.9
+  measured a map scene at 85 of 96, and the map loaded here uses 31 of 192. Until a report shows that
+  line, the texture patch has no defect to fix - it is an option to keep in the drawer, written down
+  here with its measurements.
+
+**Caching.** The table is *not* re-uploaded per frame: `slot-table-upload-rate.js` wraps the live
+context and counted **0** uniform-array uploads (any length >= 300) over 15 s of play - 140 frames,
+3 780 draws. The engine's `Material.apply()` uploads only when the value is marked modified, so
+"caching the table" has nothing to save, and the 0.4.2 fix costs nothing per frame either (the packed
+accessor is a shift + select against a 96-entry table instead of indexing a 192-entry one). The Kotlin
+side of the fix is not worth caching: one GL-limits call per launch, a 12-file regex rewrite in
+microseconds, a budget that is stable per device.
+
+The start path has exactly one cacheable multi-second cost, and it is not the shaders: `GameFiles.
+indexTree` re-walks the whole picked tree on every launch - `indexed 2938 entries in 6725ms` on the S22
+inside a 9.4 s start-to-title, 2 589 ms cold and 449 ms warm on the emulator - because SAF offers no
+cheap diff and the port rebuilds the full docId map. Persisting that map and refreshing it against the
+root's own metadata would take seconds off every launch, and it is the only lever of that size. (The
+other one is already shipped: `RewriteCache` holds the 12.7 MB `bundle.js` read+rewrite in memory.)
