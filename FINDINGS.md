@@ -1013,6 +1013,20 @@ fair torture test:
 | `boot stall: no progress for 8917499ms at 12.0% of 1755 resources` (recorded across a 2.5 h session) | `ENGINE boot: complete in 6161ms, 1757 resources` |
 | the loading bar, forever | the title screen, menus, cutscene and in-game HUD drawing |
 
+The same floor exists on real Adreno hardware - which is what the reporters have. The shipped
+`AlabasterDawn-Android-0.4.2.apk` installed over 0.1 on the **SM-S908U1 (Galaxy S22 Ultra, Android 16,
+WebView 153, Adreno 730)**, kept its picked folders and booted the game from its own setup screen:
+
+```
++23180ms indexed 2938 entries in 6725ms
++23487ms gl limits: vertex uniforms 256 -> TEX_SLOT_COUNT 192
++25835ms ENGINE facts: webgl2=true; gl=Adreno (TM) 730; uniforms=256/256; varyings=31; audio=running
++32850ms ENGINE boot: complete in 9359ms, 1757 resources; decodes started=608 done=608 failed=0
+```
+
+`MAX_VERTEX_UNIFORM_VECTORS = 256` there too, so the 740/830 in the two reports are the same case, and
+the fix is the one that applies to them.
+
 The emulator's own log now reads `gl limits: vertex uniforms 256 -> TEX_SLOT_COUNT 192`, the served
 bytes read `TEX_SLOT_COUNT 192 in terra/dist/bundle.js` and `TEX_SLOT_COUNT 192 packed in
 terra/data/shader/vertex/gui.vert`, and over CDP the running engine confirmed the forms it compiled:
