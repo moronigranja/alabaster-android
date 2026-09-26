@@ -1052,3 +1052,31 @@ actually compile.
 Also tried and *not* shipped: packing **every** table (it links too, at 208 with the same sources).
 Only `gui.vert` needs it, and rewriting one file is the smaller change; the rest of the shaders are
 served with nothing but a smaller `#define`.
+
+### 10.10 Instruments for a running engine, and where to look in it
+
+Everything in §10.9 came out of the engine's *live* objects over CDP, because the bundle publishes
+almost nothing (`window.g.system` does not exist; `window.g.resource.bootTracker` does). The probes are
+kept in `tools/probes/` with the handles they read:
+
+* `shader-budget.js` links every real vertex+fragment pair in `g.renderer.shaders` with only the slot
+  table substituted - the measurement that found the ceiling (`gui.vert` at 96, not 128; one-table
+  programs at 192).
+* `gl-errors-and-uniforms.js` - the pending `gl.getError()` and `MAX_VERTEX_UNIFORM_VECTORS` /
+  `varyings` as the WebView reports them (`256/261/32` on SwiftShader, `256/256/31` on the S22's
+  Adreno 730).
+* `atlas-sampler.js` - peak `sheets` per atlas group plus the engine's `console.error`s, for judging the
+  slot ceiling while playing.
+* `gl-call-ring.js` - wraps the live GL context to name the call behind an `INVALID_OPERATION` instead
+  of guessing.
+* `packed-table-pixel-test.js` - uploads real slot coords into a `vec2[S]` and a `vec4[S/2]` program and
+  reads the pixels back.
+* `cdp.py` - the client (debug builds only: devtools is gated on `BuildConfig.DEBUG`; on a release build
+  `adb logcat -s AdaPort:I` is the channel).
+
+Handles that matter: `g.resource.bootTracker` (`progress`, `resources[]` with `identification()`),
+`g.renderer.shaders` (each `TriShader`; `.vertexShader.source` is the **served** GLSL, `.definitions`
+the engine's `#define` set), `g.renderer.groups.<group>.atlasses[i]` (`sheets`, `texSlotCoords`,
+`uTexSlotCoords`), `g.gl`, and `g.renderer.isPaused/.cineCamera/.viewType/.tags` to tell a cutscene from
+gameplay. A dead end worth remembering: driving Chrome on the emulator through a host server and
+`adb reverse` never got past Chrome's first-run flow - the WebView devtools socket is the route.
