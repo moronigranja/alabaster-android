@@ -28,6 +28,8 @@ devtools socket; there the app's own log (`adb logcat -s AdaPort:I`) is the chan
 | `slot-budget-cases.js` | the portable version of the same question - synthetic, every declaration *used* so nothing is eliminated - as a self-contained file for any page; `slot-budget-probe.html` wraps it for devices whose WebView has no devtools (open it in Chrome after `adb reverse tcp:8099 tcp:8099`, and run `tools/serve-fast.py 8099 tools/probes`) |
 | `fetch-table-pixel-test.js` | is a slot table that travels as an RG32F vertex texture bit-exact? Uploads the engine's own interleaved `texSlotCoords` and compares every placed slot in a vertex shader against the atlas float |
 | `slot-table-upload-rate.js` | counts slot-table (and any other uniform-array) uploads against draws and frames while playing: is the engine re-uploading the table per frame, or caching it? |
+| `frame-budget.js` | the calls a frame makes through the live context (draws, program/state switches, and every byte of texture/buffer data) - is there a per-frame upload pathology behind the GPU numbers? (Measured: none - 0 texture uploads in 20 s, 27 draws/frame.) **Wrap GL calls in `function` expressions, never arrows** - an arrow has no `arguments`, and a throw inside a GL call surfaces as the engine's resize path failing |
+| `frame-pass-cost.js` | what a frame costs in *pixel work*: each `clear` is one pass, times its viewport, summed per frame, against the rung's own pixel count. This is the number that has to be multiplied when the rung goes up (§9.7) |
 | `cdp.py` | the client for all of the above |
 
 Useful engine handles found while doing this (the bundle publishes almost nothing):

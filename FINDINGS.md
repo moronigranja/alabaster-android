@@ -734,6 +734,54 @@ Booster performance mode, prefer 640×360 (54 % GPU) unless the sharper 960×540
   intact (no `(1)` suffixes). The in-game *Load* list was never eyeballed (needs a manual save);
   everything underneath it is verified.
 
+### 9.7 What 1080p would cost, measured per frame (2026-09-26)
+
+The question behind "can the S22 do 1080p at 60": 720p is already flat at 99.9 % GPU (38-42 fps cool)
+and the panel's own mode is 1080x2316 at 60 Hz, so the only way up is a multiple of GPU work per
+second. §9.5's curve gives the *device* answer for a scene; `tools/probes/frame-pass-cost.js` gives the
+*engine* answer for the work: one `clear` is one render pass, so summing each pass's viewport area over
+a frame measures the pixel work that grows with the rung, independent of the GPU.
+
+Menu/title scene, host-GPU emulator, rung set through `localStorage["xg_local_options"]` (§9.6), 60 fps:
+
+| rung (option) | canvas | passes/frame | cleared MPix/frame | draws/frame |
+|---|---|---|---|---|
+| 640x360 (scale 1) | 640x360 | 14 | 3.91 | 27 |
+| 1280x720 (scale 2) | 1280x720 | 14 | 11.51 | 27 |
+| 1920x1080 (scale 3) | 1920x1080 | 14 | 24.19 | 27 |
+
+The arithmetic is exact: **11 rung-sized passes** (10 framebuffer targets + the screen clear) plus
+1.38 MPix of rung-independent targets (1024², 512², 256²), and every measured row fits it to the
+hundredth. So the work ratio is not the pixel ratio: 720p costs 2.9x of 640x360 (not 4x), and 1080p
+costs **6.2x** - 2.10x the work of 720p rather than its 2.25x pixel ratio. Fitting §9.5's device curve
+(640x360 = 54 %, 960x540 = 91 %, 720p saturated at 38-42 fps cool) onto this work model puts 1080p at
+roughly **20-26 fps cool and ~10-12 fps throttled**, i.e. **2.5-4x short of 60**, and the rung-sized
+passes are the dominating term (22.8 of the 24.2 MPix/frame).
+
+Two more things the same instrument settled:
+
+* **No upload pathology.** `frame-budget.js` on the same scene counts **zero** texture uploads in 20 s,
+  27 draws/frame, 14 program switches, 32 texture binds, 14 clears - the engine redraws its 4096²
+  sprite atlases only when they change. The GPU time is pass fill, not bandwidth from the CPU.
+* **The output is already 1080p; the rung is shading.** At both 640x360 and 960x540 the canvas is
+  presented at CSS 866x412 with `devicePixelRatio` 2.625 (i.e. the WebView scales it to the window),
+  and the phone's active display mode is 1080x2316 @ 60 Hz. Choosing a rung changes how many pixels
+  the engine *shades*; the picture the panel shows is the panel's resolution either way.
+
+So the remaining levers, in order of size, and what each costs:
+
+| lever | expected | cost / status |
+|---|---|---|
+| fewer full-canvas passes (the ten; fog/weather/light/post layers) | the only multiple-sized term: 1 pass of 10 is ~10 % of the frame | no quality option exists in the game to turn one off (`options.json` has only `pixel-size`/`sharp-pixels`/`fullscreen`); it means patching the engine's pass list - changes the game's look, and it is not a bug |
+| overdraw / draw-order sorting | unknown, plausibly 10-40 % of fill | still untried (§9.4); means reordering the engine's draws from outside - explicitly needs approval |
+| pin the window to 60 Hz (`preferredRefreshRate`, or `Surface.setFrameRate(60, FIXED_SOURCE)` on API 30+) | no gain in today's FHD+/60 Hz mode; on the phone's 120 Hz mode a faster vsync is *more* GPU work per game frame, not more game frames (§9.4, not quantified) | a small, defensible port change; only worth it if 120 Hz is used |
+| lower rung + the WebView's upscale (what rung 1 already is) | the practical "1080p picture" - 60 fps at 960x540 shading | already shipped and measured (91 % GPU) |
+| anything measured dead: compositor filtering, opaque canvas, Vulkan, CPU offload, canvas CSS pinning, `discard` vs `return` | - | §9.4, do not retry |
+
+Thermals decide sustained anything: 720p is 19-21 fps hot (status 3, 45 °C skin), so no proposal here is
+real until it is measured hot, and 1080p60 is out of reach on this SoC regardless of how the passes are
+trimmed.
+
 ---
 
 ## 10. The frozen boot bar (2026-09-25) — issue #1, an AYN Odin 3
