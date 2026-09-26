@@ -100,9 +100,9 @@ emulator pass also covered the layout editor: the pad publishes nothing while ed
 control and a resized key reach the engine at their new geometry, the layout survives a restart, the
 saves-folder `pad-layout.json` wins over the prefs copy, and `RESET`/`UNDO` flip as described.
 
-The diagnostics hardening (2026-09-25) was verified on the same Android 14 emulator, where SwiftShader
-cannot compile the engine's vertex shaders and the boot therefore freezes at 12 % of 1 755 resources —
-which is exactly the state these features exist for. The log file appeared at
+The diagnostics hardening (2026-09-25) was verified on the same Android 14 emulator, back when
+SwiftShader could not compile the engine's vertex shaders and the boot froze at 12 % of 1 755
+resources — exactly the state these features exist for. The log file appeared at
 `Download/AdaSaves/ada-diagnostics.log` and kept growing while the boot stayed stuck: it carried the
 engine facts line, the `boot stall … (effect=301 shader=20 data=1082 …)` line, the ten shader
 `JS ERROR` lines, and the engine's per-frame `There are unwrapped loadTrackers` line collapsed to
@@ -131,6 +131,20 @@ file; a `force-stop` and relaunch reproduced the same, and a record carried over
 written when **START** is tapped: indexing a 3 000-entry tree took 2 119 ms, and the 2 s flush held
 this session's `+3922ms indexing …` with `indexed 3000 entries` appearing only at `+5996ms` — i.e. a
 hang while the game's files are being read now leaves a record on disk, which it previously did not.
+
+The frozen boot of issue #1 (2026-09-26) turned out to be the game's own texture-slot table, and it is
+fixed: each vertex shader declares `uniform vec2 u_texSlotCoords[TEX_SLOT_COUNT]` with 256 slots, which
+costs a device whose `MAX_VERTEX_UNIFORM_VECTORS` is the GLES3 minimum of 256 **every** uniform vector
+it has — so the shaders never compiled, `checkTrackers()` threw every frame and the loading bar stopped
+for good. The shim now measures that budget before the first shader is requested, the port serves the
+table the device can actually take (the game's own 256 wherever there is room, 192 at the floor, with
+`gui.vert`'s second table packed into `vec4`s so the atlas keeps 192 slots instead of 96), and both the
+shaders and the engine's own constant move together. On the same emulator that could not boot at all:
+`0` shader errors and `ENGINE boot: complete in 6161ms` instead of `no progress for 8917499ms at 12.0%`.
+The panel and the log now also carry the device's uniform budget and forward the engine's own
+`console.error` lines — so a device that still cannot compile, or one that runs out of atlas slots,
+says so in the record. See `FINDINGS.md` §10.9 for the measurements, including what the fix costs (64
+fewer atlas slots per atlas on a floored device, out of the game's 256).
 
 ### Download
 
@@ -325,7 +339,10 @@ Thermals, not CPU, are the limit: the same 720p scene measured 42 fps cool and 1
   the engine renders without running the game loop — naming the resources still pending, grouped by
   kind, plus the `decodeAudioData` callback counts (the one load path in this engine that can stay
   unfinished without an error: a sound finalizes from its success callback alone).
-  `DiagnosticsDialog` renders that record and hands it to any text share target; `LogFile` (pure
+* `ShaderSlots` (pure Kotlin, unit-tested) is the rule behind the served shader text: how big a
+  `TEX_SLOT_COUNT` the device's reported vertex-uniform budget can carry, and when `gui.vert`'s two
+  tables have to be packed into `vec4`s — the fix for the frozen boot of issue #1.
+* `DiagnosticsDialog` renders that record and hands it to any text share target; `LogFile` (pure
   Kotlin, unit-tested) is the name and the rules behind the saves-folder copy — the same `snapshot`
   text, written on its own thread at most every watchdog tick, switched off by itself after a boot
   completes unless the user has touched the switch, and read back at the next launch (its stamped

@@ -82,12 +82,16 @@ class GameAssetHandler(
 
         var body = read(entry) ?: return miss(rel)
         /* Only the assets that are actually rewritten are cached: everything else (images, audio,
-         * `.vert`, JSON) is served verbatim and read once per boot, and caching all 2 652 of them
-         * would cost tens of megabytes for nothing. */
+         * JSON) is served verbatim and read once per boot, and caching all 2 652 of them
+         * would cost tens of megabytes for nothing. The `.vert` shaders only join in when the device
+         * cannot carry the game's own 256-slot uniform table (see [ShaderSlots]). */
+        val vertexShaders = ShaderSlots.rewrites(ShaderSlots.vertexUniformVectors)
         val cacheable = rel == BUNDLE_JS || rel == OPTIONS_DB || rel.endsWith(".frag") ||
-            (injectShim && rel == INDEX_HTML)
+            (injectShim && rel == INDEX_HTML) ||
+            (vertexShaders && rel.endsWith(".vert"))
         if (injectShim && rel == INDEX_HTML) body = injectShimTag(body)
         if (rel.endsWith(".frag")) body = keepBarycentricAlive(rel, body)
+        if (rel.endsWith(".vert")) body = vertexShader(rel, body)
         if (rel == BUNDLE_JS) body = phoneResolutionLadder(rel, body)
         if (rel == OPTIONS_DB) body = relabelResolutions(rel, body)
         if (cacheable && !rewrite.put(rel, body) && cacheWarned.add(rel)) {
@@ -114,12 +118,35 @@ class GameAssetHandler(
      */
     private fun phoneResolutionLadder(rel: String, source: ByteArray): ByteArray {
         val text = String(source, Charsets.UTF_8)
-        if (!text.contains(RESOLUTION_MAP_ORIGINAL)) {
+        val slots = ShaderSlots.slots()
+        val ladder = if (text.contains(RESOLUTION_MAP_ORIGINAL)) {
+            Log.i(TAG, "rewriting the resolution ladder in $rel")
+            text.replace(RESOLUTION_MAP_ORIGINAL, RESOLUTION_MAP_PHONE)
+        } else {
             Log.w(TAG, "$rel has no '$RESOLUTION_MAP_ORIGINAL'; leaving it unmodified")
-            return source
+            text
         }
-        Log.i(TAG, "rewriting the resolution ladder in $rel")
-        return text.replace(RESOLUTION_MAP_ORIGINAL, RESOLUTION_MAP_PHONE).toByteArray(Charsets.UTF_8)
+        if (slots >= ShaderSlots.GAME) return ladder.toByteArray(Charsets.UTF_8)
+        Log.i(TAG, "TEX_SLOT_COUNT $slots in $rel")
+        return ShaderSlots.rewrite(ladder, slots).toByteArray(Charsets.UTF_8)
+    }
+
+    /**
+     * The uniform table the vertex shaders and the engine both size from `TEX_SLOT_COUNT`: on a device
+     * whose vertex budget is the GLES3 minimum the game's own 256 table cannot be compiled (see
+     * [ShaderSlots]), which is also where `gui.vert`'s two tables get packed. The engine's own constant
+     * is rewritten in `bundle.js`, which must agree with the served shaders.
+     */
+    private fun vertexShader(rel: String, source: ByteArray): ByteArray {
+        val vectors = ShaderSlots.vertexUniformVectors
+        if (!ShaderSlots.rewrites(vectors)) return source
+        val text = String(source, Charsets.UTF_8)
+        val slots = ShaderSlots.slots()
+        val pack = ShaderSlots.packsTables(vectors) && ShaderSlots.tables(text) > 1
+        val rewritten = ShaderSlots.rewriteShader(text, slots, pack)
+        if (rewritten == text) return source
+        Log.i(TAG, "TEX_SLOT_COUNT $slots${if (pack) " packed" else ""} in $rel")
+        return rewritten.toByteArray(Charsets.UTF_8)
     }
 
     /** Matches the resolution labels in the option database and gives them the phone ladder's text. */

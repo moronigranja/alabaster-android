@@ -59,6 +59,59 @@
         try { return JSON.parse(str); } catch (e) { report("bridge JSON", e); return null; }
     }
 
+    /* The game's vertex shaders each declare `uniform vec2 u_texSlotCoords[TEX_SLOT_COUNT]` (256
+     * elements), which costs one uniform *vector* per element on the drivers seen here; a device
+     * whose MAX_VERTEX_UNIFORM_VECTORS is the GLES3 minimum of 256 cannot compile them, and the boot
+     * then freezes forever with `too many uniforms` in a console nobody can read. The app decides how
+     * much of the table to serve (ShaderSlots), so it needs this number *before* the first shader
+     * request - this runs at document start, i.e. before the bundle asks for anything. One throwaway
+     * context, closed immediately; a device without WebGL2 answers 0 and gets the safe default. */
+    var glLimits = (function () {
+        try {
+            var canvas = document.createElement("canvas");
+            var gl = canvas.getContext("webgl2");
+            if (!gl) return { vertexUniforms: 0, fragmentUniforms: 0, varyingVectors: 0 };
+            var limits = {
+                vertexUniforms: gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS),
+                fragmentUniforms: gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS),
+                varyingVectors: gl.getParameter(gl.MAX_VARYING_VECTORS)
+            };
+            var lose = gl.getExtension("WEBGL_lose_context");
+            if (lose) lose.loseContext();
+            return limits;
+        } catch (e) {
+            report("gl limits", e);
+            return { vertexUniforms: 0, fragmentUniforms: 0, varyingVectors: 0 };
+        }
+    })();
+    call(function (bridge) { return bridge.setVertexUniformVectors(glLimits.vertexUniforms); });
+
+    /* The engine reports its real trouble through `console.error`/`console.warn` - a shader that will
+     * not compile, a resource that will not load, an atlas that ran out of slots - and on a release
+     * build none of that reaches a log anyone can read. Forward the first line of each (bounded, and
+     * the app collapses repeats) so a device-only failure is in the diagnostics panel. */
+    (function () {
+        var forwarded = 0;
+        ["error", "warn"].forEach(function (level) {
+            var original = console[level];
+            console[level] = function () {
+                try {
+                    if (forwarded < 200) {
+                        forwarded++;
+                        var text = Array.prototype.map.call(arguments, function (a) {
+                            if (typeof a === "string") return a;
+                            try { return JSON.stringify(a); } catch (e) { return String(a); }
+                        }).join(" ").split("\n")[0];
+                        if (HAS_BRIDGE) {
+                            window.AdaBridge.reportDiag("console." + level, text.slice(0, 300));
+                        }
+                    }
+                } catch (e) { /* the console must never break */ }
+                return original.apply(console, arguments);
+            };
+        });
+    })();
+
     function enoent(p) {
         var e = new Error("ENOENT: no such file or directory, open '" + p + "'");
         e.code = "ENOENT";
@@ -641,6 +694,8 @@
 
     function sendFacts(gl) {
         var parts = ["webgl2=" + !!window.WebGL2RenderingContext, "gl=" + glDescription(gl),
+            "uniforms=" + glLimits.vertexUniforms + "/" + glLimits.fragmentUniforms,
+            "varyings=" + glLimits.varyingVectors,
             "audio=" + audioState()];
         reportDiag("facts", parts.join("; "));
     }

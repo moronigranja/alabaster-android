@@ -80,6 +80,18 @@ class AdaBridge(
     @JavascriptInterface
     fun fsCopyFile(from: String, to: String): Boolean = traced("fsCopyFile", from) { fs.copy(from, to) }
 
+    /**
+     * The vertex uniform budget the page's own GL stack reports, sent once from the shim before the
+     * engine compiles anything. It decides how big a `TEX_SLOT_COUNT` the served shaders can carry
+     * (see [ShaderSlots]); the shaders are fetched after this lands, so a late answer only ever means
+     * the safe default.
+     */
+    @JavascriptInterface
+    fun setVertexUniformVectors(vectors: Int) {
+        ShaderSlots.vertexUniformVectors = vectors
+        diag.line("gl limits: vertex uniforms $vectors -> TEX_SLOT_COUNT ${ShaderSlots.slots()}")
+    }
+
     /** Device-only failures would otherwise be a black screen with nothing in logcat. */
     @JavascriptInterface
     fun reportJsError(message: String) {

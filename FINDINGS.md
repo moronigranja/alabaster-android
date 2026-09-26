@@ -947,3 +947,94 @@ remembered location):
 * unchanged paths still work: a normal start indexes 2 937 entries, loads, stalls at 12 %, collapses
   repeats and writes the record; `log_to_saves`' auto-off was verified in §10.7 and its code is not
   touched here.
+
+### 10.9 The frozen bar, solved: the game's 256-slot uniform table (2026-09-26)
+
+Issue #1's symptom is a boot bar that stops at 7.9-12 % forever. §10.4 blamed "a GL stack that rejects
+the engine's vertex shaders" - which was true and *not* SwiftShader-only: both reporters, the AYN Thor
+(Android 13, WebView 109, Adreno 740) and the AYN Odin 3 (Android 15, WebView 124, ANGLE on Adreno 830),
+freeze on the **same 11 vertex shaders** with the **same boot set** the emulator did (`shader=20`
+pending, 1755/2938 resources, 12.0 %/7.9 %). The panel that ships now names them, so the three devices
+can be compared side by side; what the panel could *not* say is what the GL compiler objected to,
+because the engine only prints the shader's *path* in its `window.onerror` message and writes the real
+info log to `console.error`.
+
+What the compiler said, read out of the live engine over CDP (the debug build's devtools socket): every
+one of the 12 `.vert` files fails `compileShader` with `ERROR: too many uniforms`. The cause is the
+texture-slot table the game declares in each of them:
+
+```
+#define TEX_SLOT_COUNT 256
+uniform vec2 u_texSlotCoords[TEX_SLOT_COUNT];
+```
+
+and one `vec2` array element costs one whole uniform *vector* on the drivers seen here
+(`MAX_VERTEX_UNIFORM_VECTORS = 256` on the emulator, which is the GLES3 guaranteed minimum), so the
+table alone consumes the entire budget before the matrices, the wind uniforms and the imported
+`lib` glsl files are counted. `gui.vert` is worse: it declares **two** tables, the gui atlas and the
+font atlas (`uniform vec2 u_fontSlotCoords[TEX_SLOT_COUNT]`), so it needs `2 * TEX_SLOT_COUNT` vectors.
+
+Measured against the engine's own live sources (link the real vertex+fragment pairs, substituting only
+the table size): with the tables left as the game wrote them, `gui` links at 96 and **fails at 128**,
+and every one-table program links at 192 (`weather-drops.vert`, the heaviest, needs 48 vectors
+besides its table). The engine's `const TEX_SLOT_COUNT = 256` sizes both the atlas and the upload, so
+the two constants have to move together.
+
+The fix, in three parts:
+
+* the shim reads `MAX_VERTEX_UNIFORM_VECTORS` from a throwaway context at document start - before the
+  bundle asks for a single shader - and reports it through a new `AdaBridge.setVertexUniformVectors`,
+  which logs `gl limits: vertex uniforms 256 -> TEX_SLOT_COUNT 192`; the same number and
+  `MAX_FRAGMENT_UNIFORM_VECTORS` / `MAX_VARYING_VECTORS` now travel in the `facts` line, so a field
+  report says what the device actually had.
+* `ShaderSlots` turns that budget into a table size: the game's own 256 when the device has room for
+  two of them, otherwise `budget - 64` - 192 at the floor. The served `.vert` bytes get the new
+  `#define`, and `terra/dist/bundle.js` gets `const TEX_SLOT_COUNT = 192;` so the atlas and the
+  `uniform2fv` upload agree with what the shaders declare.
+* where the device cannot afford `gui.vert`'s two unpacked tables (below `2 * 256 + 32` vectors), that
+  one file is served with each table packed into `vec4`s - `uniform vec4 u_texSlotCoords[TEX_SLOT_COUNT
+  / 2]` plus a two-overload helper (`int` and `uint`, because the shaders index with both) that
+  returns `v.xy` or `v.zw` - which costs one vector per *two* slots and keeps the slot count. This is
+  sound because the engine picks its upload call from the program's own uniform type
+  (`getActiveUniform` -> `FLOAT_VEC4` -> `uniform4fv`), and `2 * S` floats into `vec4[S / 2]` validates
+  exactly; slot `i` then lives in element `i >> 1`, which is where the engine's existing
+  `texSlotCoords[2i], [2i+1]` layout already puts it. Without this, the only table `gui` can take is 96
+  - a quarter of the game's own atlas ceiling - and one measured map scene already needed 85 of those
+  96 slots. A device with room for the game's own tables is served **unmodified bytes**; the port
+  rewrites nothing at all unless the device is at the floor. `.frag` files are untouched by this,
+  `gui.vert` is the only file with two tables, and only the bytes the WebView sees are rewritten.
+
+Verified on the A14/SwiftShader emulator, which is a *known bad* shader host (§10.4) and therefore a
+fair torture test:
+
+| before | after |
+|---|---|
+| 22 `An error occurred compiling the shader …` lines, `shader=20` pending | **0** shader errors, no `exceed GL_MAX_VERTEX_UNIFORM_VECTORS` |
+| `boot stall: no progress for 8917499ms at 12.0% of 1755 resources` (recorded across a 2.5 h session) | `ENGINE boot: complete in 6161ms, 1757 resources` |
+| the loading bar, forever | the title screen, menus, cutscene and in-game HUD drawing |
+
+The emulator's own log now reads `gl limits: vertex uniforms 256 -> TEX_SLOT_COUNT 192`, the served
+bytes read `TEX_SLOT_COUNT 192 in terra/dist/bundle.js` and `TEX_SLOT_COUNT 192 packed in
+terra/data/shader/vertex/gui.vert`, and over CDP the running engine confirmed the forms it compiled:
+`gui` `uniform vec4 u_texSlotCoords[…]` + `ada_u_fontSlotCoords(`, `solid` `uniform vec2
+u_texSlotCoords[…]` with `#define TEX_SLOT_COUNT 192`. Every atlas group then reported
+`texSlotCoords.length / 2 = 192` slots with 58 sheets in use. The packed table is not just theory: the
+title illustration, the menu text and the in-game HUD are drawn from the packed gui and font tables and
+render correctly - a wrong slot coordinate would show up as scrambled glyphs. `gl.getError()` in steady
+state is 0 (the one `INVALID_OPERATION` seen in a first read happens at boot in *both* configurations,
+packed and unpacked, and is unrelated to the tables).
+
+Two things to keep honest about it. First, the emulator still mis-renders the *map* geometry - both at
+96 unpacked and at 192 packed - so SwiftShader is no judge of the picture; what it does prove is that
+the shaders compile, the boot completes and the UI draws. The reporters' Adreno devices are the ones
+that can say whether the map looks right, and their next panel now carries everything needed to judge
+it. Second, a scene that packs more sheets into one atlas than the served table allows would log
+`ATLAS ERROR: Exceeded maximum TEX_SLOT_COUNT of 192` from the engine; that message goes to
+`console.error`, which the port now forwards (`console.error …` in the log and the panel), so the
+failure mode is named instead of guessed at. The desktop game's own ceiling is 256, so the phone pays
+for its smaller uniform budget with 64 fewer slots per atlas - the price of a table the device can
+actually compile.
+
+Also tried and *not* shipped: packing **every** table (it links too, at 208 with the same sources).
+Only `gui.vert` needs it, and rewriting one file is the smaller change; the rest of the shaders are
+served with nothing but a smaller `#define`.
