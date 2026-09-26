@@ -78,6 +78,16 @@ class PortActivity : Activity() {
     @Volatile
     private var logFailures = 0
 
+    /* Whether the previous session's record has been read (or found absent) yet: until then nothing
+     * is flushed, so the write cannot clobber the record that launch is about to carry over. */
+    @Volatile
+    private var previousRecordRead = false
+
+    /* Whether a previous session's lines are already in the ring, so a second read (a saves folder
+     * picked mid-session) does not carry the same record twice. */
+    @Volatile
+    private var previousRecordCarried = false
+
     /** The app's own log and frame clock; everything device-specific is reported through it. */
     private lateinit var diag: Diag
     private var assetHandler: GameAssetHandler? = null
@@ -124,6 +134,11 @@ class PortActivity : Activity() {
         viewAlign = ViewAlign.fromWire(prefs.getString(KEY_VIEW_ALIGN, null))
         statsEnabled = prefs.getBoolean(KEY_STATS, false)
         logToSaves = prefs.getBoolean(LogFile.PREF_KEY, true)
+        /* The store is opened here and not at START, and the previous session's record is read back
+         * into the ring: a user who freezes and restarts expects the panel (and the file) to still
+         * show what happened, not an empty record from the launch that follows. */
+        saveStore = openSaveStore()
+        carryPreviousRecord(saveStore!!)
         buildPreGameUi()
         applyImmersive()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -261,6 +276,11 @@ class PortActivity : Activity() {
         if (wantWrite) {
             savesTreeUri = uri
             prefs.edit().putString(KEY_SAVES, uri.toString()).apply()
+            /* The store was opened at startup, before this pick: follow the folder the user just
+             * pointed at, and read its previous record before a flush can overwrite it. */
+            val fresh = openSaveStore()
+            saveStore = fresh
+            if (!previousRecordCarried) carryPreviousRecord(fresh)
         } else {
             gameTreeUri = uri
             prefs.edit().putString(KEY_GAME, uri.toString()).apply()
@@ -294,6 +314,11 @@ class PortActivity : Activity() {
         if (index != null) return
         startButton.isEnabled = false
         setStatus("Indexing game files…")
+        /* The saves store was opened at startup; the flush chain starts here rather than in
+         * launchWebView, because reading a big game folder can take a while and a failure there has
+         * to leave a record on disk, not only on screen. launchWebView re-posts this same chain. */
+        if (saveStore == null) saveStore = openSaveStore()
+        watchdog.postDelayed(watchdogTick, WATCHDOG_TICK_MS)
         diag.line("indexing $tree")
         val started = System.currentTimeMillis()
         Thread({
@@ -312,7 +337,6 @@ class PortActivity : Activity() {
                 }
                 index = built
                 diag.line("indexed ${built.size} entries in ${System.currentTimeMillis() - started}ms")
-                saveStore = openSaveStore()
                 padLayoutStore = PadLayoutStore(prefs, saveStore!!)
                 fsBridge = FsBridge(contentResolver, tree, built, saveStore!!)
                 status.text = "Loaded ${built.size} files."
@@ -556,11 +580,29 @@ class PortActivity : Activity() {
     )
 
     /**
+     * Reads the previous session's record out of [store] and carries it into the ring, off the main
+     * thread (it is a SAF read). No flush may run until it lands (see [previousRecordRead]), or the
+     * first write would overwrite the very record being carried over.
+     */
+    private fun carryPreviousRecord(store: SaveStore) {
+        Thread({
+            val text = if (store.exists(LogFile.FILE)) store.read(LogFile.FILE) else null
+            val previous = text?.let { LogFile.previousLines(it, diag.maxLines()) }.orEmpty()
+            if (previous.isNotEmpty()) {
+                diag.carryOver(previous)
+                previousRecordCarried = true
+            }
+            previousRecordRead = true
+        }, "ada-log-read").start()
+    }
+
+    /**
      * Keeps [LogFile.FILE] in the saves folder current, at most every watchdog tick. The snapshot is
      * taken here (main thread, the same text the panel shows) and written on [writeLogAsync]'s own
      * thread: the stores under it are SAF, and a blocked write must never block the UI.
      */
     private fun flushLogIfDirty() {
+        if (!previousRecordRead) return
         if (!LogFile.shouldFlush(logToSaves, logDirty, logWriting, logFailures)) return
         val store = saveStore ?: return
         logDirty = false

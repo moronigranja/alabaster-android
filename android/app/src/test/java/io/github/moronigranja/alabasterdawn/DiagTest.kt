@@ -110,4 +110,54 @@ class DiagTest {
         assertEquals(3, seen.size)
         assertTrue("each occurrence is stamped once", seen.all { it.endsWith(" same") })
     }
+
+    @Test
+    fun `a carried record comes first, and a new line never merges into it`() {
+        val diag = diag(capacity = 10)
+        diag.carryOver(LogFile.previousLines("+10ms same (x2)\n+20ms other", diag.maxLines()))
+        now += 5
+        diag.line("same")
+        val lines = diag.snapshot(emptyList()).lines()
+        assertEquals("marker + two carried lines + one new", 4, diag.size())
+        assertTrue(lines.any { it == "+10ms same (x2)" })
+        assertTrue(lines.any { it == "+5ms same" })
+        assertTrue("the carried line is not rewritten", lines.none { it.endsWith("(x3)") })
+        assertTrue(
+            "carried lines come before this session's",
+            lines.indexOf("+10ms same (x2)") < lines.indexOf("+5ms same")
+        )
+    }
+
+    @Test
+    fun `a carried record keeps its newest lines and its marker`() {
+        val diag = diag(capacity = 10)
+        diag.carryOver(LogFile.previousLines((1..8).joinToString("\n") { "+$it ms line" }, diag.maxLines()))
+        assertEquals(5, diag.size())
+        val lines = diag.snapshot(emptyList()).lines()
+        assertTrue("the marker is there to read", lines.contains(LogFile.PREVIOUS_MARKER))
+        assertTrue("the newest carried lines are kept", lines.contains("+7 ms line") && lines.contains("+8 ms line"))
+        assertTrue("the oldest are dropped", lines.none { it == "+1 ms line" || it == "+2 ms line" })
+    }
+
+    @Test
+    fun `the marker outlives a few new lines`() {
+        val diag = diag(capacity = 10)
+        diag.carryOver(LogFile.previousLines((1..8).joinToString("\n") { "+$it ms line" }, diag.maxLines()))
+        repeat(4) {
+            now += 10
+            diag.line("new $it")
+        }
+        assertTrue("still labelled", diag.snapshot(emptyList()).contains(LogFile.PREVIOUS_MARKER))
+    }
+
+    @Test
+    fun `a repeated message still collapses after a carried record`() {
+        val diag = diag(capacity = 6)
+        diag.carryOver(listOf("+10ms old"))
+        now += 5
+        diag.line("fresh")
+        now += 5
+        diag.line("fresh")
+        assertTrue(diag.snapshot(emptyList()).contains("+10ms fresh (x2)"))
+    }
 }

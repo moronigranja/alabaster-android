@@ -884,3 +884,66 @@ and `(x12)` in the collapsed repeat, so the release build behaves as the debug o
 difference on purpose: the release build is not debuggable, so WebView devtools is off and the CDP
 driving of the page from §10.6 is unavailable there — `adb logcat -s AdaPort:I` is the raw-line
 channel on a shipped build.
+
+### 10.8 What the first two device reports looked like, and the two fixes they forced (2026-09-25)
+
+Both reporters answered issue #1's request for a record with a screenshot of the panel — and both
+screenshots were **fresh launches**, not the frozen boot. They are worth keeping as the baseline
+shape of a useless report:
+
+| | AYN Thor (Jherben) | AYN Odin 3 (JayElDragon) |
+|---|---|---|
+| `app …` | `0.4 (4) on AYN AYN Thor, Android 13 (SDK 33, arm64-v8a)` | `0.4 (4) on AYN Odin3, Android 15 (SDK 35, arm64-v8a)` |
+| `webView …` | `com.android.webview 109.0.5414.123` | `com.android.webview 124.0.6367.219` |
+| `game files:` | `Alabaster Dawn (not indexed)` | `Alabaster Dawn (not indexed)` |
+| `saves:` | `Saves` | `Saves` |
+| `assets …` | `none served yet` | `none served yet` |
+| `--- log` | `(2 lines…)`: the launch line + `+1089ms diagnostics opened` | the same, `+1089ms diagnostics opened` |
+| reported symptom | "loads the first progress bar and then the second one it barely moves, less than a quarter, left for more than 5 minutes" | "game freezes when trying to put gamefiles … forcing a shut down" |
+
+Zero assets served and a two-line log in both: the app was healthy at `+1 s` and nothing had been
+read from the game folder yet. The panel is per-launch and a frozen boot forces a restart (issue #1
+says it needs a force-stop), so `Diagnostics` opened after the restart can only ever show the launch
+after the failure — the two reporters did the reasonable thing and got nothing for it. Fixes:
+
+* **The record is carried across restarts.** At launch the app reads `ada-diagnostics.log` back and
+  carries the newest 199 of its stamped lines (half the 400-line ring) into the ring behind a
+  `--- previous session, carried from ada-diagnostics.log ---` marker. Half, not all, because the
+  carried lines sit at the front of the ring and a carry that filled it lost its marker — and then
+  its oldest lines — to the very next log line, this session's own `diagnostics opened` included;
+  that failure was seen on the device (the panel showed 400 carried lines and no marker) before the
+  rule became half a ring. Only lines starting with `+` are carried, so the file's header, an older
+  marker, and anything else outside the log section are dropped and markers cannot accumulate — a
+  re-carried record keeps exactly one (`grep -c "previous session"` = 1 in the file after two
+  restart cycles).
+* **The file starts being written when START is tapped**, not when the game's page begins loading:
+  `watchdogTick` (whose top is the flush, every 2 s) is posted from `startGame`, and `launchWebView`
+  clears and re-posts it as before. So a stall inside `GameFiles.indexTree` — "freezes when trying to
+  put gamefiles", the Odin 3's symptom — now leaves `+Nms indexing …` on disk with nothing after it,
+  instead of nothing at all.
+
+Enabling that last one meant opening the saves store in `onCreate` rather than after indexing, which
+broke the case it has to serve (a fresh install has no store yet at launch, and a saves folder picked
+seconds later would have been ignored for that whole session): `onActivityResult` now follows the
+picked tree, re-opening the store and reading *that* folder's record before a flush can overwrite it.
+
+Device verification of the two fixes (A14/SwiftShader emulator, debug build, real game tree unless
+noted; the emulator's `/data` is a temp image, so a *package* change needs the 6-tap picker flow —
+Download → the folder → USE THIS FOLDER → ALLOW — and the grant taps shift with DocumentsUI's
+remembered location):
+
+* carry-over, on the setup screen with the game never started: `--- log (202 lines, oldest first) ---`,
+  the launch line, `--- previous session, carried from ada-diagnostics.log ---`, then the previous
+  file's newest lines (`+8296405ms ENGINE boot stall: …`, i.e. 138 minutes into the session that had
+  frozen) — and after `am force-stop` + relaunch, the same record again.
+* the file keeps what the panel shows: header = this session's facts, then the launch line, one
+  marker, the carried lines, this session's lines.
+* the indexing flush: a synthetic 3 000-entry tree (`mkdir`+`touch` on the device, 21 s to create)
+  indexed in 2 119–2 424 ms; the flush 2 s after START held this session's
+  `+3922ms indexing content://…/BigTree` and the next line in the file was still a carried one —
+  `indexed 3000 entries in 2119ms` reached the file only in the `+6104ms` write that also held
+  `loading https://appassets.androidplatform.net/game/terra/index.html`. That tree was deleted from
+  `/sdcard/Download` afterwards; the emulator was left with the real game folder picked.
+* unchanged paths still work: a normal start indexes 2 937 entries, loads, stalls at 12 %, collapses
+  repeats and writes the record; `log_to_saves`' auto-off was verified in §10.7 and its code is not
+  touched here.

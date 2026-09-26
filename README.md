@@ -67,7 +67,11 @@ Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`)
   are still in the record when the user opens the panel. With the log switch on, the same text is
   also kept as `ada-diagnostics.log` in the saves folder — the record survives a force-stop — and the
   switch turns itself off after the first boot that *completes*, so the default is a file for boots
-  that fail and nothing for the ones that work. There is also a **Diagnostics** button on the setup
+  that fail and nothing for the ones that work. A frozen boot usually forces a restart, so the app
+  does not start from an empty record: the newest lines of that file are carried back in behind a
+  `--- previous session, carried from ada-diagnostics.log ---` marker, and the file also starts
+  being written the moment **START** is tapped — a hang while the game's files are being read leaves
+  the same evidence as a hang while they load. There is also a **Diagnostics** button on the setup
   screen, before the game starts.
 * Resolution can be raised in-game: `640x360 / 960x540 / 1280x720 / 1920x1080 / 2560x1440`.
 * Leaving the app pauses the game: the music stops and the loop stops burning CPU. An Android
@@ -116,6 +120,18 @@ differ), granted the two folders from scratch through the picker, started, and i
 12 % stall while writing `app 0.4 (4) …` and `rewrite cached=40 hits=0 …` to the log file, with
 `(x12)` visible in the collapsed repeat.
 
+Two follow-ups came out of the first two reports from real devices, and both were measured the same
+way on that emulator. Both reporters' panels turned out to be **fresh launches** — `game files: …
+(not indexed)`, `assets: none served yet`, a two-line log — because a frozen boot forces a restart
+before the panel can be read. So the record is now carried across restarts: on the setup screen with
+the game never started, the panel read `--- log (202 lines, oldest first) ---`, the launch line, then
+`--- previous session, carried from ada-diagnostics.log ---` and the newest 199 lines of the previous
+file; a `force-stop` and relaunch reproduced the same, and a record carried over repeatedly keeps
+**one** marker (counted in the file, `grep -c "previous session"` = 1). And the file now starts being
+written when **START** is tapped: indexing a 3 000-entry tree took 2 119 ms, and the 2 s flush held
+this session's `+3922ms indexing …` with `indexed 3000 entries` appearing only at `+5996ms` — i.e. a
+hang while the game's files are being read now leaves a record on disk, which it previously did not.
+
 ### Download
 
 Grab `AlabasterDawn-Android-<version>.apk` from
@@ -126,7 +142,7 @@ certificate** — `CN=Alabaster Dawn Android port, O=moronigranja, C=BR`, SHA-25
 install:
 
 ```bash
-apksigner verify --print-certs AlabasterDawn-Android-0.4.apk   # no SDK? keytool -printcert -jarfile …
+apksigner verify --print-certs AlabasterDawn-Android-0.4.1.apk   # no SDK? keytool -printcert -jarfile …
 ```
 
 The APK carries `assets/LICENSE` + `assets/NOTICE.md` inside, so the binary ships the notices it is
@@ -186,7 +202,7 @@ keytool -genkeypair -keystore ~/.android/alabasterdawn-release.jks -alias alabas
 # then android/keystore.properties: storeFile / storePassword / keyAlias / keyPassword (chmod 600)
 
 android/tools/release.sh                       # signed build + digest + signature check
-android/tools/release.sh --upload --publish --notes docs/release-notes-0.4.md
+android/tools/release.sh --upload --publish --notes docs/release-notes-0.4.1.md
 ```
 
 `tools/release.sh` renames the shipped artifact to `AlabasterDawn-Android-<version>.apk` (never
@@ -240,6 +256,14 @@ can be read on the device itself:
   file with the saves** switch controls it, on by default, and it switches itself off after the
   first boot that *completes*: the file is for the boots that fail. One tap on the switch, either
   way, ends that behaviour for good. Nothing deletes an existing log.
+* **Restarting does not lose it.** The record is per-launch, and a freeze usually forces a restart
+  before you can read the panel — so the newest lines of that file are read back at launch and shown
+  above this session's, behind a `--- previous session, carried from ada-diagnostics.log ---`
+  marker. The carried lines are 199 of them (half the ring) and this session's lines eventually
+  scroll them out; send the file (or a screenshot) soon after the failure.
+* **A hang while the game's files are being read is recorded too.** The file starts being written as
+  soon as **START** is tapped, not when the game's page begins loading, so a port that stalls on a
+  big or slow folder leaves the evidence on disk — `indexing …` and nothing after it.
 * Everything in the record is also on logcat, tag `AdaPort`, if you do have a PC:
   `adb logcat -s AdaPort:I` (the raw lines: the on-screen/on-file record collapses a line the engine
   repeats every frame, logcat keeps every occurrence).
@@ -302,9 +326,10 @@ Thermals, not CPU, are the limit: the same 720p scene measured 42 fps cool and 1
   kind, plus the `decodeAudioData` callback counts (the one load path in this engine that can stay
   unfinished without an error: a sound finalizes from its success callback alone).
   `DiagnosticsDialog` renders that record and hands it to any text share target; `LogFile` (pure
-  Kotlin, unit-tested) is the name and the two rules behind the saves-folder copy — the same
-  `snapshot` text, written on its own thread at most every watchdog tick, and switched off by itself
-  after a boot completes unless the user has touched the switch.
+  Kotlin, unit-tested) is the name and the rules behind the saves-folder copy — the same `snapshot`
+  text, written on its own thread at most every watchdog tick, switched off by itself after a boot
+  completes unless the user has touched the switch, and read back at the next launch (its stamped
+  lines, and only those) so a restart carries the previous record instead of showing an empty panel.
 * `FINDINGS.md` documents the measurements, the dead ends and the reason for every patch.
 
 ---

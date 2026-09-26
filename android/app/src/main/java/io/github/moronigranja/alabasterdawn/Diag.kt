@@ -85,6 +85,26 @@ class Diag(
 
     fun size(): Int = lines.size
 
+    /** The ring's bound, so a caller can carry over at most this many lines from a previous record. */
+    fun maxLines(): Int = capacity
+
+    /**
+     * Carries the previous session's *pre-formatted* lines (see `LogFile.previousLines`) into this
+     * ring, oldest first. A user who freezes and restarts expects the panel to still show what
+     * happened, and the file is written from this ring — so carrying the lines over both shows them
+     * and keeps them in the record that reaches disk.
+     *
+     * The collapse state is reset: those lines are already stamped and counted, so the next [line]
+     * must start a fresh group rather than rewrite the last of them.
+     */
+    @Synchronized
+    fun carryOver(previous: List<String>) {
+        for (line in previous) lines.addLast(line)
+        while (lines.size > capacity) lines.removeFirst()
+        lastMessage = null
+        lastRepeats = 0
+    }
+
     /** The whole record, newest last, under [header] lines supplied by the owner (device, WebView, …). */
     fun snapshot(header: List<String>): String = buildString {
         for (line in header) appendLine(line)
