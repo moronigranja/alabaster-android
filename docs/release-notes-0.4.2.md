@@ -44,6 +44,19 @@ devices. Details and measurements: `FINDINGS.md` §10.9.
   `ATLAS ERROR: Exceeded maximum TEX_SLOT_COUNT of …` will now be in your panel and log instead of
   silently dropping sprites.
 
+* **Back reaches the port again.** The activity now takes `KEYCODE_BACK` before the WebView can hand
+  it to the page, so the side menu opens on devices where Back never arrived at the old code (an Ayn
+  Odin 3 among them). Both delivery paths — the key and the API 33+ back dispatcher — log which one
+  arrived, so a report of "Back does nothing" can be told apart from a Back that never arrived.
+* **The side menu scrolls.** A landscape screen is ~410 dp tall and the menu needs ~500, so on the S22
+  and on the emulator the panel was cut off with `Exit` below the fold and nothing to scroll. It is a
+  scrolling panel now (still pushed to the bottom when the whole menu fits), and opening it always
+  starts at the top instead of wherever it was left.
+* **With the pad hidden, the row is one chevron pill.** Hiding the pad used to leave `HIDE` and `EDIT`
+  side by side over the game — the only way back was a pill that also offered to edit a layout that is
+  not on screen. It now draws a single, smaller, centred pill — a downward chevron — and tapping it
+  brings the pad and its `HIDE`/`EDIT` row back.
+
 ## If it still does not boot
 
 * Open **Diagnostics** (on the setup screen, or Back → Diagnostics in-game) and send the screenshot or
@@ -53,7 +66,7 @@ devices. Details and measurements: `FINDINGS.md` §10.9.
 
 ## Everything else is v0.4
 
-This release is v0.4 (and 0.4.1) plus the fix described above: on-screen pad and layout editor, pad
+This release is v0.4 (and 0.4.1) plus the fixes described above: on-screen pad and layout editor, pad
 visible over the game, controller hiding the overlay, the Back side menu (game position, FPS/battery/
 temperature readout, log switch, Exit), saves through a second picked folder in the Steam layout, the
 resolution ladder `640x360 / 960x540 / 1280x720 / 1920x1080 / 2560x1440`, pausing when the app leaves
@@ -78,6 +91,15 @@ apksigner verify --print-certs AlabasterDawn-Android-0.4.2.apk   # no SDK? keyto
 
 The release certificate is `CN=Alabaster Dawn Android port, O=moronigranja, C=BR`, SHA-256
 `ab31dd8874bf28fb06c783c8df0d3f6abeec719240165605ce27070e676b9604` — the same one as 0.1 through 0.4.1.
+
+## Rendering on an emulator
+
+The Android emulator's software GL stack (SwiftShader, `-gpu swiftshader_indirect`) draws the in-game
+map wrong — black tiles with purple/pink fragments — while the *same build* is correct on a real device
+(Galaxy S22 Ultra, Adreno 730) and on the same emulator started with the host GPU (`-gpu host`, or
+`hw.gpu.mode = host` in the AVD's `config.ini`). The port serves identical files and shaders in both
+cases, so this is the software renderer and not the port; the title screen, cutscenes and menus draw
+correctly under it either way. Emulator runs that need to look at the game should use the host GPU.
 
 ## Known limitations
 
