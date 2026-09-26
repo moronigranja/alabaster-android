@@ -71,6 +71,7 @@ class OnScreenPadView(context: Context) : View(context) {
         set(value) {
             if (field == value) return
             field = value
+            model.padHidden = !value
             applyOverlay()
             invalidate()
         }
@@ -345,17 +346,31 @@ class OnScreenPadView(context: Context) : View(context) {
         if (pillsDrawn()) {
             stroke.strokeWidth = model.unit * STROKE_UNITS
             label.textSize = model.unit * TEXT_UNITS
-            drawRowPill(canvas, OnScreenPadModel.PILL_A, pillLabelA(drawn))
-            drawRowPill(canvas, OnScreenPadModel.PILL_MINUS, "-")
-            drawRowPill(canvas, OnScreenPadModel.PILL_PLUS, "+")
-            drawRowPill(canvas, OnScreenPadModel.PILL_B, if (model.editing) "DONE" else "EDIT")
+            if (model.padHidden && !model.editing) {
+                drawRowPill(canvas, OnScreenPadModel.PILL_A, "")
+                drawChevron(canvas, model.pill(OnScreenPadModel.PILL_A))
+            } else {
+                drawRowPill(canvas, OnScreenPadModel.PILL_A, pillLabelA(drawn))
+                drawRowPill(canvas, OnScreenPadModel.PILL_MINUS, "-")
+                drawRowPill(canvas, OnScreenPadModel.PILL_PLUS, "+")
+                drawRowPill(canvas, OnScreenPadModel.PILL_B, if (model.editing) "DONE" else "EDIT")
+            }
         }
     }
 
     private fun pillLabelA(drawn: Boolean): String = when {
         model.editing -> if (undo != null) "UNDO" else "RESET"
-        drawn -> "HIDE"
-        else -> "PAD"
+        else -> "HIDE"
+    }
+
+    /** The way back when the pad is hidden: a downward chevron in the small centred pill. */
+    private fun drawChevron(canvas: Canvas, pill: OnScreenPadModel.Shape) {
+        val w = pill.halfWidth * 0.55f
+        val h = pill.halfHeight * 0.5f
+        stroke.strokeWidth = model.layoutUnit * STROKE_UNITS
+        stroke.color = COLOR_LABEL
+        canvas.drawLine(pill.x - w, pill.y - h, pill.x, pill.y + h, stroke)
+        canvas.drawLine(pill.x, pill.y + h, pill.x + w, pill.y - h, stroke)
     }
 
     /** The selected control's outline, its corner handle, and the hint line. */

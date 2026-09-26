@@ -8,6 +8,7 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.RadioButton
 import android.widget.RadioGroup
+import android.widget.ScrollView
 import android.widget.Switch
 import android.widget.TextView
 
@@ -65,7 +66,11 @@ class SideMenuView(context: Context) : FrameLayout(context) {
 
     val isOpen: Boolean get() = visibility == VISIBLE
 
-    fun open() { visibility = VISIBLE }
+    /** Opening always starts at the top: the panel can have been scrolled to reach Exit. */
+    fun open() {
+        visibility = VISIBLE
+        scroller.scrollTo(0, 0)
+    }
 
     fun close() { visibility = GONE }
 
@@ -105,6 +110,9 @@ class SideMenuView(context: Context) : FrameLayout(context) {
         engineStatus.text = "Engine: $cut\n(see Diagnostics)"
     }
 
+    /** The panel's scroller; kept so [open] can send it back to the top. */
+    private lateinit var scroller: ScrollView
+
     init {
         visibility = GONE
         descendantFocusability = FOCUS_BLOCK_DESCENDANTS
@@ -117,7 +125,15 @@ class SideMenuView(context: Context) : FrameLayout(context) {
             LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
         )
 
-        addView(buildPanel(), LayoutParams(dp(300), LayoutParams.MATCH_PARENT, Gravity.END))
+        /* The panel can be taller than the screen - a landscape phone has ~410 dp of height and this
+         * menu needs ~500 - and it used to be clipped with nothing to scroll, so Exit (the last view)
+         * was unreachable. `fillViewport` keeps the blank-space filler that pushes the status block to
+         * the bottom when the whole menu does fit, and scrolls when it does not. */
+        scroller = ScrollView(context).apply {
+            isFillViewport = true
+            addView(buildPanel(), LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
+        }
+        addView(scroller, LayoutParams(dp(300), LayoutParams.MATCH_PARENT, Gravity.END))
         sync()
     }
 

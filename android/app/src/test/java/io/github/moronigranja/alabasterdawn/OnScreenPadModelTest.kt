@@ -376,6 +376,38 @@ class OnScreenPadModelTest {
     }
 
     @Test
+    fun `hiding the pad leaves one small centred pill to come back by`() {
+        val model = model()
+        val wide = model.pill(OnScreenPadModel.PILL_A).halfWidth
+        val y = model.pill(OnScreenPadModel.PILL_A).y
+        model.padHidden = true
+        val back = model.pill(OnScreenPadModel.PILL_A)
+        assertEquals("centred", 960f, back.x, 0.01f)
+        assertEquals(y, back.y, 0.01f)
+        assertTrue("smaller than the toggle pill", back.halfWidth < wide)
+        assertTrue("shorter than the toggle pill", back.halfHeight < 0.35f * model.unit)
+        // no EDIT pill while there is no pad on screen, and the tap target follows the pill
+        assertEquals(OnScreenPadModel.PILL_B, OnScreenPadModel.PILL_B)
+        assertEquals(OnScreenPadModel.OFF_SCREEN, model.pill(OnScreenPadModel.PILL_B).x, 0.01f)
+        assertEquals(OnScreenPadModel.PILL_A, model.pillAt(back.x, back.y))
+        assertEquals(OnScreenPadModel.PILL_NONE, model.pillAt(960f, 300f))
+        // and showing it again restores the row
+        model.padHidden = false
+        assertEquals(960f - 1.45f * model.unit, model.pill(OnScreenPadModel.PILL_A).x, 0.01f)
+        assertEquals(960f + 1.45f * model.unit, model.pill(OnScreenPadModel.PILL_B).x, 0.01f)
+    }
+
+    @Test
+    fun `hiding the pad does not disturb the layout editor`() {
+        val model = model()
+        model.setEditing(true)
+        val a = model.pill(OnScreenPadModel.PILL_A).x
+        model.padHidden = true
+        assertEquals(a, model.pill(OnScreenPadModel.PILL_A).x, 0.01f)
+        assertEquals(OnScreenPadModel.PILL_B, model.pillAt(model.pill(OnScreenPadModel.PILL_B).x, model.pill(OnScreenPadModel.PILL_B).y))
+    }
+
+    @Test
     fun `the pill row exposes the four slots in edit mode and two in play mode`() {
         val model = model()
         val u = model.unit

@@ -146,7 +146,10 @@ class PortActivity : Activity() {
              * calls onBackPressed; older devices only ever use onBackPressed. */
             onBackInvokedDispatcher.registerOnBackInvokedCallback(
                 OnBackInvokedDispatcher.PRIORITY_DEFAULT
-            ) { handleBack() }
+            ) {
+                diag.line("back: dispatcher (${if (webView != null) "game" else "pre-game"})")
+                handleBack()
+            }
         }
     }
 
@@ -732,14 +735,25 @@ class PortActivity : Activity() {
     private fun savesStatusLine(): String =
         savesTreeUri?.let { GameFiles.displayNameOf(it) } ?: "app storage (not exportable)"
 
-    @Suppress("DEPRECATION", "OVERRIDE_DEPRECATION")
-    override fun onBackPressed() {
-        handleBack()
-    }
-
     /* ------------------------------------------------------------------------- input ---- */
 
+    /**
+     * Back belongs to the port - it opens the menu while the game runs and exits the app before it
+     * does - and it is taken here rather than left to the framework so that **every** Back reaches it:
+     * a key event goes through the activity before the WebView can hand it to the page, which is what a
+     * device report of "the physical Back button does not open the menu" (an AYN Odin 3) looks like from
+     * the inside. `onBackInvokedDispatcher` (registered in `onCreate`) covers the gesture on API 33+,
+     * and this covers the key on every version. Each path says which one it was in the record, so a
+     * report like that can be told apart from a Back that never arrived at all.
+     */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.keyCode == KeyEvent.KEYCODE_BACK) {
+            if (event.action == KeyEvent.ACTION_UP) {
+                diag.line("back: key (${if (webView != null) "game" else "pre-game"})")
+                handleBack()
+            }
+            return true
+        }
         if (isGamepad(event.source)) {
             padView?.noteControllerActivity()
             Gamepad.onKey(event)

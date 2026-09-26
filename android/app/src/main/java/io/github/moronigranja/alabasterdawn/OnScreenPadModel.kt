@@ -60,6 +60,18 @@ class OnScreenPadModel {
     var editing = false
         private set
 
+    /**
+     * True while the user has the pad hidden. The pill row is then just the way back - one small
+     * centred pill drawn as a downward chevron, and no EDIT pill, because there is no layout on screen
+     * to edit. Set by the View from its `padEnabled` preference; the pill geometry follows it.
+     */
+    var padHidden = false
+        set(value) {
+            if (field == value) return
+            field = value
+            placePills()
+        }
+
     /** The control the editor has selected, or [NO_CONTROL]. */
     var selected = NO_CONTROL
         private set
@@ -340,6 +352,8 @@ class OnScreenPadModel {
             setPill(PILL_MINUS, centre - u * PILL_MINI_OFFSET, rowY, u * PILL_NARROW, u * PILL_HALF_HEIGHT)
             setPill(PILL_PLUS, centre + u * PILL_MINI_OFFSET, rowY, u * PILL_NARROW, u * PILL_HALF_HEIGHT)
             setPill(PILL_B, centre + u * PILL_EDIT_OFFSET, rowY, u * PILL_WIDE, u * PILL_HALF_HEIGHT)
+        } else if (padHidden) {
+            setPill(PILL_A, centre, rowY, u * PILL_CHEVRON_HALF_WIDTH, u * PILL_CHEVRON_HALF_HEIGHT)
         } else {
             setPill(PILL_A, centre - u * PILL_PLAY_OFFSET, rowY, u * PILL_WIDE, u * PILL_HALF_HEIGHT)
             setPill(PILL_B, centre + u * PILL_PLAY_OFFSET, rowY, u * PILL_WIDE, u * PILL_HALF_HEIGHT)
@@ -506,6 +520,10 @@ class OnScreenPadModel {
         private const val PILL_HALF_HEIGHT = 0.35f
         private const val PILL_WIDE = 1.3f
         private const val PILL_NARROW = 0.7f
+        /* The way back when the pad is hidden: narrower than a wide pill and a little shorter, since
+         * the chevron it carries needs no room for a word. */
+        private const val PILL_CHEVRON_HALF_WIDTH = 0.75f
+        private const val PILL_CHEVRON_HALF_HEIGHT = 0.28f
         private const val PILL_PLAY_OFFSET = 1.45f
         private const val PILL_EDIT_OFFSET = 3.15f
         private const val PILL_MINI_OFFSET = 0.85f
