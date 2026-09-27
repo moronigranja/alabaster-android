@@ -37,6 +37,10 @@ class GameAssetHandler(
     /** The rewritten body of every request that was rewritten, so a re-request costs no SAF read. */
     private val rewrite = RewriteCache()
 
+    /** The game's own build string, parsed from the bundle the first time it is served. */
+    @Volatile
+    private var gameBuild: String? = null
+
     /** Whether a fragment shader's paired `.vert` declares the varying: a second SAF read, memoised. */
     private val barycentric = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
 
@@ -105,6 +109,9 @@ class GameAssetHandler(
     /** Requests still unfinished after [thresholdMs]: a path here is a stalled SAF read, not a stall. */
     fun stuck(thresholdMs: Long): List<String> = tracker.stuck(thresholdMs)
 
+    /** The game's own build, once `bundle.js` has been served; null before that. */
+    fun gameBuild(): String? = gameBuild
+
     /** One line for the diagnostics header: what the asset path has done so far. */
     fun counters(): String = tracker.counters() + "; rewrite " + rewrite.summary()
 
@@ -118,6 +125,7 @@ class GameAssetHandler(
      */
     private fun phoneResolutionLadder(rel: String, source: ByteArray): ByteArray {
         val text = String(source, Charsets.UTF_8)
+        gameBuild = GameVersion.fromBundle(text)
         val slots = ShaderSlots.slots()
         val ladder = if (text.contains(RESOLUTION_MAP_ORIGINAL)) {
             Log.i(TAG, "rewriting the resolution ladder in $rel")

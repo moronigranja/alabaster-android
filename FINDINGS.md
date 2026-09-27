@@ -1211,3 +1211,75 @@ inside a 9.4 s start-to-title, 2 589 ms cold and 449 ms warm on the emulator - b
 cheap diff and the port rebuilds the full docId map. Persisting that map and refreshing it against the
 root's own metadata would take seconds off every launch, and it is the only lever of that size. (The
 other one is already shipped: `RewriteCache` holds the 12.7 MB `bundle.js` read+rewrite in memory.)
+
+## 11. The game's own Exit, the game's version, and the side menu as a list (2026-09-26)
+
+### 11.1 The frozen picture after the title screen's EXIT — the engine's exits were shim no-ops
+
+Issue #1's acknowledged tail: on the title screen, choosing **Exit** stopped the picture with the
+engine's own menu gone. The bundle makes two distinct exits and both were stubbed `noop` in
+`assets/ada-shim.js`:
+
+* `nw.Window.get().close()` — the title screen's EXIT runs `closeGame()` (bundle offset ~12 430 458:
+  `setTimeout(() => { const win = nw.Window.get(); win.leaveFullscreen(); win.close(); }, 300)` then
+  `this.hide()`), so the engine hides its menu and waits for a window close that never happened.
+* `nw.App.quit()` — `System.quit()` (bundle offset ~1 495 156).
+
+Fix: one shim helper `quitApp()` calls `bridge.quit()`, wired to both. `AdaBridge.quit()` calls the
+activity's `onQuit`, which posts to the UI thread because the JavaBridge thread must return
+immediately. `close(true)` (the `XG_GAME_DEBUG` path) is deliberately ignored: `quitApp` takes no
+arguments.
+
+### 11.2 Exit ends the process, so the "second launch is black" workaround is gone
+
+`Process.killProcess` after `finishAndRemoveTask()` and a WebView teardown: the WebView renderer is
+shared for the app process's life, and the second in-process start was the documented way to reach a
+black picture (previously worked around by swiping from recents). The same `teardownWebView()` now
+serves `onDestroy` and `onRenderProcessGone`; it removes the view from the tree *before* `destroy()`
+(the old `onDestroy` destroyed a WebView still installed as the content view). The record is flushed
+synchronously (`flushLogBlocking`) before the kill — the async writer's thread would not survive it.
+
+Measured on the Android 14 emulator (`-gpu host`): `exit requested`, empty `pidof`, no task in
+`dumpsys activity activities`, and three consecutive fresh launches each reaching
+`ENGINE boot: complete` with the title screen drawn and a new pid (5 411 → 5 787 → 6 029).
+
+### 11.3 Where the game's build version actually lives
+
+* `package.json` carries only the placeholder `"0.0.0.0.0.1"` — useless.
+* The engine inlines the real build in `bundle.js` as `class VersionManager { … }`
+  (`this.major = 0; this.minor = 1; this.patch = 0; this.hotfix = 10; this.suffix = "Early Access";`
+  → `0.1.0-10 Early Access`). `getVersionString()`/`toString()` assemble exactly that, and the block is
+  1 399 chars to the first `getVersionString`. This is the only source carrying the hotfix.
+* `terra/data/database/changelog.json` (750 bytes) has the newest *release* under `entries[0].version`
+  (`"0.1.0"`), available as soon as the tree is indexed.
+
+`GameVersion.fromBundle` parses the block by regex (guarded: > 4 000 chars to `getVersionString`, or a
+missing number → null, so a game update degrades to the changelog or `unknown`, never a wrong value);
+`GameVersion.fromChangelog` reads the JSON. `GameAssetHandler.phoneResolutionLadder` already decodes
+`bundle.js`, so `gameBuild` costs no extra read and no extra decode; `GameFiles.readText` reads the
+changelog once after `indexTree`. The record line is
+`game ${assetHandler?.gameBuild() ?: gameReleaseVersion ?: "unknown"}`.
+
+### 11.4 The side menu, after Eden / Sudachi / Azahar
+
+One row builder: icon in a fixed left gutter (24 dp, 16 dp margin), label on one line (14 sp,
+ellipsis), control at the right edge, `MATCH_PARENT` width, 48 dp minimum height, `dp(12)` horizontal
+padding, a 1 px divider between rows, and the whole row is the hit target (`RippleDrawable` over the
+row; the control is left non-clickable). The active Game-position row is a filled pill. A `RadioGroup`
+cannot host a child that another view already parents, so mutual exclusion is explicit
+(`radioRows`/`radios`), and `sync()` fills the current row. The icons are Material Symbols Outlined
+(Apache-2.0) downloaded from `fonts.gstatic.com/s/i/short-term/release/materialsymbolsoutlined/…`;
+their `0 -960 960 960` viewBox has no origin translation in a VectorDrawable, so each path sits in a
+`<group android:translateY="960">` and the ImageView tints it. Panel width went `dp(300)` → `dp(340)`
+so a label keeps one line beside icon + gutter + switch.
+
+Measured: the `port 0.4.2 (6)` line shows on the setup screen and in the menu's status block; the
+in-game Diagnostics header reads `game 0.1.0-10 Early Access`; tapping a row's *blank left edge*
+toggled that row's switch (uiautomator `checked` true → false); and with the menu open 12 s the
+watchdog logged no `engine silent` line, i.e. `FOCUS_BLOCK_DESCENDANTS` still kept the WebView's
+document focus so the engine's loop never stopped.
+
+One Kotlin trap worth recording: `rippleColor`/`pillColor` were first declared *after* the `init { }`
+block that builds the panel, so at construction they were still null and `RippleDrawable` threw
+`IllegalArgumentException: RippleDrawable requires a non-null color` — property initializers run in
+textual order, so anything `init` uses must be declared above it.

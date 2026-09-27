@@ -11,6 +11,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.Process
 import android.util.Log
 import android.view.InputDevice
 import android.view.KeyEvent
@@ -55,6 +56,8 @@ class PortActivity : Activity() {
     private var gameTreeUri: Uri? = null
     private var savesTreeUri: Uri? = null
     private var index: GameIndex? = null
+    /** The game's newest release, parsed from the changelog once the tree is indexed (see [GameVersion]). */
+    private var gameReleaseVersion: String? = null
     private var fsBridge: FsBridge? = null
     private var saveStore: SaveStore? = null
     private var padLayoutStore: PadLayoutStore? = null
@@ -198,6 +201,15 @@ class PortActivity : Activity() {
                 })
             }
         )
+        /* Which build the user is on, on the screen every report is taken from. */
+        root.addView(
+            TextView(this).apply {
+                text = "port ${appVersion()}"
+                textSize = 12f
+                setTextColor(Color.LTGRAY)
+                setPadding(0, pad / 2, 0, 0)
+            }
+        )
         setContentView(root)
         refreshUi()
     }
@@ -332,6 +344,10 @@ class PortActivity : Activity() {
                 diag.line("indexing failed: $e")
                 null
             }
+            val release = built?.let {
+                GameFiles.readText(contentResolver, tree, it, CHANGELOG_PATH)
+                    ?.let(GameVersion::fromChangelog)
+            }
             runOnUiThread {
                 if (built == null) {
                     status.text = "Could not read that folder."
@@ -339,6 +355,7 @@ class PortActivity : Activity() {
                     return@runOnUiThread
                 }
                 index = built
+                gameReleaseVersion = release
                 diag.line("indexed ${built.size} entries in ${System.currentTimeMillis() - started}ms")
                 padLayoutStore = PadLayoutStore(prefs, saveStore!!)
                 fsBridge = FsBridge(contentResolver, tree, built, saveStore!!)
@@ -403,6 +420,7 @@ class PortActivity : Activity() {
                 statsEnabled = { statsEnabled },
                 telemetry = telemetry,
                 diag = diag,
+                onQuit = { runOnUiThread { exitGame() } },
             ),
             BRIDGE_NAME
         )
@@ -473,7 +491,7 @@ class PortActivity : Activity() {
                 this@PortActivity.viewAlign = it
                 prefs.edit().putString(KEY_VIEW_ALIGN, it.wire).apply()
             }
-            onExit = { finish() }
+            onExit = { exitGame() }
             onDiagnostics = { showDiagnostics() }
             onScrimTap = { closeMenu() }
         }
@@ -532,16 +550,7 @@ class PortActivity : Activity() {
     }
 
     private fun rebuildWebView() {
-        val old = webView
-        webView = null
-        try {
-            old?.apply {
-                loadUrl("about:blank")
-                destroy()
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "destroying the dead WebView failed", e)
-        }
+        teardownWebView()
         if (index != null && fsBridge != null) launchWebView()
     }
 
@@ -573,6 +582,7 @@ class PortActivity : Activity() {
     private fun diagFacts(): List<String> = listOf(
         "app ${appVersion()} on ${Build.MANUFACTURER} ${Build.MODEL}, Android " +
             "${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT}, ${Build.SUPPORTED_ABIS.firstOrNull()})",
+        "game ${assetHandler?.gameBuild() ?: gameReleaseVersion ?: "unknown"}",
         "webView ${webViewPackage()} document-start scripts=" +
             WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT),
         "game files: ${GameFiles.displayNameOf(gameTreeUri) ?: "(not set)"} " +
@@ -716,6 +726,7 @@ class PortActivity : Activity() {
     private fun openMenu() {
         val menu = menuView ?: return
         menu.setStatus(padView?.controllerInUse == true, savesStatusLine())
+        menu.setVersion("port ${appVersion()}")
         menu.setLastEngineReport(lastEngineReport)
         menu.open()
     }
@@ -837,17 +848,58 @@ class PortActivity : Activity() {
         super.onPause()
     }
 
-    override fun onDestroy() {
-        watchdog.removeCallbacksAndMessages(null)
+    /**
+     * The single way out of the game: the side menu's Exit and the engine's own quit both land here.
+     *
+     * The WebView renderer is shared for the life of the app process, and starting the game a second
+     * time in the same process was measured to come up black (README "Not in this milestone"); the
+     * documented workaround was to swipe the app away from recents. This is that workaround: tear the
+     * WebView down, drop the task, then end the process, so the next launch is a new process, a new
+     * renderer and a clean GL state. `Process.killProcess` is a deliberate exit, not a crash - no
+     * dialog, and no task left in recents.
+     */
+    private fun exitGame() {
+        diag.line("exit requested")
+        flushLogBlocking()
+        menuView?.close()
+        teardownWebView()
+        finishAndRemoveTask()
+        Process.killProcess(Process.myPid())
+    }
+
+    /** The last record before the process ends: [writeLogAsync]'s thread would not survive the kill. */
+    private fun flushLogBlocking() {
+        if (!previousRecordRead || !logToSaves || !logDirty) return
+        val store = saveStore ?: return
+        logDirty = false
         try {
-            webView?.apply {
-                removeJavascriptInterface(BRIDGE_NAME)
-                destroy()
-            }
+            store.write(LogFile.FILE, diag.snapshot(diagFacts()))
+        } catch (e: Exception) {
+            Log.w(TAG, "final ${LogFile.FILE} write failed", e)
+        }
+    }
+
+    /**
+     * The one WebView teardown. `destroy()` is only valid once the view has left the view tree, which
+     * the old `onDestroy` did not do - it destroyed the WebView while it was still the content view.
+     */
+    private fun teardownWebView() {
+        val view = webView ?: return
+        webView = null
+        try {
+            view.stopLoading()
+            view.removeJavascriptInterface(BRIDGE_NAME)
+            view.loadUrl("about:blank")
+            (view.parent as? ViewGroup)?.removeView(view)
+            view.destroy()
         } catch (e: Exception) {
             Log.w(TAG, "WebView teardown failed", e)
         }
-        webView = null
+    }
+
+    override fun onDestroy() {
+        watchdog.removeCallbacksAndMessages(null)
+        teardownWebView()
         padView = null
         menuView = null
         super.onDestroy()
@@ -907,6 +959,7 @@ class PortActivity : Activity() {
         private const val REQ_SAVES = 102
         private const val BRIDGE_NAME = "AdaBridge"
         private const val SHIM_ASSET = "ada-shim.js"
+        private const val CHANGELOG_PATH = "terra/data/database/changelog.json"
         private const val ORIGIN = "https://appassets.androidplatform.net"
         private const val INDEX_URL = "$ORIGIN/game/terra/index.html"
 

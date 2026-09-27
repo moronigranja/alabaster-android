@@ -18,6 +18,8 @@ class AdaBridge(
     private val telemetry: Telemetry,
     /** The app's own log, so a device-only failure is reportable without adb. */
     private val diag: Diag,
+    /** The engine asked to leave the game (the shim's `quitApp`, from `nw.App.quit`/`Window.close`). */
+    private val onQuit: () -> Unit,
 ) {
 
     @JavascriptInterface
@@ -25,6 +27,13 @@ class AdaBridge(
         diag.noteFrame()
         return Gamepad.json()
     }
+
+    /**
+     * The engine's own exit (the shim's `quitApp`). Called on the JavaBridge thread, so the owner
+     * posts to the UI thread; this must return immediately.
+     */
+    @JavascriptInterface
+    fun quit() = onQuit()
 
     /** Where the picture goes: "top" | "center" | "bottom" (see [ViewAlign]). */
     @JavascriptInterface

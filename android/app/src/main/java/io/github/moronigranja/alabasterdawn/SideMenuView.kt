@@ -1,13 +1,19 @@
 package io.github.moronigranja.alabasterdawn
 
 import android.content.Context
+import android.content.res.ColorStateList
+import android.graphics.Color
+import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
+import android.text.TextUtils
 import android.view.Gravity
 import android.view.View
-import android.widget.Button
+import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RadioButton
-import android.widget.RadioGroup
 import android.widget.ScrollView
 import android.widget.Switch
 import android.widget.TextView
@@ -15,7 +21,9 @@ import android.widget.TextView
 /**
  * The port's side panel, opened by Back: a scrim over the whole window plus a panel pinned to the
  * right edge carrying the overlay switch, the frame-readout switch, the keep-a-log-file switch, the
- * picture position, three read-only status lines and Exit.
+ * picture position, three read-only status lines and Exit. Every entry is the same full-width,
+ * icon-led row, after the Eden / Sudachi / Azahar side menus: an icon in a fixed left gutter, the
+ * label beside it on a single line, the control at the right edge, and the whole row is the target.
  *
  * Two things decide the details. The switches and the position are stored and owned by the
  * Activity, so this view is only told what to show ([setHideWithController], [setStatsEnabled],
@@ -50,14 +58,24 @@ class SideMenuView(context: Context) : FrameLayout(context) {
     private val hideToggle = Switch(context)
     private val statsToggle = Switch(context)
     private val logToggle = Switch(context)
-    private val alignGroup = RadioGroup(context)
     private val radios = LinkedHashMap<ViewAlign, RadioButton>()
+
+    /**
+     * The row that owns each radio. A `RadioGroup` cannot host a child that has another parent (the
+     * row owns the button), so mutual exclusion is done explicitly instead of by a group.
+     */
+    private val radioRows = LinkedHashMap<ViewAlign, LinearLayout>()
+    private val versionLine = TextView(context)
     private val controllerStatus = TextView(context)
     private val savesStatus = TextView(context)
     private val engineStatus = TextView(context)
 
     /** True while [sync] assigns the widget state, so a programmatic set fires no callback. */
     private var syncing = false
+
+    /** The icon and control colour on a row, and the ripple the whole row shows. */
+    private val rippleColor = ColorStateList.valueOf(0x33E8DCC8)
+    private val pillColor = 0x1FE8DCC8.toInt()
 
     private var hideWithController = true
     private var statsEnabled = false
@@ -100,6 +118,11 @@ class SideMenuView(context: Context) : FrameLayout(context) {
         savesStatus.text = "Saves: " + saves
     }
 
+    /** Which build the port is; shown with the rest of the status block. */
+    fun setVersion(text: String) {
+        versionLine.text = text
+    }
+
     /**
      * The last thing the injected shim reported — in particular a boot that stopped advancing, which
      * is exactly what a user with a frozen loading bar needs to be told (and to report). Long reports
@@ -133,7 +156,9 @@ class SideMenuView(context: Context) : FrameLayout(context) {
             isFillViewport = true
             addView(buildPanel(), LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         }
-        addView(scroller, LayoutParams(dp(300), LayoutParams.MATCH_PARENT, Gravity.END))
+        /* 340 dp so a 14 sp label keeps one line beside the 24 dp icon, its 16 dp gutter and the
+         * switch, inside the panel's own 16 dp of padding - Eden's single-line layout. */
+        addView(scroller, LayoutParams(dp(340), LayoutParams.MATCH_PARENT, Gravity.END))
         sync()
     }
 
@@ -153,36 +178,28 @@ class SideMenuView(context: Context) : FrameLayout(context) {
             setTextColor(COLOR_TEXT)
         })
 
-        hideToggle.apply {
-            text = "Hide controls with a controller"
-            textSize = 15f
-            setTextColor(COLOR_TEXT)
-            setOnCheckedChangeListener { _, checked ->
-                if (!syncing) onHideWithController?.invoke(checked)
-            }
+        hideToggle.setOnCheckedChangeListener { _, checked ->
+            if (!syncing) onHideWithController?.invoke(checked)
         }
-        panel.addView(hideToggle)
-
-        statsToggle.apply {
-            text = "Show FPS / battery / temperature"
-            textSize = 15f
-            setTextColor(COLOR_TEXT)
-            setOnCheckedChangeListener { _, checked ->
-                if (!syncing) onStatsEnabled?.invoke(checked)
-            }
+        addRow(panel, R.drawable.ic_menu_pad, "Hide pad with controller", hideToggle) {
+            hideToggle.isChecked = !hideToggle.isChecked
         }
-        panel.addView(statsToggle)
 
-        logToggle.apply {
-            text = "Keep a log file with the saves"
-            textSize = 15f
-            setTextColor(COLOR_TEXT)
-            setOnCheckedChangeListener { _, checked ->
-                if (!syncing) onLogToSaves?.invoke(checked)
-            }
+        statsToggle.setOnCheckedChangeListener { _, checked ->
+            if (!syncing) onStatsEnabled?.invoke(checked)
         }
-        panel.addView(logToggle)
+        addRow(panel, R.drawable.ic_menu_stats, "Show FPS / battery / temp", statsToggle) {
+            statsToggle.isChecked = !statsToggle.isChecked
+        }
 
+        logToggle.setOnCheckedChangeListener { _, checked ->
+            if (!syncing) onLogToSaves?.invoke(checked)
+        }
+        addRow(panel, R.drawable.ic_menu_log, "Keep a log with the saves", logToggle) {
+            logToggle.isChecked = !logToggle.isChecked
+        }
+
+        /* not a row: a section header keeps its small dim style */
         panel.addView(TextView(context).apply {
             text = "Game position"
             textSize = 14f
@@ -190,14 +207,18 @@ class SideMenuView(context: Context) : FrameLayout(context) {
             setPadding(0, dp(16), 0, 0)
         })
 
-        alignGroup.apply { orientation = LinearLayout.VERTICAL }
-        addRadio(ViewAlign.TOP, "Top")
-        addRadio(ViewAlign.CENTER, "Center")
-        addRadio(ViewAlign.BOTTOM, "Bottom")
-        panel.addView(alignGroup)
+        addRadio(panel, ViewAlign.TOP, "Top", R.drawable.ic_menu_align_top, last = false)
+        addRadio(panel, ViewAlign.CENTER, "Center", R.drawable.ic_menu_align_center, last = false)
+        addRadio(panel, ViewAlign.BOTTOM, "Bottom", R.drawable.ic_menu_align_bottom, last = true)
 
         /* Pushes the status lines and Exit to the bottom of the panel. */
         panel.addView(View(context), LinearLayout.LayoutParams(0, 0, 1f))
+
+        versionLine.apply {
+            textSize = 12f
+            setTextColor(COLOR_DIM)
+        }
+        panel.addView(versionLine)
 
         controllerStatus.apply {
             textSize = 13f
@@ -218,29 +239,118 @@ class SideMenuView(context: Context) : FrameLayout(context) {
         }
         panel.addView(engineStatus)
 
-        panel.addView(Button(context).apply {
-            text = "Diagnostics"
-            setOnClickListener { onDiagnostics?.invoke() }
-        })
-
-        panel.addView(Button(context).apply {
-            text = "Exit"
-            setOnClickListener { onExit?.invoke() }
-        })
+        addRow(panel, R.drawable.ic_menu_diagnostics, "Diagnostics", null) {
+            onDiagnostics?.invoke()
+        }
+        addRow(panel, R.drawable.ic_menu_exit, "Exit", null, last = true) {
+            onExit?.invoke()
+        }
 
         return panel
     }
 
-    private fun addRadio(value: ViewAlign, label: String) {
-        alignGroup.addView(RadioButton(context).apply {
-            text = label
-            textSize = 15f
-            setTextColor(COLOR_TEXT)
-            setOnCheckedChangeListener { _, checked ->
-                if (checked && !syncing) onAlign?.invoke(value)
+    /**
+     * The row background: a rounded ripple over the whole row, filled with a dim pill when the row is
+     * the current choice (the reference side menus mark the active entry this way). The mask has a
+     * colour on purpose - a mask is read by alpha, and an unfilled GradientDrawable is transparent.
+     */
+    private fun rowBackground(filled: Boolean): Drawable {
+        val mask = GradientDrawable().apply {
+            cornerRadius = dp(24).toFloat()
+            setColor(Color.WHITE)
+        }
+        val content = if (filled) {
+            GradientDrawable().apply {
+                cornerRadius = dp(24).toFloat()
+                setColor(pillColor)
             }
-        })
-        radios[value] = alignGroup.getChildAt(alignGroup.childCount - 1) as RadioButton
+        } else {
+            null
+        }
+        return RippleDrawable(rippleColor, content, mask)
+    }
+
+    /**
+     * The panel's only row shape, after the emulator side menus: a leading icon in a fixed gutter, the
+     * label beside it on a single line, the control (if any) pinned to the right edge, and the whole
+     * row - icon, label and empty space - is the hit target. The platform Button already spanned the
+     * panel, which is why everything else had to catch up. Returns the row so a caller can restyle it
+     * (the picture-position group fills the current one).
+     */
+    private fun addRow(
+        panel: LinearLayout, iconRes: Int, label: String, control: View?,
+        last: Boolean = false,
+        onClick: (() -> Unit)? = null,
+    ): LinearLayout {
+        val row = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            minimumHeight = dp(48)
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(12), 0, dp(12), 0)
+            background = rowBackground(false)
+            addView(
+                ImageView(context).apply {
+                    setImageResource(iconRes)
+                    imageTintList = ColorStateList.valueOf(COLOR_TEXT)
+                    scaleType = ImageView.ScaleType.FIT_CENTER
+                },
+                LinearLayout.LayoutParams(dp(24), dp(24)).apply { marginEnd = dp(16) }
+            )
+            addView(
+                TextView(context).apply {
+                    text = label
+                    textSize = 14f
+                    setTextColor(COLOR_TEXT)
+                    isSingleLine = true
+                    ellipsize = TextUtils.TruncateAt.END
+                },
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            )
+            if (control != null) {
+                /* The row is the hit target, so the control must not swallow the touch. */
+                control.isClickable = false
+                control.isFocusable = false
+                addView(
+                    control,
+                    LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
+                    )
+                )
+            }
+            if (onClick != null) {
+                isClickable = true
+                setOnClickListener { onClick() }
+            }
+        }
+        panel.addView(
+            row,
+            LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+        )
+        if (!last) {
+            panel.addView(
+                View(context).apply { setBackgroundColor(COLOR_DIVIDER) },
+                LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1))
+            )
+        }
+        return row
+    }
+
+    private fun addRadio(
+        panel: LinearLayout, value: ViewAlign, label: String, iconRes: Int, last: Boolean,
+    ) {
+        val radio = RadioButton(context).apply {
+            setOnCheckedChangeListener { _, checked -> if (checked && !syncing) onAlign?.invoke(value) }
+        }
+        radios[value] = radio
+        radioRows[value] = addRow(panel, iconRes, label, radio, last) {
+            /* The row, not the RadioButton, is the hit target: check the three explicitly, since
+             * there is no RadioGroup to uncheck the siblings. */
+            for ((other, r) in radios) r.isChecked = other == value
+            for ((other, r) in radioRows) r.background = rowBackground(other == value)
+            onAlign?.invoke(value)
+        }
     }
 
     /** The only writer of the widget state; the listeners are muted across the assignment. */
@@ -250,6 +360,7 @@ class SideMenuView(context: Context) : FrameLayout(context) {
         statsToggle.isChecked = statsEnabled
         logToggle.isChecked = logToSaves
         for ((value, radio) in radios) radio.isChecked = value == align
+        for ((value, row) in radioRows) row.background = rowBackground(value == align)
         syncing = false
     }
 
@@ -258,5 +369,6 @@ class SideMenuView(context: Context) : FrameLayout(context) {
     companion object {
         private const val COLOR_TEXT = 0xFFE8DCC8.toInt()
         private const val COLOR_DIM = 0xB3E8DCC8.toInt()
+        private const val COLOR_DIVIDER = 0x33E8DCC8.toInt()
     }
 }

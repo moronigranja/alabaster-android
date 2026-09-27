@@ -22,6 +22,9 @@ with, sponsored by, or endorsed by Radical Fish Games.
 
 * **AndroidX WebKit** (`androidx.webkit:webkit`) — Apache License 2.0,
   © The Android Open Source Project. https://developer.android.com/jetpack/androidx/releases/webkit
+* **Material Symbols** (the side menu's icons, `android/app/src/main/res/drawable/ic_menu_*.xml`) —
+  Apache License 2.0, © Google LLC.
+  https://fonts.google.com/icons
 * **Gradle wrapper** (`android/gradle/wrapper/`, used to build) — Apache License 2.0,
   © Gradle, Inc. https://gradle.org
 * **CrossAndroid** (https://gitlab.com/Namnodorel/crossandroid) — prior art for running this

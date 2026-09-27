@@ -54,6 +54,14 @@
         }
     }
 
+    /* The engine's only two ways out: System.quit() calls nw.App.quit(), and the title screen's EXIT
+     * button calls nw.Window.get().close() 300 ms later (bundle `closeGame`). Both were noops, so the
+     * engine tore its menu down waiting for a process exit that never came and the picture stopped
+     * responding. They now ask the app to leave the game. */
+    function quitApp() {
+        call(function (bridge) { return bridge.quit(); });
+    }
+
     function parseJson(str) {
         if (!str) return null;
         try { return JSON.parse(str); } catch (e) { report("bridge JSON", e); return null; }
@@ -396,11 +404,11 @@
         /* Opaque token, not a real path: the bridge maps everything under /saves
          * onto the picked saves tree. It must not contain "/Default", because
          * Storage.preparePaths cuts dataPath at the first "/Default". */
-        App: { argv: [], quit: noop, dataPath: "/saves", clearCache: noop },
+        App: { argv: [], quit: quitApp, dataPath: "/saves", clearCache: noop },
         Window: {
             get: function () {
                 return {
-                    close: noop, on: noop, once: noop, off: noop, show: noop, hide: noop,
+                    close: quitApp, on: noop, once: noop, off: noop, show: noop, hide: noop,
                     focus: noop, enterFullscreen: noop, leaveFullscreen: noop,
                     isFullscreen: false, setAlwaysOnTop: noop, setZoomLevel: noop,
                     maximize: noop, unmaximize: noop, minimize: noop, restore: noop,

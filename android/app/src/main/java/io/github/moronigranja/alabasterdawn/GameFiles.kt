@@ -111,6 +111,29 @@ object GameFiles {
     }
 
     /**
+     * One indexed file's text, for the small data files this port reads for the record (the changelog
+     * is 750 bytes). Returns null for a missing entry, a directory, an unknown/oversized size or a
+     * failed read: the caller falls back to "unknown" rather than risking a big read on the UI thread.
+     */
+    fun readText(
+        resolver: ContentResolver,
+        treeUri: Uri,
+        index: GameIndex,
+        path: String,
+        maxBytes: Long = 64 * 1024,
+    ): String? {
+        val entry = index.find(path) ?: return null
+        if (entry.isDir || entry.size <= 0 || entry.size > maxBytes) return null
+        return try {
+            resolver.openInputStream(DocumentsContract.buildDocumentUriUsingTree(treeUri, entry.docId))
+                ?.use { String(it.readBytes(), Charsets.UTF_8) }
+        } catch (e: Exception) {
+            Log.w(TAG, "cannot read $path", e)
+            null
+        }
+    }
+
+    /**
      * Last path segment of a picked tree URI's document id, for the pre-game screen. The document id
      * of a tree URI looks like `primary:Download/AlabasterDawn`.
      */
