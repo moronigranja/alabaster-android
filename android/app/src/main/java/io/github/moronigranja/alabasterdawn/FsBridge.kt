@@ -343,6 +343,10 @@ class FsBridge(
     }
 
     fun mkdir(path: String): Boolean {
+        if (!isSavePath(path)) {
+            Log.w(TAG, "ignored mkdir outside the saves folder: $path")
+            return false
+        }
         val rel = saveRel(path) ?: return false
         return store.mkdir(rel)
     }
@@ -422,27 +426,35 @@ class FsBridge(
 
     val storeLabel: String? get() = store.label
 
-    private fun isSavePath(path: String): Boolean =
-        path == SAVES_ROOT || path.startsWith("$SAVES_ROOT/")
-
-    private fun saveRel(path: String): String? = normalize(path.removePrefix(SAVES_ROOT))
-
-    /** Splits, drops empty and `.` segments, rejects `..`. Backslashes stay literal on purpose, so
-     *  the Windows-style paths the game probes (`/Default\Saves\Default\...`) simply miss. */
-    private fun normalize(path: String): String? {
-        val segments = ArrayList<String>(4)
-        for (segment in path.split('/')) {
-            when (segment) {
-                "", "." -> continue
-                ".." -> return null
-                else -> segments.add(segment)
-            }
-        }
-        return segments.joinToString("/")
-    }
-
     companion object {
         private const val TAG = "AdaPort"
         const val SAVES_ROOT = "/saves"
+
+        /** Whether [path] addresses the picked saves tree rather than the read-only game tree. */
+        internal fun isSavePath(path: String): Boolean = path == SAVES_ROOT ||
+            path.startsWith("$SAVES_ROOT/") || path.startsWith("$SAVES_ROOT\\")
+
+        /** Path relative to the save root, or null when it escapes it. */
+        internal fun saveRel(path: String): String? = normalize(path.removePrefix(SAVES_ROOT))
+
+        /**
+         * Splits, drops empty and `.` segments, rejects `..`. Both separators are separators here:
+         * the demo-era engine builds its save paths with backslashes (`dataPath + "\Saves\Default\"`,
+         * which reaches this bridge as `/saves\Saves\Default\`) and the released one with forward
+         * slashes, and both mean the same Steam layout inside the picked folder. A path that is *not*
+         * under [SAVES_ROOT] - the game probes `\Default\Saves\Default\...` in its own storage fix -
+         * never gets here, because [isSavePath] rejects it first.
+         */
+        private fun normalize(path: String): String? {
+            val segments = ArrayList<String>(4)
+            for (segment in path.split('/', '\\')) {
+                when (segment) {
+                    "", "." -> continue
+                    ".." -> return null
+                    else -> segments.add(segment)
+                }
+            }
+            return segments.joinToString("/")
+        }
     }
 }

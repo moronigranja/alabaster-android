@@ -1283,3 +1283,54 @@ One Kotlin trap worth recording: `rippleColor`/`pillColor` were first declared *
 block that builds the panel, so at construction they were still null and `RippleDrawable` threw
 `IllegalArgumentException: RippleDrawable requires a non-null color` — property initializers run in
 textual order, so anything `init` uses must be declared above it.
+
+## 12. The Steam demo, run through the port (2026-09-26)
+
+The demo install (`Alabaster Dawn Demo`, changelog newest entry `0.0.4` "Steam Demo Sep 2025",
+`terra/` 226 MB / 2 327 files) boots and plays on the port: `ENGINE boot: complete in 6655ms, 1641
+resources`, 0 failed decodes, its own title screen ("Demo Version", New Game / Load / Options / Exit)
+and its intro both draw. Its build reads as **`game 0.0.5-3 Alpha`** from the bundle - newer than the
+changelog's newest public entry, which is exactly the divergence the two version sources exist for.
+
+Two defects only the demo exposed, both fixed:
+
+### 12.1 The option relabel assumed the release build's ladder
+
+`GameAssetHandler.phoneResolutionLadder` rewrites `const RESOLUTION_MAP = [1, 2, 3, 4, 6];` and
+`relabelResolutions` renames the option's rungs to 640x360 / 960x540 / 1280x720 / 1920x1080 /
+2560x1440. The demo's bundle has no such literal (the rewrite was correctly skipped, leaving the
+demo's own ladder), but the relabel has its *own* anchor (`{"en_US":"640x360","langID":171}`, which
+the demo shares) and ran anyway: langID 172 `1280x720` -> `960x540` and 173 `1920x1080` ->
+`1280x720`, so the demo's Resolution menu would have named the wrong rungs. The two rewrites are
+gated together now (`ladderRewritten`, null until the bundle has been served, so the release's own
+order - index.html's script tag before the options database - is unchanged).
+
+While in there: the function computed `val defaulted = text.replace(RESOLUTION_DEFAULT_ORIGINAL, …)`
+and then returned `text`, so the "a fresh profile should land on the 60 fps rung" change never
+reached the served bytes; the rewritten ladder already makes value 1 the 960x540 rung, so the dead
+computation and its two constants are gone.
+
+Verified over CDP on the emulator (debug build), reading what the WebView was actually served:
+demo `{"en_US":"1280x720","langID":172}` (untouched) and the bundle byte-identical to the file;
+release `{"en_US":"960x540","langID":172}` with the phone ladder present.
+
+### 12.2 Windows-style save paths created garbage folders
+
+The demo-era engine builds its save root as `nw.App.dataPath + "\\Saves\\Default\\"`. The port sets
+`dataPath` to the literal `/saves`, so the bridge receives `/saves\Saves\Default\`. `FsBridge` gates
+every namespace decision on `isSavePath` ("`/saves` or under `/saves/`") - except **`mkdir`**, which
+went straight to `saveRel`. A path that was not a save path was therefore split as one and handed to
+SAF, whose `buildValidFatFilename` rewrites the illegal `\` characters: the picked saves folder grew
+`_Saves_`, `_Saves_Default_`, `_Saves_Backups_`, `_Saves_Backups2_` (and `_Saves_ (1)` on a second
+run), while the demo's actual save reads/writes went nowhere. The released engine never showed this
+because 0.1.0 uses forward slashes (`/Saves/Default/`) - and it even carries a `STORAGE_FIX` table
+repairing `"/Default_Saves_Default_"` for players who hit this on the desktop.
+
+Fixed in two parts: `mkdir` now gates on `isSavePath` like every other method, and the save-relative
+mapper treats `\` as a separator, so the demo's paths resolve to the same `Saves/Default` Steam layout
+instead of missing. `FsBridgePathTest` covers the rule (`/saves\Saves\Default\` -> `Saves/Default`,
+`/Default\Saves\Default\` and `/savesx` rejected, `..` refused).
+
+Verified on the emulator against a fresh saves folder: the demo now creates exactly
+`Saves/`, `Saves/Default/`, `Saves/Backups/`, `Saves/Backups2/` and nothing else, and the release
+build still boots, rewrites its ladder, relabels its options and writes the same layout.

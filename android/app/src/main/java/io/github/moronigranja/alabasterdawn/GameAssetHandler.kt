@@ -41,6 +41,15 @@ class GameAssetHandler(
     @Volatile
     private var gameBuild: String? = null
 
+    /**
+     * Whether the phone ladder actually went into `bundle.js`: null until the bundle has been served.
+     * The option labels and the ladder describe the same rungs, so a build that does not use the
+     * release's ladder (the demo's Resolution option is 640x360 / 1280x720 / 1920x1080) must keep its
+     * own truthful labels instead of getting the phone ladder's text.
+     */
+    @Volatile
+    private var ladderRewritten: Boolean? = null
+
     /** Whether a fragment shader's paired `.vert` declares the varying: a second SAF read, memoised. */
     private val barycentric = java.util.concurrent.ConcurrentHashMap<String, Boolean>()
 
@@ -129,9 +138,11 @@ class GameAssetHandler(
         val slots = ShaderSlots.slots()
         val ladder = if (text.contains(RESOLUTION_MAP_ORIGINAL)) {
             Log.i(TAG, "rewriting the resolution ladder in $rel")
+            ladderRewritten = true
             text.replace(RESOLUTION_MAP_ORIGINAL, RESOLUTION_MAP_PHONE)
         } else {
             Log.w(TAG, "$rel has no '$RESOLUTION_MAP_ORIGINAL'; leaving it unmodified")
+            ladderRewritten = false
             text
         }
         if (slots >= ShaderSlots.GAME) return ladder.toByteArray(Charsets.UTF_8)
@@ -159,6 +170,13 @@ class GameAssetHandler(
 
     /** Matches the resolution labels in the option database and gives them the phone ladder's text. */
     private fun relabelResolutions(rel: String, source: ByteArray): ByteArray {
+        /* The labels and the ladder must describe the same rungs, so this only applies where the
+         * ladder was actually rewritten. `null` means `bundle.js` has not been served yet - the
+         * normal order is index.html's script tag first, and a released game's own file otherwise. */
+        if (ladderRewritten == false) {
+            Log.i(TAG, "$rel keeps its own resolution labels: the phone ladder was not served")
+            return source
+        }
         var text = String(source, Charsets.UTF_8)
         if (!text.contains(RESOLUTION_FIRST_LABEL)) {
             Log.w(TAG, "$rel has no '$RESOLUTION_FIRST_LABEL'; leaving it unmodified")
@@ -171,9 +189,9 @@ class GameAssetHandler(
             if (replaced != text) changed = true
             text = replaced
         }
-        /* A fresh profile should land on the rung that holds 60 fps, not on 1280x720. */
-        val defaulted = text.replace(RESOLUTION_DEFAULT_ORIGINAL, RESOLUTION_DEFAULT_PHONE)
-        if (defaulted != text) changed = true
+        /* A fresh profile already lands on the rung that holds 60 fps - the rewritten ladder's value
+         * 1 is 960x540 - so the option's default is left alone. (It used to compute a `defaulted`
+         * here and return `text`, so the change it described never reached the served bytes.) */
         if (!changed) {
             Log.w(TAG, "could not relabel $rel; resolution labels may not match the scale ladder")
             return source
@@ -304,10 +322,6 @@ class GameAssetHandler(
         private const val RESOLUTION_MAP_ORIGINAL = "const RESOLUTION_MAP = [1, 2, 3, 4, 6];"
         private const val RESOLUTION_MAP_PHONE = "const RESOLUTION_MAP = [1, 1.5, 2, 3, 4];"
         private const val RESOLUTION_FIRST_LABEL = "{\"en_US\":\"640x360\",\"langID\":171}"
-        private const val RESOLUTION_DEFAULT_ORIGINAL =
-            "\"type\":{\"default\":1,\"list\":[{\"en_US\":\"640x360\""
-        private const val RESOLUTION_DEFAULT_PHONE =
-            "\"type\":{\"default\":0,\"list\":[{\"en_US\":\"640x360\""
         private val RESOLUTION_LABELS = mapOf(
             171 to "640x360",
             172 to "960x540",
