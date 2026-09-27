@@ -1334,3 +1334,109 @@ instead of missing. `FsBridgePathTest` covers the rule (`/saves\Saves\Default\` 
 Verified on the emulator against a fresh saves folder: the demo now creates exactly
 `Saves/`, `Saves/Default/`, `Saves/Backups/`, `Saves/Backups2/` and nothing else, and the release
 build still boots, rewrites its ladder, relabels its options and writes the same layout.
+
+## 13. CrossCode, run through the same idea (2026-09-26) — and how far a browser shim gets it
+
+Asked whether this project could run CrossCode as well. The question was answered with the same probe
+§4.3 used for Alabaster Dawn: serve the game's own install over HTTP, inject a shim with
+`init_scripts`, load the entry page in Chromium, and read what breaks. CrossCode was not reverse
+engineered for this — one pass, one shim, then the game.
+
+### 13.1 The specimen
+
+Steam, `steamapps/common/CrossCode`, **1.0.0** (`package.json`), 1.2 GB, **4 865 files / 447 dirs**.
+An NW.js app like Alabaster Dawn, but a *different engine*: `main = assets/node-webkit.html` →
+`assets/js/game.compiled.js` (3.8 MB, plain obfuscated JS) on **Cubic Impact 0.5** (`impact/page/js/*`,
+jQuery 1.11 + jQuery UI). `IG_WIDTH 568 × IG_HEIGHT 320`, `IG_GAME_SCALE 2` → 1136x640. The window
+title reports the game's own version, `v1.4.2-4`. No webpack, no bundle patching: the entry is an
+ordinary HTML page with `<script>` tags.
+
+### 13.2 Result: it boots to its title screen and its menus
+
+With a **6 KB first-cut shim** (`tools/cc-browser-shim.js`) injected before the page's scripts:
+
+* `ig` initialises; `ig.getPlatformName()` = **Desktop**; `ig.engineName` = `Cubic Impact (0.5)`
+* the game's own **loading screen** draws, then the **title screen** ("Press to start", `v1.4.2-4`)
+* **Enter** advances to the game's **main menu** (New Game / Load Game / Options / Exit / Enter Bonus
+  Code) with its HTML "Changelog" button
+* `ig.system.running = true`, canvas 1136x640, **0 page errors**, 2 console lines
+  (`INIT FULLSCREEN VALUE true`, `EXTENSIONS:` with an empty list)
+
+The single failure of the first attempt was the shim, not the game: `TypeError: a.readdir is not a
+function` in `ig.Extensions.loadExtensionsNWJS`. That function wants `fs.readdir(dir, cb)` (callback
+form), `fs.lstatSync(p).isDirectory()` and `fs.existsSync(p + name + ".json")`. Adding them produced
+the run above.
+
+Caveats, measured not assumed: this was headless Chromium (software GL) at 1136x640, so it says
+nothing yet about phone GPU cost; no audio was verified; nothing past the main menu was played; saves
+were not exercised.
+
+### 13.3 Why it is this close: the platform switch is explicit
+
+```js
+ig.platform = window.require && typeof window.process === "object" ? DESKTOP
+  : window.nwf ? WIIU
+  : (dataOS == "Android" || dataOS == "iOS") ? MOBILE
+  : (ig.browser != "Unknown") ? BROWSER : UNKNOWN;
+```
+
+Defining `window.require` **and** a `process` object selects **DESKTOP**, the NW.js path the game is
+built around — which is exactly the shape this port already implements for Alabaster Dawn. Note the
+trap: leaving both undefined does *not* give BROWSER on a phone, because the WebView UA contains
+"Android", so the engine would pick **MOBILE** (`loadExtensionsPHP`, `TrackDefault`, …). DESKTOP is
+the intended target, not a workaround.
+
+`ig.isPlatform`/`PLATFORM_TYPES` also carry per-setting `browser` overrides (`c.browser &&
+ig.platform == BROWSER ? c.browser : c.init`), and `loadInternal` splits
+`loadExtensionsNWJS()` (DESKTOP) from `loadExtensionsPHP()` (everything else) — so DESKTOP gets the
+real code paths.
+
+### 13.4 The API surface to shim, counted
+
+| what | where | count |
+|---|---|---|
+| `require("fs")` | `game.compiled.js` | 7 |
+| `require("nw.gui")` | `game.compiled.js` / `game-base.js` | 5 / 2 |
+| `require("./modules/greenworks-{0.4.0,0.5.3,0.13.0,nw-0.35}/greenworks")` | picked by `nwjsVersion` | 4 variants, used: `init`, `initAPI`, `isActive`, `activateAchievement`, `clearAchievement` |
+| `nw.Clipboard.get` | `game.compiled.js` | 1 |
+| `process.platform` / `versions` / `env` / `arch` | `game.compiled.js` (+`versions` in `game-base.js`) | 2 / 1 / 1 / 1 |
+| `localStorage` | saves and every option | 31 (18 `setItem`, 13 `getItem`), keys `IG_*`, `cc.*`, `options.*` |
+| `window.startCrossCode` | the handshake `doStartCrossCodePlz()` polls for | 1 |
+
+NW-specific paths are already guarded in the game's own code (`if(window.require) … else <a
+target=_blank>`), which is the same "browser platform" pattern Alabaster Dawn has.
+
+**Saves are `localStorage`** (`cc.save*`), not files — so a WebView persists them with no SAF mapping
+at all, and moving saves between devices is the game's own Save-String dialog (`window.SHOW_SAVE_DIALOG`,
+`sc.submitSaveImport`), the mechanism CrossAndroid also uses. `fs` is needed only for the extension
+list (`assets/extension`), i.e. for mods.
+
+### 13.5 What that implies for the port
+
+Reusable untouched (~2.5k of the 4.7k Kotlin lines): the WebView host (immersive, page blur/focus,
+pause/resume, renderer-crash rebuild), SAF serving of the user's picked folder + tree index, the
+on-screen pad and its editor, the W3C gamepad bridge (CrossCode reads standard pads), the side menu,
+the diagnostics record/log, the release pipeline.
+
+Left to do:
+
+* a **per-game profile**: this port's `terra/` paths, entry URL, rewrite set, save layout and version
+  source are 37 literals across 6 files;
+* **shim v2**: the old `nw.gui` alias, `fs` backed by the Kotlin bridge over the read-only game tree,
+  greenworks stubs, `process`, the `startCrossCode` handshake;
+* **entry injection**: the document-start script alone is enough (no bundle patching);
+* **scale/fit**: the engine's own 568x320 x2 canvas vs a phone screen;
+* **none of Alabaster Dawn's asset rewrites** apply (no resolution ladder, no 256-slot uniform table,
+  no barycentric shader patch) — different engine, different problems;
+* a **version source** for the record (the game's own `v1.4.2-4`, `ig.engineName`).
+
+Estimate, calibrated on this repo's own history (0 → 0.5.1 in 31 commits over four days, building the
+host *and* discovering the engine): **1–2 sessions** to boot to the title screen on a phone, **1–2
+more** for saves, audio, fullscreen/scale, pad mapping and the side menu, **1** for device
+verification and packaging — call it **4–6 focused sessions** to a playable CrossCode, against ~4 days
+from zero.
+
+Open and unanswered: phone-GPU cost at 1136x640 (headless SwiftShader rendered it fine, which is
+encouraging but not a measurement); audio; the game's own fullscreen/scale option vs the port owning
+immersive mode; whether mods (`assets/extension`) are wanted; and the product shape — one app with two
+games, or a shared core with a second thin APK.
