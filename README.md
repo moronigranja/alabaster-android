@@ -16,9 +16,9 @@ Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`)
 |---|---|---|---|
 | ![Game files and saves pickers](docs/setup.png) | ![Title screen](docs/title-screen.png) | ![On-screen pad over the title screen](docs/on-screen-pad.png) | ![Moving and resizing a pad control](docs/pad-editor.png) |
 
-![The side menu, opened with Back: the two switches, the picture position, the status lines and Exit — with the FPS/battery/temperature readout on](docs/side-menu.png)
+![The side menu, opened with Back: one uniform icon-led list — the switches, the picture position, the status block with the port version, Diagnostics and Exit — with the FPS/battery/temperature readout on](docs/side-menu.png)
 
-![The diagnostics record while the engine's boot was stuck: device, WebView, GL backend, asset counters, and the log naming the shader that failed to compile](docs/diagnostics.png)
+![The diagnostics record while the engine's boot was stuck: the port's and the game's versions, the device, WebView, GL backend, asset counters, and the log naming the resources still pending](docs/diagnostics.png)
 
 *Screenshots contain Alabaster Dawn artwork and text, © Radical Fish Games, shown for documentation.*
 
@@ -49,15 +49,26 @@ Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`)
   `pad-layout.json` at its root, which wins on load so the layout travels with the saves folder.
   While the editor is open the pad publishes no gamepad at all, so the game falls back to keyboard.
 * **A side menu on Back**: Back while the game runs opens a panel over it (the game keeps running
-  behind) with a switch for whether a controller in use hides the overlay, a **Game position** choice
-  (Top / Center / Bottom) for where the picture sits inside the black letterbox bands, a switch for
-  an **FPS / battery / temperature** readout, a switch to **keep a log file with the saves**, two
-  status lines (controller input, where saves go), the last thing the engine reported, and **Exit**.
+  behind) drawn as one uniform, full-width, icon-led list — an Eden / Azahar style menu: every entry
+  is the same height with an icon in a fixed left gutter, the label on a single line with an ellipsis,
+  the control at the right edge, hairlines between rows, and the whole row (icon, label and empty
+  space) is the hit target. It carries a switch for whether a controller in use hides the overlay, a
+  **Game position** choice (Top / Center / Bottom) for where the picture sits inside the black
+  letterbox bands (the current choice is a filled pill), a switch for an **FPS / battery /
+  temperature** readout, a switch to **keep a log file with the saves**, the port version, three
+  status lines (controller input, where saves go, the last thing the engine reported) and **Exit**.
   Back again, a tap on the dimmed area or Exit closes it; all four settings live in the app's prefs,
   and nothing is written into the game folder — the saves tree only ever gains the Steam `Saves/`
-  layout, `pad-layout.json` and that log, all at its root.
-* **Diagnostics without a PC**: the same panel opens the record — device, WebView version and
-  capabilities, GL backend, folders, asset counters and the app's own log — readably on screen (a
+  layout, `pad-layout.json` and that log, all at its root. **Exit ends the app process** (the game's
+  own in-menu Exit does too — see below), so the next launch is a fresh process with a fresh WebView
+  renderer, and the saved record is flushed before the process goes.
+* **The game's own Exit works**: the title screen's **Exit** button (and `System.quit`) now leave the
+  app. The engine's only two ways out — `nw.Window.get().close()` and `nw.App.quit()` — used to be
+  shim no-ops, so the engine tore its own menu down and waited for a process exit that never came, and
+  the picture stopped responding. Both now reach the same path as the side menu's Exit.
+* **Diagnostics without a PC**: the same panel opens the record — device, **port version** and the
+  **game's own build version**, WebView version and capabilities, GL backend, folders, asset counters
+  and the app's own log — readably on screen (a
   screenshot is already a usable report), shareable as text, and written to a file next to the app.
   The record is built for the failure this port actually meets on hardware nobody here owns: when the
   engine's loading bar stops, it names the resources still unfinished, grouped by kind, with the
@@ -146,6 +157,30 @@ The panel and the log now also carry the device's uniform budget and forward the
 says so in the record. See `FINDINGS.md` §10.9 for the measurements, including what the fix costs (64
 fewer atlas slots per atlas on a floored device, out of the game's 256).
 
+The exit/version/side-menu work (2026-09-26) was verified on the same Android 14 emulator (`-gpu
+host`). Driving the engine's own exit over CDP — `python3 tools/probes/cdp.py
+'window.nw.Window.get().close()'`, the exact call the title screen's EXIT button makes — and the side
+menu's Exit both printed `exit requested`, left `pidof` empty and `dumpsys activity activities` with
+no task, so the next launch is a fresh process: three consecutive launches each reached `ENGINE boot:
+complete` with the title screen drawn and a new pid. The setup screen showed `port 0.5 (7)`, the
+side menu's status block the same line, and the in-game Diagnostics header `game 0.1.0-10 Early
+Access` — the game's own build, read from `bundle.js` (`class VersionManager { … }`, hotfix 10, suffix
+"Early Access"); the changelog at `terra/data/database/changelog.json` is the fallback (`0.1.0`)
+before the bundle is served. The side menu renders every entry at one width and height with its icon
+in the same left gutter and the current position as a filled pill; tapping a row's *blank left edge*
+toggled that row's switch, and with the menu left open for 12 s the watchdog logged no `engine silent`
+line, i.e. the WebView never lost focus.
+
+The **shipped release artifact** was then exercised the same way: `android/tools/release.sh`'s signed
+`AlabasterDawn-Android-0.5.apk` was installed on that emulator over a debug uninstall (the keys
+differ), granted the two folders from scratch through the picker, and it booted to the title screen and
+reported `port 0.5 (7)` / `game 0.1.0-10 Early Access`. Both exits were driven through the UI on it:
+the side menu's **Exit** and the game's own title-screen **Exit** (highlighted with the on-screen pad's
+D-pad and confirmed with **A** — the menu is pad-driven, a plain tap does nothing), each leaving no pid
+and no task, and a relaunch reached `ENGINE boot: complete` in a new process. The shim inside the
+release APK is byte-identical to `assets/ada-shim.js` (`sha256` matched), which is what makes the
+debug-build CDP evidence above carry over to the release build.
+
 ### Download
 
 Grab `AlabasterDawn-Android-<version>.apk` from
@@ -156,7 +191,7 @@ certificate** — `CN=Alabaster Dawn Android port, O=moronigranja, C=BR`, SHA-25
 install:
 
 ```bash
-apksigner verify --print-certs AlabasterDawn-Android-0.4.2.apk   # no SDK? keytool -printcert -jarfile …
+apksigner verify --print-certs AlabasterDawn-Android-0.5.apk   # no SDK? keytool -printcert -jarfile …
 ```
 
 The APK carries `assets/LICENSE` + `assets/NOTICE.md` inside, so the binary ships the notices it is
@@ -165,16 +200,16 @@ say) needs an uninstall first.
 
 ### Not in this milestone
 
-* **Starting the game twice in the same app process can come up black.** Leaving the game (Back at
-  the side menu, or Exit) and starting it again *without* clearing the app from recents can stop the
-  second boot before the title screen with an unresponsive picture. It predates this release
-  (reproduced on the v0.2 build) and the workaround is to swipe the app away from recents — or
-  force-stop it — before starting again, which always boots. Your files are untouched either way.
 * The on-screen pad's stick **clicks** (L3/R3) are not exposed, and its multi-finger handling has
   unit tests but no real two-thumb pass on a phone yet.
 * The in-game **Load** list was not eyeballed (needs a manual save); everything underneath it —
   file naming, rotation, metadata, `mtime` — is verified.
 * Performance is GPU-bound; see the ledger below before expecting 1080p.
+* **The emulator's software GL stack draws the in-game map wrong.** SwiftShader
+  (`-gpu swiftshader_indirect`) renders black tiles with purple/pink fragments where the *same build*
+  is correct on real hardware and on the same emulator with the host GPU (`-gpu host`). The port
+  serves identical files and shaders either way, so it is the software renderer, not the port; the
+  title screen, cutscenes and menus draw correctly under it.
 
 ### Requirements
 
@@ -193,7 +228,8 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
 Unit tests (gamepad state and overlay merge, pad layout and hit rules, the diagnostics ring and its
-line collapsing, the asset-read accounting, the rewrite cache's byte budget, and the log-file rules):
+line collapsing, the asset-read accounting, the rewrite cache's byte budget, the game-version parsing
+from the changelog and the bundle, and the log-file rules):
 
 ```bash
 cd android && ./gradlew :app:testDebugUnitTest
@@ -216,8 +252,12 @@ keytool -genkeypair -keystore ~/.android/alabasterdawn-release.jks -alias alabas
 # then android/keystore.properties: storeFile / storePassword / keyAlias / keyPassword (chmod 600)
 
 android/tools/release.sh                       # signed build + digest + signature check
-android/tools/release.sh --upload --publish --notes docs/release-notes-0.4.2.md
+android/tools/release.sh --upload --publish --notes docs/release-0.5.md
 ```
+
+`--notes` takes the **release body**: since v0.5 that is a terse changelog plus links to the full
+`docs/release-notes-<version>.md` and the README, so the GitHub release page stays short and the
+install/requirements/limitations text lives in the README only.
 
 `tools/release.sh` renames the shipped artifact to `AlabasterDawn-Android-<version>.apk` (never
 `app-release-unsigned.apk`, never `app-debug.apk`) and runs the digest and signature checks on that
@@ -387,7 +427,9 @@ in `gamepad-fix.json`, or use `fix/gpf-diagnose.js` and `tools/inpage-probe.js`.
 ```
 android/    the port (Gradle root + :app; Kotlin, no permissions, one runtime dependency)
             tools/release.sh builds, verifies and publishes the signed APK
-docs/       screenshots used by this README, plus the release notes for each version
+docs/       screenshots used by this README, the release notes for each version
+            (`release-notes-<v>.md`, the detailed document) and its terse release-page
+            body (`release-<v>.md`, the changelog plus links)
 fix/        controller fix for the desktop / Wine build (installer, config, tests, diagnosis)
 tools/      measurement harness: uinput virtual gamepad, in-page probe, fast static server,
             the Node/NW.js browser shim that proved the port feasible
@@ -425,6 +467,8 @@ only change needed (at which point the sub-projects here follow automatically).
   whose explicit browser platform path is what makes this port possible.
 * **[AndroidX WebKit](https://developer.android.com/jetpack/androidx/releases/webkit)** — Apache-2.0
   (`WebViewAssetLoader`, `addDocumentStartJavaScript`).
+* **[Material Symbols](https://fonts.google.com/icons)** — Apache-2.0, © Google LLC; the side menu's
+  icons, converted to vector drawables.
 * **[Gradle](https://gradle.org/)** — the wrapper (`android/gradle/wrapper/`) is Apache-2.0,
   © Gradle, Inc.
 * **[CrossAndroid](https://gitlab.com/Namnodorel/crossandroid)** — prior art for running this engine
