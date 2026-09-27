@@ -181,6 +181,13 @@ and no task, and a relaunch reached `ENGINE boot: complete` in a new process. Th
 release APK is byte-identical to `assets/ada-shim.js` (`sha256` matched), which is what makes the
 debug-build CDP evidence above carry over to the release build.
 
+The **Steam demo** was run through the port on the same emulator (`terra/` 226 MB / 2 327 files):
+`ENGINE boot: complete in 6655ms, 1641 resources`, 0 failed decodes, its own title screen and intro
+drawing, and the record naming it `game 0.0.5-3 Alpha`. It exposed two defects, both since fixed and
+re-verified — the option relabel applying the release ladder's resolution names to the demo's own
+ladder, and `FsBridge.mkdir` creating `_Saves_*` junk in the picked saves folder from the demo's
+Windows-style save paths instead of resolving them onto `Saves/Default`. See `FINDINGS.md` §12.
+
 ### Download
 
 Grab `AlabasterDawn-Android-<version>.apk` from
@@ -191,7 +198,7 @@ certificate** — `CN=Alabaster Dawn Android port, O=moronigranja, C=BR`, SHA-25
 install:
 
 ```bash
-apksigner verify --print-certs AlabasterDawn-Android-0.5.apk   # no SDK? keytool -printcert -jarfile …
+apksigner verify --print-certs AlabasterDawn-Android-0.5.1.apk   # no SDK? keytool -printcert -jarfile …
 ```
 
 The APK carries `assets/LICENSE` + `assets/NOTICE.md` inside, so the binary ships the notices it is
@@ -216,7 +223,8 @@ say) needs an uninstall first.
 * JDK 17, Android SDK with **platform 36** and **build-tools 36.0.0**.
 * Phone or tablet on **Android 8.0+** (`minSdk 26`).
 * A Bluetooth/USB controller, or the on-screen pad (no controller required).
-* Your own copy of the game (Steam). Its files are **not** distributed here.
+* Your own copy of the game (Steam) — the full game or the **demo**; neither is distributed here.
+  The demo (build `0.0.5-3 Alpha`) boots, plays and writes the same `Saves/` layout.
 
 ### Build and install
 
@@ -229,7 +237,7 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 Unit tests (gamepad state and overlay merge, pad layout and hit rules, the diagnostics ring and its
 line collapsing, the asset-read accounting, the rewrite cache's byte budget, the game-version parsing
-from the changelog and the bundle, and the log-file rules):
+from the changelog and the bundle, the save-path namespace rule, and the log-file rules):
 
 ```bash
 cd android && ./gradlew :app:testDebugUnitTest
@@ -252,7 +260,7 @@ keytool -genkeypair -keystore ~/.android/alabasterdawn-release.jks -alias alabas
 # then android/keystore.properties: storeFile / storePassword / keyAlias / keyPassword (chmod 600)
 
 android/tools/release.sh                       # signed build + digest + signature check
-android/tools/release.sh --upload --publish --notes docs/release-0.5.md
+android/tools/release.sh --upload --publish --notes docs/release-0.5.1.md
 ```
 
 `--notes` takes the **release body**: since v0.5 that is a terse changelog plus links to the full
@@ -353,7 +361,11 @@ Thermals, not CPU, are the limit: the same 720p scene measured 42 fps cool and 1
   rejects) and the resolution ladder.
 * `AdaBridge` exposes the pad (`getGamepadJson()`) and the file calls used for saves; `FsBridge`
   maps the engine's `/saves` namespace onto the picked saves tree and keeps the Steam file names
-  exactly (create-or-overwrite, never a deduplicated `Save_ID_0000 (1).save`).
+  exactly (create-or-overwrite, never a deduplicated `Save_ID_0000 (1).save`). Both engine
+  generations are accepted: the released one appends `/Saves/Default/` to `nw.App.dataPath` and the
+  demo-era one appends `\Saves\Default\`, and both land on the same `Saves/` layout inside the
+  picked folder. Anything outside that namespace — including the `\Default\Saves\Default\` paths the
+  game probes in its own storage fix — is refused rather than created.
 * `SideMenuView` is the Back-opened panel (a scrim plus a right-edge panel whose descendants are
   made unfocusable, so the WebView keeps focus and the engine's loop is never blurred). It only
   reports taps: the Activity owns the four settings (`ViewAlign` is the picture position and its
