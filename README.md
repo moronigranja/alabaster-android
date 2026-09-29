@@ -117,10 +117,12 @@ minute after the last event. The side menu was verified on the same Fold 7 (Andr
 Back opens it through the predictive-back dispatcher (and `onBackPressed` covers older devices),
 Back and a scrim tap close it with the WebView keeping focus (a gamepad event still reaches the port
 afterwards), the overlay switch was driven both ways, the three positions measured
-(`236…1612` Center / `0…1376` Top / `471…1847` Bottom), the readout's battery level, temperature and
-thermal word matched `dumpsys battery` and `dumpsys thermalservice`, the engine was confirmed to keep
-polling behind the open panel, and Exit plus a relaunch kept both switches and the position. The
-emulator pass also covered the layout editor: the pad publishes nothing while editing, a dragged
+(`236…1612` Center / `0…1376` Top / `471…1847` Bottom — where the picture was *drawn*; the click
+mapping that follows the picture was only fixed later, in v0.6.1, see below), the readout's battery
+level, temperature and thermal word matched `dumpsys battery` and `dumpsys thermalservice`, the engine
+was confirmed to keep polling behind the open panel, and Exit plus a relaunch kept both switches and
+the position. The emulator
+pass also covered the layout editor: the pad publishes nothing while editing, a dragged
 control and a resized key reach the engine at their new geometry, the layout survives a restart, the
 saves-folder `pad-layout.json` wins over the prefs copy, and `RESET`/`UNDO` flip as described.
 
@@ -221,6 +223,16 @@ listeners — does not throw. Hover itself could not be injected (`input motione
 produces a scan code, so the `scan != 0` path (a real USB/Bluetooth keyboard) is the unchanged
 WebView path. See `FINDINGS.md` §14.
 
+The picture-position fix (2026-09-29, v0.6.1) was verified **without a device**: with the picture
+aligned Top or Bottom, the port moved the picture where the engine's mouse mapping could not see it
+(half the black band, 866 px on a 1080x2340 phone at 640x360), so clicks landed nowhere near what was
+clicked. The engine was booted in a browser and driven through its own input pipeline with real mouse
+events; the same point on the picture now maps to the same game coordinate in Top, Centre and Bottom,
+where the old code read the picture's centre as `y = -280.8` instead of `y = 180`.
+`node android/tools/test-shim-diagnostics.mjs` covers the arithmetic in both display scales (11 new
+checks, 7 of which fail against the pre-fix shim). The Android mouse path itself is unchanged from
+v0.6.0, and no phone was attached. See `FINDINGS.md` §15.
+
 ### Download
 
 Grab `AlabasterDawn-Android-<version>.apk` from
@@ -231,7 +243,7 @@ certificate** — `CN=Alabaster Dawn Android port, O=moronigranja, C=BR`, SHA-25
 install:
 
 ```bash
-apksigner verify --print-certs AlabasterDawn-Android-0.6.0.apk   # no SDK? keytool -printcert -jarfile …
+apksigner verify --print-certs AlabasterDawn-Android-0.6.1.apk   # no SDK? keytool -printcert -jarfile …
 ```
 
 The APK carries `assets/LICENSE` + `assets/NOTICE.md` inside, so the binary ships the notices it is
@@ -281,8 +293,9 @@ from the changelog and the bundle, the save-path namespace rule, and the log-fil
 cd android && ./gradlew :app:testDebugUnitTest
 ```
 
-The diagnostics half of the injected shim (`assets/ada-shim.js`) is driven against a stub engine by
-a Node test — no device, no browser, under a second:
+The injected shim (`assets/ada-shim.js`) is driven against a stub engine by a Node test — the boot
+diagnostics and the picture alignment's arithmetic (against both display scales) — no device, no
+browser, under a second:
 
 ```bash
 node android/tools/test-shim-diagnostics.mjs
@@ -298,7 +311,7 @@ keytool -genkeypair -keystore ~/.android/alabasterdawn-release.jks -alias alabas
 # then android/keystore.properties: storeFile / storePassword / keyAlias / keyPassword (chmod 600)
 
 android/tools/release.sh                       # signed build + digest + signature check
-android/tools/release.sh --upload --publish --notes docs/release-0.6.0.md
+android/tools/release.sh --upload --publish --notes docs/release-0.6.1.md
 ```
 
 `--notes` takes the **release body**: since v0.5 that is a terse changelog plus links to the full
@@ -408,8 +421,10 @@ Thermals, not CPU, are the limit: the same 720p scene measured 42 fps cool and 1
   made unfocusable, so the WebView keeps focus and the engine's loop is never blurred). It only
   reports taps: the Activity owns the four settings (`ViewAlign` is the picture position and its
   wire format, pure Kotlin and unit-tested) and the shim reads them once per engine frame from
-  `getViewAlign()`/`getStatsEnabled()`, applying the position to the canvas and painting the
-  readout. `Telemetry` is the only thing that reads the phone: the sticky battery broadcast plus
+  `getViewAlign()`/`getStatsEnabled()`, moving the canvas element's layout box for the position
+  (never `object-position`: the engine's mouse mapping reads the element's `offsetTop` and assumes
+  the picture is centred inside it, see FINDINGS 15) and painting the readout.
+  `Telemetry` is the only thing that reads the phone: the sticky battery broadcast plus
   `PowerManager.getCurrentThermalStatus()`, cached for 5 s and only sampled while the readout is on.
 * `GamepadState` is the single JSON producer: the physical pad (`Gamepad`, from `KeyEvent`/
   `MotionEvent`) and the on-screen pad both write into it, and it publishes one merged W3C standard

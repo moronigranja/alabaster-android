@@ -1576,3 +1576,95 @@ choice of every existing install.
 * Confirm the game is *animating* (not frozen) before concluding an input is ignored: two screencaps
   three seconds apart, `PIL` pixel diff (`~700k` changed pixels on a live map).
 
+
+---
+
+## 15. Picture alignment moved the picture, not the click target (2026-09-29)
+
+Reported against the shipped side menu: **with the picture aligned Top, mouse clicks do nothing**.
+The picture really had moved to the top, so the shim's `object-position` write did what it said; the
+clicks were landing ~460 game pixels away from the cursor.
+
+### 15.1 The engine's own mouse mapping assumes a centred letterbox
+
+`bundle.js`, `Input`:
+
+```js
+static getMouseCoordsC(dest, mouseX, mouseY, dom) {   // dom = g_system.canvas
+  let el = dom; c_input.setC(0, 0);
+  while (el != null) { c_input.x += el.offsetLeft; c_input.y += el.offsetTop; el = el.offsetParent; }
+  dest.x = (mouseX - c_input.x); dest.y = (mouseY - c_input.y);
+}
+```
+
+`mousemove` then applies `g_system.displayScale.transformMouse(this.mouse)`; every
+`DISPLAY_SCALE` variant (`CONTAIN`, `FULL_PIXEL`, `ORIGINAL`) computes
+
+```js
+const scale1 = Math.min(screenSizeX / canvasSize.x, screenSizeY / canvasSize.y);
+const deltaY = screenSizeY - scale1 * canvasSize.y;      // the letterbox the *engine* believes in
+mouse.y = (mouse.y - deltaY / 2) * 1 / scale1 / scale;   // …and it believes it sits ABOVE the picture
+```
+
+and `screenSizeX/Y` are `canvas.clientWidth`/`clientHeight` — the **element's client box**, not the
+window. So the engine has exactly one model of the canvas: the picture is centred inside that box,
+by `deltaY/2` in each axis. `getMouseCoordsC` picking up `offsetTop` is what makes any *element-box*
+move of the canvas self-correcting.
+
+The shipped alignment moved the picture inside the box with `object-position: 50% 0%` (Top) /
+`50% 100%` (Bottom). Layout never moved, `offsetTop` stayed 0, and every click was then interpreted
+`deltaY/2` below the picture. The miss is half the black letterbox band, i.e. it scales with the
+device:
+
+* the probe geometry below (viewport 400x800, buffer 1280x720, game scale 2): deltaY/2 is **287.5
+  screen px**, and the engine reads it as **460.8 game px** (0.625 screen px per game px);
+* the port's default 640x360 rung on a 1080x2340 phone: the picture is 1080x607.5 in a 2340 px tall
+  window, so the miss is **866 screen px** — a whole screenful.
+
+Centre worked by construction (deltaY/2 *is* the centre); Bottom was wrong by the same amount,
+mirrored.
+
+### 15.2 Fix: move the element's layout box, leave the picture centred inside it
+
+`assets/ada-shim.js`, `applyViewAlign`/`alignTopFor`. The canvas is `position: absolute; inset: 0;
+margin: auto` (engine.css), so writing `top` pins it; the picture stays at the element's own centre
+(`object-position` untouched), and the two sides agree because the box's top and the picture's
+visual top differ by the same `deltaY/2` the engine subtracts:
+
+```
+top = desired - deltaY/2        desired = 0 (Top) | boxH - pictureH (Bottom)
+```
+
+`deltaY = canvas.clientHeight - scale1 * canvas.height` is computed from the element itself, so the
+formula is mode-agnostic: with `sharp-pixels` on the element is pinned to an integer multiple of the
+buffer, `deltaY` is 0, and it degenerates to pinning the box to Top/Bottom (which is what the
+FULL_PIXEL path already did). Non-centre modes re-measure each frame, and `top` is rounded to whole
+pixels so it agrees with `offsetTop`, which reads as an integer. The engine never writes
+`canvas.style.top`/`bottom` (it writes `width`/`height`/`display`/`imageRendering` only), so there is
+no fight over the property.
+
+### 15.3 Measured
+
+Verification was a headless Chromium with the game's real `engine.css`, the real injected shim asset,
+and the game **booted** (local static server, `XG_GAME_DEBUG` forced true — `index.html` sets it
+false and `AddDocumentStart`-style init can only re-set it *after* that line, so the probe defines the
+global as a getter that swallows the write). Real CDP mouse events, pointer paths, engine listeners:
+
+| alignment | canvas `top` | picture on screen | `g_input.mouse` at the picture's centre / at 25 % of its height |
+|---|---|---|---|
+| Centre | `""` | 287.5–512.5 | `(320, 180)` / `(320, 88.8)` |
+| Top | `-287px` | 0.5–225.5 | `(320, 180)` / `(320, 88.8)` |
+| Bottom | `288px` | 575.5–800.5 | `(320, 180)` / `(320, 88.8)` |
+
+Same picture-relative point, same game coordinate, in every alignment (viewport 400x800, buffer
+1280x720, scale 2: 0.625 screen px per game px, so the numbers are exact to the sub-pixel). The
+**old** code on the same live engine maps the picture's centre to `(320, -280.8)` instead of
+`(320, 180)` — the 460.8 px miss above, reproduced end-to-end.
+
+Also exercised: an element that is `display: none` (measurements 0 -> the write is skipped, not
+applied as `0px`), a viewport resize while aligned (the offset is recomputed the next frame), and
+mode switching on a live element. The same probe against the engine's mapping formulas covers the
+`sharp-pixels` ON case (`deltaY` 0: box pinned to the alignment) and both phone buffers.
+
+Not verified on a device: no phone was attached, so the Android mouse path itself was not re-run —
+`input mouse tap` at a title-screen menu entry is the check for whoever has the phone.

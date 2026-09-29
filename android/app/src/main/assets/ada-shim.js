@@ -517,25 +517,63 @@
         return portCanvas;
     }
 
-    /* Picture alignment. The engine has two display scales, so the position is written with both
-     * knobs: with `sharp-pixels` off the canvas element fills the window and `object-fit: contain`
-     * letterboxes the render buffer inside it, so the picture moves with `object-position`; with it
-     * on the element box is pinned to an integer multiple of the buffer and centred by
-     * `margin: auto`, so the box itself moves with `top`/`bottom`. Each knob is a no-op in the mode
-     * that does not use it, and "" restores the stylesheet's centred default. */
+    /* Picture alignment. The element's *layout box* is moved - `top` on the absolutely positioned
+     * canvas, whose inset `0` + `margin: auto` leaves it centred until we pin it - and the picture
+     * stays centred inside that box. This is not interchangeable with moving the picture alone
+     * (`object-position`, or a CSS transform), because the engine's own mouse mapping reads the
+     * element's layout position and assumes the picture is centred inside it:
+     *
+     *   Input.getMouseCoordsC:  mouse = pageX/Y - sum(offsetLeft/offsetTop up the offsetParent chain)
+     *   DISPLAY_SCALE.*.transformMouse:  game = (mouse - delta/2) * 1/scale1/scale
+     *
+     * with `deltaY = canvas.clientHeight - scale1 * canvas.height` and `screenSizeY =
+     * canvas.clientHeight` (the element's client box, not the window). `deltaY/2` is the letterbox
+     * the engine assumes sits *above* the picture; the `object-position` this used to write moved
+     * the picture by exactly that much without moving `offsetTop`, so every click landed deltaY/2
+     * away from what it hit - a whole screenful at 640x360 on a phone (measured: the picture is
+     * ~600 px tall in a ~2340 px window, so the miss is ~870 px). Moving the box instead keeps both
+     * sides agreeing: the picture's visual top and its layout top differ by the same deltaY/2 the
+     * engine subtracts, in **both** display scales (with `sharp-pixels` on the element is pinned to
+     * an integer multiple of the buffer, so deltaY is 0 and the same formula degenerates to pinning
+     * the box to the alignment).
+     *
+     * `top` is rounded to whole pixels so it agrees with `offsetTop`, which reads as an integer.
+     * "" restores the stylesheet's centred default. */
     var alignApplied = null;
     var alignElement = null;
+    var alignTop = null;
 
     function applyViewAlign() {
         var mode = call(function (b) { return b.getViewAlign(); }, "center");
         var canvas = gameCanvas();
         if (!canvas) return;
-        if (mode === alignApplied && canvas === alignElement) return;
+        var top = null;
+        if (mode === "top" || mode === "bottom") top = alignTopFor(canvas, mode);
+        if (mode === alignApplied && canvas === alignElement && top === alignTop) return;
+        /* Measurements are all zero before the first layout pass; retry on the next frame. */
+        if (mode !== "center" && top === null) return;
         alignApplied = mode;
         alignElement = canvas;
-        canvas.style.objectPosition = mode === "top" ? "50% 0%" : (mode === "bottom" ? "50% 100%" : "");
-        canvas.style.top = mode === "top" ? "0px" : (mode === "bottom" ? "auto" : "");
-        canvas.style.bottom = mode === "bottom" ? "0px" : (mode === "top" ? "auto" : "");
+        alignTop = top;
+        canvas.style.top = top === null ? "" : top;
+        canvas.style.bottom = top === null ? "" : "auto";
+    }
+
+    /* The element's `top` that puts the picture where the menu asked for it. `top = desired -
+     * deltaY/2`, where `desired` is the picture's screen position within the window and `deltaY/2`
+     * is the offset between the picture and the box the engine measures from. */
+    function alignTopFor(canvas, mode) {
+        var parent = canvas.parentElement;
+        var boxH = parent ? parent.clientHeight : 0;
+        if (!boxH) boxH = window.innerHeight;
+        var bufW = canvas.width, bufH = canvas.height;
+        var clientW = canvas.clientWidth, clientH = canvas.clientHeight;
+        if (!boxH || !bufW || !bufH || !clientW || !clientH) return null;
+        var scale1 = Math.min(clientW / bufW, clientH / bufH);
+        var pictureH = scale1 * bufH;
+        var deltaY = clientH - pictureH;
+        var desired = mode === "top" ? 0 : boxH - pictureH;
+        return Math.round(desired - deltaY / 2) + "px";
     }
 
     /* Frame-rate/resolution/battery readout, drawn as its own DOM layer so it costs the renderer
