@@ -1,5 +1,9 @@
 # Alabaster Dawn — controller/Android research notes
 
+> The in-container installer that grew out of §3.2-3.4 now lives in its own repo:
+> `~/repos/wine-chromium-gamepad` (README + docs/FINDINGS.md + docs/STATUS.md, host test 15/15).
+> This file stays the record of the desktop/container investigation itself.
+
 Handoff doc. Everything below was measured/verified on the user's machine
 (CachyOS, KDE Wayland, RTX 4070 Max-Q) and on their phones — **SM-F971B** (Galaxy Z Fold 7) for the
 GameNative diagnostics in §2–§3, **SM-S908U1** (Galaxy S22 Ultra, Android 16 / API 36, Adreno 730)
