@@ -16,7 +16,7 @@ import kotlin.math.min
  *
  * Drawing and hit rules live in the model; this class only turns Android's `MotionEvent` stream into
  * model calls and the model's state into canvas primitives. Its own state is the two switches — the
- * user's `padEnabled` preference and `controllerInUse` — and their one combined effect,
+ * user's `padEnabled` preference and `externalInputInUse` — and their one combined effect,
  * [applyOverlay], plus the layout editor: the [editing] mode, the [layout] being edited, and the
  * pointer bookkeeping for the drags.
  *
@@ -36,7 +36,7 @@ class OnScreenPadView(context: Context) : View(context) {
     private val triangle = Path()
 
     private val showAgain = Runnable {
-        controllerInUse = false
+        externalInputInUse = false
         applyOverlay()
         invalidate()
     }
@@ -76,15 +76,16 @@ class OnScreenPadView(context: Context) : View(context) {
             invalidate()
         }
 
-    /** True while a physical controller is being used: the controls hide until it goes quiet. */
-    var controllerInUse = false
+    /** True while a controller, mouse or keyboard is being used: the controls hide until it goes quiet. */
+    var externalInputInUse = false
         private set
 
     /**
-     * Whether a controller in use hides the overlay at all; the side menu's switch. Off leaves the
-     * controls and the pill row drawn — and the overlay publishing — while a pad is being used.
+     * Whether external input in use hides the overlay at all; the side menu's switch. Off leaves the
+     * controls and the pill row drawn — and the overlay publishing — while a controller, mouse or
+     * keyboard is being used.
      */
-    var hideWithController = true
+    var hideWithExternalInput = true
         set(value) {
             if (field == value) return
             field = value
@@ -109,16 +110,16 @@ class OnScreenPadView(context: Context) : View(context) {
         model.resize(w.toFloat(), h.toFloat())
     }
 
-    /** A controller event: hide the controls now, and show them again once it has gone quiet. */
-    fun noteControllerActivity() {
+    /** A controller, mouse or keyboard event: hide the controls now, show them once it has gone quiet. */
+    fun noteExternalInput() {
         if (model.editing) return
-        if (!controllerInUse) {
-            controllerInUse = true
+        if (!externalInputInUse) {
+            externalInputInUse = true
             applyOverlay()
             invalidate()
         }
         removeCallbacks(showAgain)
-        postDelayed(showAgain, CONTROLLER_IDLE_MS)
+        postDelayed(showAgain, EXTERNAL_INPUT_IDLE_MS)
     }
 
     override fun onDetachedFromWindow() {
@@ -154,20 +155,20 @@ class OnScreenPadView(context: Context) : View(context) {
         invalidate()
     }
 
-    /** Whether the controller is hiding the overlay right now. */
-    private fun controllerHides(): Boolean = hideWithController && controllerInUse
+    /** Whether external input is hiding the overlay right now. */
+    private fun externalInputHides(): Boolean = hideWithExternalInput && externalInputInUse
 
-    private fun controlsDrawn(): Boolean = padEnabled && !controllerHides()
+    private fun controlsDrawn(): Boolean = padEnabled && !externalInputHides()
 
     /**
-     * Whether the pill row is drawn and can be hit. It hides with the controls while a physical
-     * controller is being used, so a controller player sees no touch chrome at all, and [showAgain]
-     * brings it back with them once the controller has gone quiet. [noteControllerActivity] ignores
-     * controller events while the editor is open, so editing never hides the row that closes it —
+     * Whether the pill row is drawn and can be hit. It hides with the controls while a controller,
+     * mouse or keyboard is being used, so an external-input player sees no touch chrome at all, and
+     * [showAgain] brings it back with them once the input has gone quiet. [noteExternalInput] ignores
+     * those events while the editor is open, so editing never hides the row that closes it —
      * RESET/DONE stay reachable for as long as they are needed. With the switch off the pill row
-     * stays while a controller is used.
+     * stays while external input is used.
      */
-    private fun pillsDrawn(): Boolean = !controllerHides()
+    private fun pillsDrawn(): Boolean = !externalInputHides()
 
     /** Whether the overlay is a pad right now: the controls are drawn and no editor is open. */
     private fun overlayActive(): Boolean = controlsDrawn() && !model.editing
@@ -185,6 +186,8 @@ class OnScreenPadView(context: Context) : View(context) {
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent): Boolean {
+        /* Not a finger: let the click fall through to the WebView. */
+        if (isPointerInput(event)) return false
         val index = event.actionIndex
         val id = event.getPointerId(index)
         val x = event.getX(index)
@@ -522,8 +525,12 @@ class OnScreenPadView(context: Context) : View(context) {
     private fun centreLine(y: Float): Float = y - (label.ascent() + label.descent()) / 2f
 
     companion object {
-        /** How long a physical controller has to stay quiet before the controls come back. */
-        const val CONTROLLER_IDLE_MS = 60_000L
+        /** How long external input has to stay quiet before the controls come back. */
+        const val EXTERNAL_INPUT_IDLE_MS = 60_000L
+
+        /** A mouse is a pointer device, not a finger: the pad never claims its events. */
+        fun isPointerInput(event: MotionEvent): Boolean =
+            event.getToolType(0) == MotionEvent.TOOL_TYPE_MOUSE
 
         private const val AXIS_EPSILON = 1e-4f
         private const val STROKE_UNITS = 0.06f

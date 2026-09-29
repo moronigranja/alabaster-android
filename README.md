@@ -5,8 +5,8 @@ Two independent pieces of work for [Alabaster Dawn](https://store.steampowered.c
 
 1. **A native Android port** (`android/`) — runs the game in an Android WebView with no Wine, no
    Box64 and no NW.js, reading your own game files from a folder you pick, playing through a
-   physical controller read natively from `InputDevice` **or the built-in on-screen pad**, and
-   keeping saves in a second folder you pick, in the Steam build's own layout.
+   physical controller read natively from `InputDevice`, **the built-in on-screen pad, or a mouse and
+   keyboard**, and keeping saves in a second folder you pick, in the Steam build's own layout.
 2. **A controller fix for the desktop build** (`fix/`) — repairs how the game decodes gamepads on
    Linux and inside Wine containers (GameNative / Winlator / Proton).
 
@@ -37,11 +37,21 @@ Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`)
   so a save folder can be copied in from the desktop and copied back out.
 * Gamepad: Android `InputDevice` → W3C-standard gamepad for the engine. Left/right stick, d-pad,
   face buttons, shoulders, analog and digital triggers, start/select.
+* **Mouse and keyboard**: a mouse click falls through the on-screen pad to the WebView (Android
+  classifies a mouse click as a *touch* event, and the pad used to claim every DOWN while it was
+  drawn), hover and scroll reach the page as they always did, and a keyboard plays the game —
+  WASD/arrows move, Enter activates. Keys hid the pad too. The engine matches its bindings on the
+  DOM's `event.code`, which Chromium derives from the *scan code*, so a key that arrives with no scan
+  code (`code: ""`) would otherwise play nothing; the port dispatches the DOM event the page should
+  have got, with a real `code`/`key`, for every key it can name — letters, digits, arrows,
+  Enter/NumpadEnter, Escape, Space, Tab, Shift/Ctrl/Alt and F1-F12 — and leaves keys that do carry a
+  scan code to the WebView's own path. Using the mouse or the keyboard hides the overlay exactly like
+  a controller does, under the same switch (see the side menu below).
 * **On-screen pad**: the same standard gamepad drawn over the game, for playing with no controller —
   both sticks, d-pad, A/B/X/Y, L1/R1, L2/R2, Select/Start/HOME, with a small toggle pill that hides
   the pad (the choice is kept). It feeds the *same* pad state as the hardware one, so the engine sees
-  one standard pad; while a real controller is in use the whole overlay hides itself — controls *and*
-  that pill row — and comes back after a minute of no controller input.
+  one standard pad; while external input is in use — a controller, a mouse or a keyboard — the whole
+  overlay hides itself (controls *and* that pill row) and comes back after a minute of no input.
 * **Pad layout editor**: an `EDIT` pill in the same row opens an editor — drag any control to move
   it, drag the selected control's corner handle to resize it, `-`/`+` to size the whole pad, `RESET`
   to restore the stock layout (`UNDO` while that reset is still unsaved) and `DONE` to save. The
@@ -52,12 +62,15 @@ Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`)
   behind) drawn as one uniform, full-width, icon-led list — an Eden / Azahar style menu: every entry
   is the same height with an icon in a fixed left gutter, the label on a single line with an ellipsis,
   the control at the right edge, hairlines between rows, and the whole row (icon, label and empty
-  space) is the hit target. It carries a switch for whether a controller in use hides the overlay, a
-  **Game position** choice (Top / Center / Bottom) for where the picture sits inside the black
+  space) is the hit target. It carries a switch for whether external input in use hides the overlay
+  ("Hide pad with external input" — a controller, a mouse or a keyboard),
+  a **Game position** choice (Top / Center / Bottom) for where the picture sits inside the black
   letterbox bands (the current choice is a filled pill), a switch for an **FPS / battery /
   temperature** readout, a switch to **keep a log file with the saves**, the port version, three
-  status lines (controller input, where saves go, the last thing the engine reported) and **Exit**.
-  Back again, a tap on the dimmed area or Exit closes it; all four settings live in the app's prefs,
+  status lines (external input active/idle, where saves go, the last thing the engine reported) and
+  **Exit**. Back again, a tap on the dimmed area or Exit closes it (from Android 13 the registered
+  predictive-back callback owns Back and the key is only handled below it — handling both ran the
+  toggle twice and opened the menu only to close it); all four settings live in the app's prefs,
   and nothing is written into the game folder — the saves tree only ever gains the Steam `Saves/`
   layout, `pad-layout.json` and that log, all at its root. **Exit ends the app process** (the game's
   own in-menu Exit does too — see below), so the next launch is a fresh process with a fresh WebView
@@ -188,6 +201,26 @@ re-verified — the option relabel applying the release ladder's resolution name
 ladder, and `FsBridge.mkdir` creating `_Saves_*` junk in the picked saves folder from the demo's
 Windows-style save paths instead of resolving them onto `Saves/Default`. See `FINDINGS.md` §12.
 
+The mouse/keyboard/Back work (2026-09-29) was verified on the **S22 Ultra (SM-S908U1, Android 16,
+API 36)** with the release APK installed in place, driven over `adb` from the host. A mouse click
+(`input mouse tap`, source `MOUSE`, tool type `3`) on the title screen's **New Game** highlighted it
+and then opened it, where the pad had been swallowing the DOWN; the same click hid the controls *and*
+the pill row, a touch on `HIDE` hid the controls and kept the row (a finger never counts as external
+input), the overlay came back after ~60 s untouched, and `input mouse scroll` hid it through the
+generic-motion path. A key press hid the pad and logged `key KEYCODE_DPAD_DOWN -> page (scan 0)`;
+holding `D` in-game walked the character visibly across the map, and an instrumented build showed the
+page receiving the port's event with a real `code` and the engine taking it (`code=ArrowRight
+prevented=true` — a match on its binding). With the switch off, the mouse and the keyboard left the
+pad and the pill row drawn. The same session found and fixed the Android 13+ Back double-dispatch
+(the record showed `back: dispatcher (game)` *and* `back: key (game)` for one press). Two probes
+established the environment facts the notes rest on: the page receives every key (`window` listener
+fired) but sees an empty `code` for a scan-code-less event, and `navigator.keyboard` *is* present in
+this WebView, so the engine's `initKeyboard()` — which calls `getLayoutMap()` before registering its
+listeners — does not throw. Hover itself could not be injected (`input motionevent` takes only
+`DOWN|UP|MOVE|CANCEL`, and a lone `MOVE` is dropped by the input dispatcher), and no `adb` injection
+produces a scan code, so the `scan != 0` path (a real USB/Bluetooth keyboard) is the unchanged
+WebView path. See `FINDINGS.md` §14.
+
 ### Download
 
 Grab `AlabasterDawn-Android-<version>.apk` from
@@ -198,7 +231,7 @@ certificate** — `CN=Alabaster Dawn Android port, O=moronigranja, C=BR`, SHA-25
 install:
 
 ```bash
-apksigner verify --print-certs AlabasterDawn-Android-0.5.1.apk   # no SDK? keytool -printcert -jarfile …
+apksigner verify --print-certs AlabasterDawn-Android-0.6.0.apk   # no SDK? keytool -printcert -jarfile …
 ```
 
 The APK carries `assets/LICENSE` + `assets/NOTICE.md` inside, so the binary ships the notices it is
@@ -211,6 +244,11 @@ say) needs an uninstall first.
   unit tests but no real two-thumb pass on a phone yet.
 * The in-game **Load** list was not eyeballed (needs a manual save); everything underneath it —
   file naming, rotation, metadata, `mtime` — is verified.
+* **Pointer lock is not used.** The engine's `requestPointerLock` path is left alone; the game's menus
+  and its own cursor use absolute `pageX/pageY`, which is what Android delivers to a WebView.
+* **A real USB/Bluetooth keyboard could not be driven over `adb`** — no injection path sets a scan
+  code, and the port's own conversion is exactly what handles a missing one. A keyboard's keys carry
+  their scan code and take the WebView's path untouched, which is the pre-0.6 behaviour for every key.
 * Performance is GPU-bound; see the ledger below before expecting 1080p.
 * **The emulator's software GL stack draws the in-game map wrong.** SwiftShader
   (`-gpu swiftshader_indirect`) renders black tiles with purple/pink fragments where the *same build*
@@ -222,7 +260,7 @@ say) needs an uninstall first.
 
 * JDK 17, Android SDK with **platform 36** and **build-tools 36.0.0**.
 * Phone or tablet on **Android 8.0+** (`minSdk 26`).
-* A Bluetooth/USB controller, or the on-screen pad (no controller required).
+* A Bluetooth/USB controller, a mouse and a keyboard, or the on-screen pad (no controller required).
 * Your own copy of the game (Steam) — the full game or the **demo**; neither is distributed here.
   The demo (build `0.0.5-3 Alpha`) boots, plays and writes the same `Saves/` layout.
 
@@ -260,7 +298,7 @@ keytool -genkeypair -keystore ~/.android/alabasterdawn-release.jks -alias alabas
 # then android/keystore.properties: storeFile / storePassword / keyAlias / keyPassword (chmod 600)
 
 android/tools/release.sh                       # signed build + digest + signature check
-android/tools/release.sh --upload --publish --notes docs/release-0.5.1.md
+android/tools/release.sh --upload --publish --notes docs/release-0.6.0.md
 ```
 
 `--notes` takes the **release body**: since v0.5 that is a terse changelog plus links to the full

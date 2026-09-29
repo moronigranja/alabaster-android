@@ -22,6 +22,7 @@ const source = readFileSync(shimPath, "utf8");
 function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5 } = {}) {
   const reports = [];
   const errors = [];
+  const vertexUniforms = [];
   const resource = (name) => ({ identification: () => name });
 
   globalThis.window = globalThis;
@@ -34,7 +35,24 @@ function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5 } = {}) {
   define("navigator", {});
   define("document", {
     querySelector: () => null,
-    createElement: () => ({ style: {}, appendChild() {} }),
+    /* The shim probes a throwaway canvas for the device's vertex-uniform budget before the engine
+     * asks for its first shader; without `getContext` it reports a `gl limits` error instead. */
+    createElement: (tag) =>
+      tag === "canvas"
+        ? {
+            style: {},
+            getContext: (kind) =>
+              kind === "webgl2"
+                ? {
+                    MAX_VERTEX_UNIFORM_VECTORS: 256,
+                    MAX_FRAGMENT_UNIFORM_VECTORS: 896,
+                    MAX_VARYING_VECTORS: 31,
+                    getParameter: (which) => which,
+                    getExtension: () => null,
+                  }
+                : null,
+          }
+        : { style: {}, appendChild() {} },
     body: null,
   });
   define("addEventListener", () => {});
@@ -42,6 +60,7 @@ function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5 } = {}) {
   window.AdaBridge = {
     reportDiag: (kind, payload) => reports.push({ kind, payload }),
     reportJsError: (message) => errors.push(message),
+    setVertexUniformVectors: (vectors) => vertexUniforms.push(vectors),
     getGamepadJson: () => "",
     getViewAlign: () => "center",
     getStatsEnabled: () => false,
@@ -79,7 +98,7 @@ function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5 } = {}) {
   };
   /* eslint-disable-next-line no-eval */
   (0, eval)(source);
-  return { reports, errors, tracker: window.g.resource.bootTracker };
+  return { reports, errors, vertexUniforms, tracker: window.g.resource.bootTracker };
 }
 
 const results = [];
@@ -89,7 +108,7 @@ function check(name, condition, detail = "") {
 }
 
 async function main() {
-  const { reports, errors, tracker } = bootShim();
+  const { reports, errors, vertexUniforms, tracker } = bootShim();
 
   // The shim loads without an engine; facts go out once the engine has a GL context.
   await new Promise((r) => setTimeout(r, 40));
@@ -100,6 +119,8 @@ async function main() {
     facts[0]?.payload);
   check("reports nothing but the shim's own load line",
     errors.length === 1 && errors[0] === "shim: loaded", JSON.stringify(errors));
+  check("the device's vertex-uniform budget reaches the bridge",
+    vertexUniforms.length === 1 && vertexUniforms[0] === 256, JSON.stringify(vertexUniforms));
 
   // Progress frozen past the threshold: exactly one stall report, naming what is pending by kind.
   await new Promise((r) => setTimeout(r, 120));

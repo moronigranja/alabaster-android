@@ -40,8 +40,8 @@ import java.io.File
 
 /**
  * Hosts the game: the user's own folder served from SAF, the Node/NW.js shim injected at document
- * start, native controller input, saves in a second SAF folder that keeps the Steam layout, and a
- * copy of the diagnostics record in that folder so it survives a force-stop.
+ * start, native controller, mouse and keyboard input, saves in a second SAF folder that keeps the
+ * Steam layout, and a copy of the diagnostics record in that folder so it survives a force-stop.
  *
  * Nothing under the game folder is ever written to.
  */
@@ -64,7 +64,7 @@ class PortActivity : Activity() {
     private var webView: WebView? = null
     private var padView: OnScreenPadView? = null
     private var menuView: SideMenuView? = null
-    private var hideWithController = true
+    private var hideWithExternalInput = true
     private var viewAlign = ViewAlign.DEFAULT
     private var statsEnabled = false
     private var shimSource: String = ""
@@ -133,7 +133,7 @@ class PortActivity : Activity() {
         gameTreeUri = validateGrant(prefs.getString(KEY_GAME, null), wantWrite = false)
         savesTreeUri = validateGrant(prefs.getString(KEY_SAVES, null), wantWrite = true)
         shimSource = readAsset(SHIM_ASSET)
-        hideWithController = prefs.getBoolean(KEY_HIDE_CONTROLLER, true)
+        hideWithExternalInput = prefs.getBoolean(KEY_HIDE_EXTERNAL_INPUT, true)
         viewAlign = ViewAlign.fromWire(prefs.getString(KEY_VIEW_ALIGN, null))
         statsEnabled = prefs.getBoolean(KEY_STATS, false)
         logToSaves = prefs.getBoolean(LogFile.PREF_KEY, true)
@@ -450,7 +450,7 @@ class PortActivity : Activity() {
         )
         val pad = OnScreenPadView(this).apply {
             padEnabled = prefs.getBoolean(KEY_PAD, true)
-            hideWithController = this@PortActivity.hideWithController
+            hideWithExternalInput = this@PortActivity.hideWithExternalInput
             layout = padLayoutStore?.load() ?: PadLayout()
             onToggle = { prefs.edit().putBoolean(KEY_PAD, it).apply() }
             onLayoutChanged = { padLayoutStore?.save(it) }
@@ -464,14 +464,14 @@ class PortActivity : Activity() {
             )
         )
         val menu = SideMenuView(this).apply {
-            setHideWithController(this@PortActivity.hideWithController)
+            setHideWithExternalInput(this@PortActivity.hideWithExternalInput)
             setStatsEnabled(statsEnabled)
             setLogToSaves(logToSaves)
             setAlign(viewAlign)
-            onHideWithController = {
-                this@PortActivity.hideWithController = it
-                prefs.edit().putBoolean(KEY_HIDE_CONTROLLER, it).apply()
-                padView?.hideWithController = it
+            onHideWithExternalInput = {
+                this@PortActivity.hideWithExternalInput = it
+                prefs.edit().putBoolean(KEY_HIDE_EXTERNAL_INPUT, it).apply()
+                padView?.hideWithExternalInput = it
             }
             onStatsEnabled = {
                 this@PortActivity.statsEnabled = it
@@ -725,7 +725,7 @@ class PortActivity : Activity() {
 
     private fun openMenu() {
         val menu = menuView ?: return
-        menu.setStatus(padView?.controllerInUse == true, savesStatusLine())
+        menu.setStatus(padView?.externalInputInUse == true, savesStatusLine())
         menu.setVersion("port ${appVersion()}")
         menu.setLastEngineReport(lastEngineReport)
         menu.open()
@@ -756,33 +756,113 @@ class PortActivity : Activity() {
      * the inside. `onBackInvokedDispatcher` (registered in `onCreate`) covers the gesture on API 33+,
      * and this covers the key on every version. Each path says which one it was in the record, so a
      * report like that can be told apart from a Back that never arrived at all.
+     *
+     * The two paths must not both act on one press: on API 33+, where the callback is registered, the
+     * framework routes the Back key to it as well as the gesture, and handling the key here too ran
+     * [handleBack] twice and opened the menu only to close it again. So from 33 up the callback owns
+     * Back and the key is only swallowed; below 33 there is no callback and the key is all there is
+     * (verified on an API 36 device: one `input keyevent 4` produced both a dispatcher and a key line).
      */
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         if (event.keyCode == KeyEvent.KEYCODE_BACK) {
-            if (event.action == KeyEvent.ACTION_UP) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU &&
+                event.action == KeyEvent.ACTION_UP
+            ) {
                 diag.line("back: key (${if (webView != null) "game" else "pre-game"})")
                 handleBack()
             }
             return true
         }
         if (isGamepad(event.source)) {
-            padView?.noteControllerActivity()
+            padView?.noteExternalInput()
             Gamepad.onKey(event)
             if (event.action == KeyEvent.ACTION_DOWN) {
                 Log.d(TAG, "key ${KeyEvent.keyCodeToString(event.keyCode)} -> pad")
             }
             return true
         }
+        /* A hardware key the player pressed is the same "external input" as a controller. The volume
+         * keys are system keys, not playing, so they must not hide the pad. */
+        val code = event.keyCode
+        if (code != KeyEvent.KEYCODE_VOLUME_UP && code != KeyEvent.KEYCODE_VOLUME_DOWN &&
+            code != KeyEvent.KEYCODE_VOLUME_MUTE
+        ) {
+            padView?.noteExternalInput()
+            if (event.action == KeyEvent.ACTION_DOWN) {
+                Log.d(TAG, "key ${KeyEvent.keyCodeToString(event.keyCode)} -> page (scan ${event.scanCode})")
+            }
+        }
+        /* Chromium derives `event.code` from the scan code, and the engine matches its bindings on
+         * `code` alone. A key event that carries no scan code therefore reaches the page as
+         * `code: ""` and plays nothing, so the port dispatches the DOM event the page would have
+         * got; anything the port cannot name as a DOM key is left to the WebView as before. */
+        if (event.scanCode == 0) {
+            val keyEvent = domKeyEvent(event)
+            if (keyEvent != null) {
+                webView?.evaluateJavascript(keyEvent, null)
+                return true
+            }
+        }
         return super.dispatchKeyEvent(event)
+    }
+
+    /**
+     * The `keydown`/`keyup` the page should have received for [event], or null when the Android key
+     * code has no DOM name. Only [`code`](https://developer.mozilla.org/docs/Web/API/KeyboardEvent/code),
+     * the physical key, is what the engine binds on; `key` is carried because the engine reads it for
+     * a few never-ignored keys.
+     */
+    private fun domKeyEvent(event: KeyEvent): String? {
+        val (code, key) = when (val k = event.keyCode) {
+            in KeyEvent.KEYCODE_A..KeyEvent.KEYCODE_Z ->
+                "Key" + ('A' + k - KeyEvent.KEYCODE_A) to ('a' + k - KeyEvent.KEYCODE_A).toString()
+
+            in KeyEvent.KEYCODE_0..KeyEvent.KEYCODE_9 ->
+                "Digit" + (k - KeyEvent.KEYCODE_0) to (k - KeyEvent.KEYCODE_0).toString()
+
+            KeyEvent.KEYCODE_DPAD_UP -> "ArrowUp" to "ArrowUp"
+            KeyEvent.KEYCODE_DPAD_DOWN -> "ArrowDown" to "ArrowDown"
+            KeyEvent.KEYCODE_DPAD_LEFT -> "ArrowLeft" to "ArrowLeft"
+            KeyEvent.KEYCODE_DPAD_RIGHT -> "ArrowRight" to "ArrowRight"
+            KeyEvent.KEYCODE_ENTER -> "Enter" to "Enter"
+            KeyEvent.KEYCODE_NUMPAD_ENTER -> "NumpadEnter" to "Enter"
+            KeyEvent.KEYCODE_ESCAPE -> "Escape" to "Escape"
+            KeyEvent.KEYCODE_SPACE -> "Space" to " "
+            KeyEvent.KEYCODE_TAB -> "Tab" to "Tab"
+            KeyEvent.KEYCODE_SHIFT_LEFT -> "ShiftLeft" to "Shift"
+            KeyEvent.KEYCODE_SHIFT_RIGHT -> "ShiftRight" to "Shift"
+            KeyEvent.KEYCODE_CTRL_LEFT -> "ControlLeft" to "Control"
+            KeyEvent.KEYCODE_CTRL_RIGHT -> "ControlRight" to "Control"
+            KeyEvent.KEYCODE_ALT_LEFT -> "AltLeft" to "Alt"
+            KeyEvent.KEYCODE_ALT_RIGHT -> "AltRight" to "Alt"
+
+            in KeyEvent.KEYCODE_F1..KeyEvent.KEYCODE_F12 ->
+                "F" + (k - KeyEvent.KEYCODE_F1 + 1) to "F" + (k - KeyEvent.KEYCODE_F1 + 1)
+
+            else -> return null
+        }
+        val type = if (event.action == KeyEvent.ACTION_UP) "keyup" else "keydown"
+        val repeat = if (event.repeatCount > 0) "true" else "false"
+        return "window.dispatchEvent(new KeyboardEvent('$type',{code:'$code',key:'$key'," +
+            "bubbles:true,cancelable:true,repeat:$repeat}))"
+    }
+
+    /** Mouse movement and clicks hide the pad exactly like a controller; the event is not consumed. */
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (OnScreenPadView.isPointerInput(event)) padView?.noteExternalInput()
+        return super.dispatchTouchEvent(event)
     }
 
     override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
         if (isGamepad(event.source)) {
-            padView?.noteControllerActivity()
+            padView?.noteExternalInput()
             Gamepad.onMotion(event)
             logAxesIfChanged()
             return true
         }
+        /* Hover does not reach dispatchTouchEvent, so it is noted here; a click with no preceding
+         * movement is noted there instead. */
+        if (OnScreenPadView.isPointerInput(event)) padView?.noteExternalInput()
         return super.dispatchGenericMotionEvent(event)
     }
 
@@ -949,8 +1029,9 @@ class PortActivity : Activity() {
 
         /* Whether the on-screen pad draws its controls. */
         private const val KEY_PAD = "on_screen_pad"
-        /* Whether a controller in use hides the on-screen overlay (the side menu's switch). */
-        private const val KEY_HIDE_CONTROLLER = "hide_with_controller"
+        /* Whether external input (controller, mouse or keyboard) hides the on-screen overlay (the
+         * side menu's switch). The stored key string is kept as-is so installs keep their setting. */
+        private const val KEY_HIDE_EXTERNAL_INPUT = "hide_with_controller"
         /* Where the picture sits vertically: a ViewAlign.wire value. */
         private const val KEY_VIEW_ALIGN = "view_align"
         /* Whether the shim draws its frame-rate/resolution/battery/thermal readout. */

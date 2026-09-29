@@ -1444,3 +1444,135 @@ Open and unanswered: phone-GPU cost at 1136x640 (headless SwiftShader rendered i
 encouraging but not a measurement); audio; the game's own fullscreen/scale option vs the port owning
 immersive mode; whether mods (`assets/extension`) are wanted; and the product shape — one app with two
 games, or a shared core with a second thin APK.
+
+---
+
+## 14. Mouse, keyboard, and the Back key that ran twice (2026-09-29)
+
+The port played through a controller or the on-screen pad; a mouse and a keyboard were outside the
+design. Making them work turned up three facts worth keeping: a mouse click **is** a touch event, the
+engine's keyboard bindings match on `event.code` and nothing else, and on API 33+ a Back key is
+delivered twice.
+
+### 14.1 A mouse click is a touch event, and the pad claimed every one
+
+`MotionEvent.isTouchEvent()` is `isFromSource(source, CLASS_POINTER) && action ∈ {DOWN, MOVE, UP,
+POINTER_*, CANCEL, OUTSIDE}` (`frameworks/native/libs/input/Input.cpp`), so `View.dispatchPointerEvent`
+sends a mouse click to `dispatchTouchEvent`, and `ViewGroup.dispatchTouchEvent` walks children in
+reverse draw order. The pad is added after the WebView and consumed any DOWN while the controls were
+drawn — the click never reached the page. Hover is `ACTION_HOVER_MOVE`, *not* in that action set: it
+goes through `dispatchGenericMotionEvent`, the pad overrides neither it nor `onHoverEvent`, and that is
+why the game's cursor moved under a mouse while clicking did nothing.
+
+Fix, in `OnScreenPadView.onTouchEvent`, before any claim:
+
+```kotlin
+if (isPointerInput(event)) return false   // getToolType(0) == MotionEvent.TOOL_TYPE_MOUSE
+```
+
+* Tool type, not source bits: `SOURCE_MOUSE_RELATIVE` has no `SOURCE_MOUSE` bit but is still a mouse.
+* `MotionEvent.TOOL_TYPE_TRACKBALL` **does not exist** (it fails to compile); and a trackball produces
+  no `MotionEvent` here to test against, since `input` sends none.
+* Instrumented build, `input mouse tap x y`: `DBG touch a=0 tool=3 src=8194` (DOWN, `TOOL_TYPE_MOUSE`,
+  `SOURCE_MOUSE`) then `a=1` — so an injected click takes exactly the path a real mouse takes.
+* Hiding is noted in **both** dispatch paths, because neither covers the mouse alone: hover/scroll only
+  in `dispatchGenericMotionEvent`, a click with no preceding movement only in `dispatchTouchEvent`.
+  Neither call consumes the event.
+
+### 14.2 The keyboard reached the page but played nothing: `code: ""` without a scan code
+
+Delivery was never the problem. `DecorView.dispatchKeyEvent` → `Activity.dispatchKeyEvent` →
+`window.superDispatchKeyEvent` → the focused WebView (`view.requestFocus()` at launch) → renderer →
+`keydown` on `window`. A probe injected at document start proved it — a `window` listener fired for
+every key — so the only port-side work was to hide the pad. The game still did not react.
+
+The engine (bundle, input class) binds on `event.code` alone:
+
+```js
+initKeyboard() { if (this.isUsingKeyboard) return; this.isUsingKeyboard = true;
+                 this.updateKeyboardMap();
+                 window.addEventListener('keydown', this.keydown.bind(this), false); … }
+updateKeyboardMap() { const keyboard = navigator.keyboard; keyboard.getLayoutMap().then(…); }
+keydown(event) { … const code = event.code; if (this.startActions(code)) { event.stopPropagation(); event.preventDefault(); } this.swapToKeyboardMouse(code); }
+startActions(key) { … const actions = this.bindings.inputs.get(key); … }
+```
+
+Chromium derives `code` from the **scan code**. An event with no scan code arrives as `code: ""`,
+matches no binding, and plays nothing. The probe printed the two states side by side:
+
+```
+kb=object code= prevented=false          # the Android key, as the page saw it
+code=ArrowRight prevented=true           # the same key re-dispatched with its DOM name
+```
+
+`kb=object` matters twice over: the engine calls `navigator.keyboard.getLayoutMap()` *before* it
+registers its two key listeners, so a WebView without the Keyboard API would throw inside
+`initKeyboard()` and have **no keyboard at all** — Android WebView here does implement it, so the only
+missing piece was the empty `code`.
+
+Fix, in `PortActivity.dispatchKeyEvent`, after the pad/volume bookkeeping:
+
+```kotlin
+if (event.scanCode == 0) {
+    val keyEvent = domKeyEvent(event)          // null when the Android code has no DOM name
+    if (keyEvent != null) { webView?.evaluateJavascript(keyEvent, null); return true }
+}
+return super.dispatchKeyEvent(event)
+```
+
+`domKeyEvent` names `KeyA..KeyZ`, `Digit0..Digit9`, the four arrows, `Enter`/`NumpadEnter`,
+`Escape`, `Space`, `Tab`, both `Shift`/`Control`/`Alt` pairs and `F1..F12`, and dispatches
+`window.dispatchEvent(new KeyboardEvent('keydown'|'keyup', {code, key, bubbles, cancelable, repeat}))`.
+Rules that fall out of this:
+
+* **The rule is per event, not per device** (`scanCode == 0`): any source that sends a scan-code-less
+  key — `input`, some remotes and shortcut buttons — gets the synthesized event; a keyboard's keys
+  carry their scan code and take `super`, i.e. the WebView's own mapping, untouched.
+* Unmapped code → `null` → the WebView sees the event as before, so the volume keys and everything the
+  port does not name keep working.
+* Consuming the original avoids the page seeing the empty-code copy as well.
+* `key` is carried because the engine reads it for its never-ignored keys (`Control`, `c`/`v`/`x`).
+* Measured: `key KEYCODE_DPAD_DOWN -> page (scan 0)` in the record, holding `D` walked the character
+  across the map, and `prevented=true` for `ArrowRight` and `KeyD` (the engine matched a binding).
+
+The log line keeps the scan code on purpose: it is the field that separates "the port never saw the
+key" from "the page got an unusable `code`".
+
+### 14.3 Back ran `handleBack()` twice on API 33+
+
+The port takes Back itself — the key in `dispatchKeyEvent` on every version, and the gesture via an
+`OnBackInvokedCallback` registered in `onCreate`. On Android 13+ the framework routes the Back **key**
+to the registered callback too, so one press ran both:
+
+```
+back: dispatcher (game)     # opens the menu
+back: key (game)            # closes it again, same dispatch
+```
+
+Net effect: Back did nothing at all on the S22 Ultra (API 36) — a screenshot cannot show a menu that
+opened and closed inside one dispatch, which is why the device reports read as "the Back button does
+not open the menu" (the AYN Odin 3 report is the same shape). The record's two lines per press are
+the tell. Fix: the callback owns Back from API 33 up (the key is swallowed there), and the key path
+acts only below 33, where no callback exists.
+
+### 14.4 One switch, and the preference key that must not move
+
+Mouse and keyboard hide the overlay under the controller's own switch, not unconditionally, so the
+preference keeps its stored key `hide_with_controller` while the UI text and the `CONTROLLER_IDLE_MS`
+constant (still 60 s) move to "external input". Renaming the stored key would silently reset the
+choice of every existing install.
+
+### 14.5 Recipes
+
+* Click as a mouse: `adb shell input mouse tap X Y`; hover cannot be injected at all — `input
+  motionevent` takes only `DOWN|UP|MOVE|CANCEL`, and the input dispatcher drops a `MOVE` with no
+  pointer down (the Activity saw no event), so use `input mouse scroll X Y --axis VSCROLL,2` for the
+  generic-motion path.
+* Key as a keyboard: `adb shell input keyboard keyevent <code>`, `--duration <ms>` to hold it (that is
+  how a held `D` is produced); every event has `scanCode = 0`, which is the whole problem above.
+* Probe the page without a debug build: temporarily add a second
+  `WebViewCompat.addDocumentStartJavaScript` beside the shim one — it runs before the page's own
+  scripts and can render its findings into a fixed `<div>` that `screencap` captures.
+* Confirm the game is *animating* (not frozen) before concluding an input is ignored: two screencaps
+  three seconds apart, `PIL` pixel diff (`~700k` changed pixels on a live map).
+

@@ -26,7 +26,7 @@ import android.widget.TextView
  * label beside it on a single line, the control at the right edge, and the whole row is the target.
  *
  * Two things decide the details. The switches and the position are stored and owned by the
- * Activity, so this view is only told what to show ([setHideWithController], [setStatsEnabled],
+ * Activity, so this view is only told what to show ([setHideWithExternalInput], [setStatsEnabled],
  * [setLogToSaves], [setAlign]) and reports taps through callbacks. And nothing inside it may take
  * view focus: the engine stops its loop and suspends audio on the page's `blur` (see
  * PortActivity.setPageFocus), so the descendants are made unfocusable and the WebView keeps focus
@@ -34,8 +34,8 @@ import android.widget.TextView
  */
 class SideMenuView(context: Context) : FrameLayout(context) {
 
-    /** A tap on the overlay switch (never fired by [setHideWithController]). */
-    var onHideWithController: ((Boolean) -> Unit)? = null
+    /** A tap on the overlay switch (never fired by [setHideWithExternalInput]). */
+    var onHideWithExternalInput: ((Boolean) -> Unit)? = null
 
     /** A tap on the frame-readout switch. */
     var onStatsEnabled: ((Boolean) -> Unit)? = null
@@ -66,7 +66,7 @@ class SideMenuView(context: Context) : FrameLayout(context) {
      */
     private val radioRows = LinkedHashMap<ViewAlign, LinearLayout>()
     private val versionLine = TextView(context)
-    private val controllerStatus = TextView(context)
+    private val externalInputStatus = TextView(context)
     private val savesStatus = TextView(context)
     private val engineStatus = TextView(context)
 
@@ -77,7 +77,7 @@ class SideMenuView(context: Context) : FrameLayout(context) {
     private val rippleColor = ColorStateList.valueOf(0x33E8DCC8)
     private val pillColor = 0x1FE8DCC8.toInt()
 
-    private var hideWithController = true
+    private var hideWithExternalInput = true
     private var statsEnabled = false
     private var logToSaves = true
     private var align = ViewAlign.DEFAULT
@@ -92,8 +92,8 @@ class SideMenuView(context: Context) : FrameLayout(context) {
 
     fun close() { visibility = GONE }
 
-    fun setHideWithController(value: Boolean) {
-        hideWithController = value
+    fun setHideWithExternalInput(value: Boolean) {
+        hideWithExternalInput = value
         sync()
     }
 
@@ -113,8 +113,8 @@ class SideMenuView(context: Context) : FrameLayout(context) {
     }
 
     /** Refreshed by the owner just before [open]: what the port is reading right now. */
-    fun setStatus(controllerActive: Boolean, saves: String) {
-        controllerStatus.text = "Controller input: " + (if (controllerActive) "active" else "idle")
+    fun setStatus(externalInputActive: Boolean, saves: String) {
+        externalInputStatus.text = "External input: " + (if (externalInputActive) "active" else "idle")
         savesStatus.text = "Saves: " + saves
     }
 
@@ -179,9 +179,9 @@ class SideMenuView(context: Context) : FrameLayout(context) {
         })
 
         hideToggle.setOnCheckedChangeListener { _, checked ->
-            if (!syncing) onHideWithController?.invoke(checked)
+            if (!syncing) onHideWithExternalInput?.invoke(checked)
         }
-        addRow(panel, R.drawable.ic_menu_pad, "Hide pad with controller", hideToggle) {
+        addRow(panel, R.drawable.ic_menu_pad, "Hide pad with external input", hideToggle) {
             hideToggle.isChecked = !hideToggle.isChecked
         }
 
@@ -220,11 +220,11 @@ class SideMenuView(context: Context) : FrameLayout(context) {
         }
         panel.addView(versionLine)
 
-        controllerStatus.apply {
+        externalInputStatus.apply {
             textSize = 13f
             setTextColor(COLOR_DIM)
         }
-        panel.addView(controllerStatus)
+        panel.addView(externalInputStatus)
 
         savesStatus.apply {
             textSize = 13f
@@ -356,7 +356,7 @@ class SideMenuView(context: Context) : FrameLayout(context) {
     /** The only writer of the widget state; the listeners are muted across the assignment. */
     private fun sync() {
         syncing = true
-        hideToggle.isChecked = hideWithController
+        hideToggle.isChecked = hideWithExternalInput
         statsToggle.isChecked = statsEnabled
         logToggle.isChecked = logToSaves
         for ((value, radio) in radios) radio.isChecked = value == align
