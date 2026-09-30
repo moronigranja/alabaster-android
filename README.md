@@ -408,6 +408,13 @@ Publishing a signed release (maintainers): the release keystore lives **outside*
 wired through the gitignored `android/keystore.properties`; clones without that file still build,
 but the release variant comes out unsigned.
 
+**Releases are batched.** A version bump and a published APK belong to a set of changes worth asking
+somebody to download — not to each commit, and not to each fix that a reporter's next record could
+still change. Changes accumulate on `main`, `TODO.md`'s *Next version* section is the queue, and the
+release is cut when that queue is worth a download (a fix a reporter is waiting on, a feature, or a set
+of small things that have stopped moving). The 0.7.2 → 0.7.5 run in one day was a testing loop with one
+player; do not repeat it.
+
 ```bash
 keytool -genkeypair -keystore ~/.android/alabasterdawn-release.jks -alias alabasterdawn \
   -keyalg RSA -keysize 4096 -validity 10000 -dname "CN=Alabaster Dawn Android port, O=moronigranja, C=BR"

@@ -2,7 +2,10 @@
 
 ## Next version
 
-* **A Mali run of v0.7.4, with the game's original shader files** (issue #4, FINDINGS §22.9-§22.11). The
+Nothing ships per change (README, "Publishing a signed release"): these items accumulate and go out
+together, when the queue is worth asking somebody to download.
+
+* **A Mali run of v0.7.5, with the game's original shader files** (issue #4, FINDINGS §22.9-§22.11). The
   state on the native driver: v0.7.2's check fires, the lift runs, the two water shaders compile, and
   `analog-filter.frag` still fails with `S0032 … 'vec3[5]'`. What is missing is *which* spelling that
   driver (Mali-G720, r49) will take — and v0.7.4 now asks the phone itself: **Troubleshoot → "Test shader
