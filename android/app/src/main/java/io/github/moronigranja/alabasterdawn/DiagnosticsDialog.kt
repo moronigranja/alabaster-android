@@ -27,6 +27,12 @@ class DiagnosticsDialog(
     private val record: String,
     /** Called on Share; returns the line shown under the buttons (where the copy was written). */
     private val onShare: () -> String,
+    /**
+     * Called on Reset resolution: the owner drops the game's stored Resolution option (FINDINGS §19).
+     * It is here rather than in the game's own Options because at a Resolution this device cannot
+     * drive the game is too slow to reach those; the dialog is the port's own and is always usable.
+     */
+    private val onResetResolution: () -> Unit,
 ) : Dialog(context) {
 
     private val status = TextView(context)
@@ -75,6 +81,13 @@ class DiagnosticsDialog(
                 addView(Button(context).apply {
                     this.text = "Share"
                     setOnClickListener { status.text = onShare() }
+                })
+                addView(Button(context).apply {
+                    this.text = "Reset resolution"
+                    setOnClickListener {
+                        onResetResolution()
+                        dismiss()
+                    }
                 })
                 addView(Button(context).apply {
                     this.text = "Close"

@@ -1247,6 +1247,10 @@ Measured on the Android 14 emulator (`-gpu host`): `exit requested`, empty `pido
 `dumpsys activity activities`, and three consecutive fresh launches each reaching
 `ENGINE boot: complete` with the title screen drawn and a new pid (5 411 → 5 787 → 6 029).
 
+The task-removal half of that path is gone as of §20: `finishAndRemoveTask` is what dropped the app
+out of recents, and the maintainer asked for it back, so the exit now sends the task to the back and
+kills the process instead. The rest of the section still holds.
+
 ### 11.3 Where the game's build version actually lives
 
 * `package.json` carries only the placeholder `"0.0.0.0.0.1"` — useless.
@@ -1668,3 +1672,466 @@ mode switching on a live element. The same probe against the engine's mapping fo
 
 Not verified on a device: no phone was attached, so the Android mouse path itself was not re-run —
 `input mouse tap` at a title-screen menu entry is the check for whoever has the phone.
+
+---
+
+## 16. The GUI's shaded fills quantise on a mobile GPU (2026-09-29)
+
+Reported with two screenshots of the same Options screen, the port's and Steam's: the **selected side
+menu row** (and the slider track beside it) renders as a regular stripe pattern in the port while the
+Steam build renders a flat lighter grey.
+
+Measured on the two images:
+
+* the *base* colour is identical (83–84 of 255) — the port adds a bright vertical line (peak ~147),
+  2 px wide, every 16 screen px, identical in every row;
+* that is 8 render px at the reporter's setup (`640x360`, Integer Scaling On ⇒ exactly 2x), i.e. the
+  pattern is one *render* pixel wide on an 8-pixel grid;
+* only the *shaded* GUI fills carry it: the selected row and the slider track. The panel gradient, the
+  text, the icons, the tooltip and the world behind the dialog are clean, and the black bars outside
+  the picture are pure 0 — so it is inside the canvas, not the compositor or the screenshot.
+
+What it is not: the engine's ordered dither (§15's terrain grid is a 4x4 `gl_FragCoord` dither in the
+world shaders, 4 render px period, and the GUI shader has no dither at all). Nor is it the port's own
+slot-table rewrite: served the port's rewritten bytes (`TEX_SLOT_COUNT 192` + packed `gui.vert`) to a
+Chromium harness, the same fills render **flat** (std 0.00), exactly as with the game's own bytes.
+
+What it is: the *only* shaders in this path that declare `precision mediump float` are the GUI's
+(`gui.frag`, `gui.vert`, plus `gui-bg.frag`/`gui-blur.frag`); every world shader is `highp`. Desktop
+GL has no real mediump and promotes it, which is why the same bundle at the same settings is flat on
+Steam; Adreno honours fp16, and the styles that produce these fills are exactly the ones doing
+screen-space `floor()`/`mod()` (the checker shade) and `fract()` tiling — the maths an fp16
+coordinate turns into a regular comb.
+
+Fix: `ShaderPrecision` serves those four shaders with `precision highp float;` — ES 3.0 guarantees
+highp in both stages, and where mediump already means highp the declaration is the only byte that
+changes.
+
+Verified on the Fold 7 (`SM-F971B`, Adreno 840, WebView 153) with the built APK installed: the same
+element that carried the comb — the selected row of the game's own menu — now measures flat
+(mean 68.9, std 8.1 over its fill, no peak at any lag up to 30), where the reporter's build measured
+std 19.7 with `ac[16] = 0.79` at the same element. The panel, text and icons are unchanged.
+
+## 17. The uniform budget was the wrong question (2026-09-29)
+
+The same device's diagnostics record carries two sessions: `port 0.4 (4)` booting 1 757 resources with
+`gl=Adreno (TM) 840` — i.e. **before** `ShaderSlots` existed — and the current build, which reports
+`gl limits: vertex uniforms 256 -> TEX_SLOT_COUNT 192`. So the Fold 7 never needed the rewrite, while
+its `MAX_VERTEX_UNIFORM_VECTORS` is the GLES3 floor of 256.
+
+That is not a contradiction: the count is what the *driver reports*, not what a *shader carries*.
+GLSL ES 3.0's default-block packing lets a compiler put two `vec2` array elements in one `vec4`, so
+Adreno fits the game's 256-slot table into ~128 vectors of its 256 — the table links. SwiftShader packs
+one element per vector, needs 256 plus the shaders' own ~48, and really does fail with `too many
+uniforms` (§10.9, issue #1). Deciding from the number therefore rewrote every shader on a device that
+never needed it — shrinking the engine's atlas and packing `gui.vert` for nothing, which is a
+rendering path no desktop player ever runs.
+
+Fix: the decision is now a **link**. At document start the shim compiles two throwaway programs — one
+`vec2[256]` with a 48-vector reserve (every `.vert`'s shape), and two of them with 32 (`gui.vert`) —
+with the arrays indexed dynamically so the compiler cannot drop them, and reports the outcomes through
+`AdaBridge.setShaderTables(oneTable, twoTables)`. `ShaderSlots.slots()`/`packs()`/`rewrites()` then
+keep the game's own 256 and leave the tables unpacked when the page linked them, and fall back to the
+count-based plan for a page that answered `false` or never answered at all (still the GLES3 minimum,
+so the failure mode is unchanged).
+
+Verified: unit tests cover linked / not-linked / unanswered; the shim harness checks that the probe
+asks for 256 slots with the real reserves and that a compiler which fails the link reports `false`;
+and the probe itself was run against a real GL — `links` at 256 slots, `does not link` at 4096 and
+8192, so it is genuinely sensitive rather than a rubber stamp.
+
+Verified on the Fold 7, same build: the record now reads
+
+```
++12598ms gl limits: vertex uniforms 256
++12599ms shader tables: 256-slot links, gui two-table links -> TEX_SLOT_COUNT 256
++12672ms rewriting the resolution ladder in terra/dist/bundle.js
++16404ms ENGINE boot: complete in 3804ms, 1757 resources; audio=running; decodes started=608 done=608 failed=0
+```
+
+with **zero** `TEX_SLOT_COUNT … in terra/data/shader/…` lines — the game's own shaders, its own atlas
+size and its own `bundle.js` constant, where the previous build rewrote all twelve vertex shaders and
+packed `gui.vert`.
+
+The Fold 7 is not the only device this applies to: `docs/release-notes-0.4.2.md` records the S22
+Ultra's Adreno 730 logging the same `vertex uniforms 256 -> TEX_SLOT_COUNT 192`, so every Adreno
+device seen so far has been served the rewritten shaders whether or not its compiler needed them.
+The link is what says so, and it is now the only thing that decides.
+
+---
+
+## 18. The grid in the terrain is the engine's own dither (2026-09-30)
+
+Issue #3 (Jherben) reports "a grid texture in the terrain" over the flat ground and hills, with the
+reporter's own guess attached: "Maybe that was caused due to lowering the res so the game could run?"
+The guess is half right, and the half that is wrong is the one that matters: the dots are the engine's
+ordered dither, on a path the port serves byte-for-byte, and the grid's period on screen is the same at
+every resolution option. What the option changes is how big each dot is.
+
+### 18.1 What makes the dots
+
+`terra/data/shader/lib/dithering.glsl` is a 4x4 ordered threshold table in 17ths, indexed by
+`uint(uv) % 4`. The light pass, `solid-simple-light.frag`, ends with
+
+```glsl
+vec2 screenCoord = gl_FragCoord.xy / (u_screenScale * u_ditherScale);
+float ditherValue = dither(1.0 - v_fade.x, screenCoord, uint(v_fade.y));
+if(v_fade.x > 0.0 && ditherValue < 0.0) discard;
+```
+
+so a light's fade is a **binary** stipple: a fragment is discarded and the unlit layer behind it shows.
+At a fade of 0.5 the 4x4 table passes half its cells and the pattern is the checkerboard in the report.
+Fourteen fragment shaders import the lib (`solid`, `solid-back`, `solid-overlap`, `solid-simple`,
+`solid-simple-light`, `decal`, `color-tex`, `parallax`, `shadow-map`, `fx-billboard`, `fx-decal`,
+`fx-mesh`, `water-plane`, `water-fx-wall`) and four vertex shaders import it for the varyings.
+
+`u_ditherScale` is 1 (`solidInitSetup`), `u_screenScale` is `g_system.scale`, and the render target is
+`SCREEN (640x360) * scale` (`canvasSize.x = width * scale`, bundle 34757) — so on this path **one dither
+cell is one art pixel**, which is why the dots are the size of an art pixel on screen.
+
+The engine is not uniform about this. Five shaders divide by `u_screenScale * u_ditherScale` (the art
+grid): `solid-simple-light`, `solid-back`, `solid-overlap`, `solid-simple`, `shadow-map` — and the
+reporter's dots sit in the light pass's fade band [INFERENCE: a uniform stipple over a flat lit area is a
+fade value, not the radial dither `solid-back` computes]. `solid.frag` divides by `u_ditherScale` alone, and
+its radial dither uses raw `gl_FragCoord.xy` — the render grid, where the dither is a per-pixel texture
+and invisible. The engine's own precedent for the finer grid is therefore in the file next door.
+
+### 18.2 The port does not touch it
+
+`ShaderSlots` rewrites exactly two strings, `#define TEX_SLOT_COUNT 256` and `const TEX_SLOT_COUNT = 256;`.
+Neither appears in the fragment shaders or in the dithering lib (`grep -c`: 0 in
+`solid-simple-light.frag`, 0 in `lib/dithering.glsl`, 2 in `solid.vert`), so this path is served
+byte-identical. `ShaderPrecision` (§16) serves only the four GUI shaders.
+
+### 18.3 Measured: the period does not depend on the resolution option
+
+Harness: the engine's two sources above, verbatim, rendered at `canvasSize = 640s x 360s` with
+`u_screenScale = s`, `u_ditherScale = 1`, and the canvas laid out at 1920 CSS px — which is what the
+engine's own fit does (`scale1 = min(screenSize/canvasSize)`, bundle 34530). Row autocorrelation of the
+frame at fade 0.5:
+
+| ladder rung | canvas | CSS scale | stipple | period, buffer px | **period, screen px** |
+|---|---|---|---|---|---|
+| 640x360 (scale 1) | 640x360 | 3 | 50 % | 2 | **6** |
+| 960x540 (1.5 — the default) | 960x540 | 2 | 44 % | 3 | **6** |
+| 1280x720 (2) | 1280x720 | 1.5 | 50 % | 4 | **6** |
+| 1920x1080 (3) | 1920x1080 | 1 | 50 % | 6 | **6** |
+| 2560x1440 (4) | 2560x1440 | 0.75 | 50 % | 8 | **6** |
+
+Two cells is the checkerboard's own row period; the 4x4 pattern repeats every 4 cells, i.e. 12 screen px
+at 1920. `s` cancels: the period on screen is `4 * display width / 640`, a fixed fraction of the screen,
+at every option — and so is the cell, one art pixel (3 CSS px in this harness, 1.5 CSS px on a 1080p
+phone panel). The picture always fills the display, so **nothing in this artifact changes size with the
+resolution option**; what changes is only whether the dots are rendered crisp or smoothed (§18.5). (The
+stipple column is the fraction of pixels the pass discarded, so the artifact is not a 1-LSB dither: at
+the reporter's fade it throws away half the light.)
+
+### 18.4 The reporter's screenshot
+
+260x260 of the flat hill inside the red marking: the dark dots measure 4.0 px (median blob area) and
+their nearest-neighbour spacing 11.3 px — the 4-cell repeat of this dither at the ladder's default
+960x540 canvas, i.e. cells of 1.5 buffer px, 6 CSS px per repeat, 12 physical px at devicePixelRatio 2.
+The device's density is not in the report, so the exact factor is [INFERENCE]; the dot size and the
+lattice's order of magnitude are not. 1.5 buffer px is also why that lattice is not perfectly uniform —
+the row FFT carries close peaks (15.06/16/17) rather than one, the beat of a fractional cell.
+
+### 18.5 What the option does change
+
+Crispness. The engine sets `canvas.style.imageRendering = width % cWidth == 0 ? "pixelated" : "auto"`
+(bundle 34782), where `width` is the canvas's **CSS layout width** (`clientWidth`) and `cWidth` its
+buffer width: an exact integer fit is crisp, anything else is smoothed toward a tint. The phone ladder
+is `[1, 1.5, 2, 3, 4]` (`GameAssetHandler.RESOLUTION_MAP_PHONE`) and its default is 960x540
+(`relabelResolutions`'s note). Measured in the harness against a 960x540 CSS viewport — a 1920x1080 panel
+at devicePixelRatio 2, i.e. the reporter's panel — with the engine's own fit and rule:
+
+| rung | buffer | canvas CSS | fit | `image-rendering` | rendered |
+|---|---|---|---|---|---|
+| 640x360 (1) | 640x360 | 960x540 | 1.5x | `auto` | dots wash into a tint |
+| **960x540 (1.5, the default)** | 960x540 | 960x540 | **1x** | **`pixelated`** | **hard checkerboard** |
+| 1280x720 (2) | 1280x720 | 960x540 | 0.75x | `auto` | dots wash into a tint |
+| 1920x1080 (3) | 1920x1080 | 960x540 | 0.5x | `auto` | dots wash into a tint |
+
+So the default is the only rung that both fills the panel exactly *and* renders crisp — which is why the
+artifact is at its most visible exactly where the game lands by default. It is also the ladder's only
+non-integer rung, so it is the one rung where the dither's own cells are aliased (1.5 buffer px) rather
+than uniform. Every other rung softens the whole picture, art included, to `auto`. The picture cannot be
+made "smaller but still an even multiple": at the default the fit is already exactly 1 (one buffer px =
+one CSS px = two device px), and the next integer fit is 2x — a canvas twice the panel.
+
+### 18.6 Fixed: served at the render grid
+
+`ShaderDither` serves those five shaders with `gl_FragCoord.xy / u_ditherScale` — the engine's own
+render-grid convention, the one `solid.frag` and the water's radial dither already use. Nothing else
+changes: the same thresholds, the same `discard`, the same varyings; `u_screenScale` stays declared
+and set. Measured in the same harness, at the default rung (960x540, the reporter's):
+
+| served divisor | cell | stipple | row period (buffer px) | on screen |
+|---|---|---|---|---|
+| `u_screenScale * u_ditherScale` (the game's) | 1.5 buffer px, aliased | 44 % | 3 | 6 CSS px, uneven |
+| `u_ditherScale` (the port's) | 1 buffer px, uniform | 50 % | 2 | 4 CSS px, uniform |
+
+At scale 1 the two are identical (the divisor is `1 * 1` either way), so the change costs nothing at
+the ladder's lowest rung and makes the dither as fine as the buffer allows everywhere else. Verified
+on the emulator: five `dither at the render grid in terra/data/shader/fragment/…` lines, `ENGINE boot:
+complete in 6978ms, 1757 resources`, `608/608` decodes, no shader error, and the frame renders. Unit
+tests: the five are rewritten, a shader already on the render grid (`solid.frag`, the water) and a
+non-shader are returned as they came, and the rewrite is idempotent. Confirmed on the Fold 7 with the
+build below: the terrain's grid is gone and the shading reads even where the dots were.
+
+Rejected, with the reason:
+
+* **An all-integer ladder** (dropping the 1.5 rung): it removes the aliasing, but §18.5's table shows
+  every remaining rung is a fractional fit on a 1080p panel, so the engine would hand the *whole*
+  picture to `image-rendering: auto` — soft art for a soft dither. 1.5 also exists to fill that panel
+  exactly, and `relabelResolutions`'s note says the default was chosen to hold 60 fps.
+* **Making the picture smaller so it is an even multiple**: at the default the fit is already exactly
+  1 (one buffer px = one CSS px = two device px on that panel) and the next integer fit is 2x — a
+  canvas twice the panel. The fractional part is the engine's `u_screenScale`, not the fit.
+
+---
+
+## 19. The one setting with no way back (2026-09-30)
+
+The Resolution option is the only value a user can set that can leave the port unusable *by being
+slow*: at 2560x1440 the engine renders 8.3x the pixels of the ladder's 960x540 default, and the game's
+own Options menu — the only in-game way to change it back — is then the slowest thing on the screen.
+Asked for by the maintainer after issue #3's thread ("setting the resolution too high could make it
+hard to change it back"), and it is real: nothing in the engine caps the option.
+
+### 19.1 Nothing caps it
+
+`updateGraphicSettings` (bundle 99830) reads the option and applies it verbatim:
+
+```js
+let resolution = Fetch.val(g_options.get("pixel-size"), 1);
+const maxScale = 1000 || 0;
+const scale = Math.min(maxScale, RESOLUTION_MAP[resolution]);
+g_system.setScale(scale);
+```
+
+`maxScale` is a literal `1000`, so the ladder is the only limit. The canvas then becomes
+`SCREEN (640x360) * scale` (34757) — 2560x1440 at scale 4 — which the engine fits to the panel by
+*downscaling* it (`scale1 = min(screenSize/canvasSize)`, 34530). The picture is the right size; the
+frame cost is eight times the pixels: on SwiftShader that is the difference between a playable port and
+a slideshow — the option's own text asks the user to lower it for performance ("Reduce to improve
+performance"), and nothing else does.
+
+### 19.2 Where it is stored, and why the app can help
+
+The option is registered `local: true` (`terra/data/database/options.json`), and the engine keeps every
+such option as one JSON object in `localStorage` under `xg_local_options` (bundle 24828, written by
+`OptionsManager.writeLocalStorage` 25036):
+
+```js
+const data = {};
+for (const key in this.settings) {
+    const option = this.settings[key];
+    if (option.local) data[key] = Fetch.val(this.values[key], option.default);
+}
+localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+```
+
+`readLocalStorage` fills `this.values` from it at boot. So the value is not in the game's files, it is
+in the WebView's storage for the port's origin — the port can ask the page to drop it, and the game
+folder stays untouched.
+
+### 19.3 The reset, and how it is carried
+
+`Reset resolution` lives in the port's own **Troubleshoot** panel, next to Share and Close — the panel
+that opens from the setup screen's Troubleshoot button (always reachable after a relaunch) and from the
+side menu's own entry in-game. Both doors lead to the same button, and the panel is the port's own, so
+it stays usable when the page does not. The button calls `PortActivity.resetVideoOptions`: with a live
+WebView it reloads the game immediately, and before the game is up it arms a one-shot preference for
+the next start.
+
+The carrier is the URL: the game is loaded as `.../index.html?adaResetVideo=1`, and the shim — which
+runs at document start, before the engine reads the option — drops the key
+(`ada-shim.js`, `resetStoredResolution`):
+
+```js
+var data = JSON.parse(store.getItem("xg_local_options"));
+delete data["pixel-size"];
+store.setItem("xg_local_options", JSON.stringify(data));
+```
+
+The engine then holds the option's own default, which the phone ladder's default rung (960x540) is. Only
+that one key goes, every other stored option survives, and a malformed blob is reported rather than
+thrown. The one-shot is cleared as the URL is built, so a kill in between cannot leave it half applied;
+the parameter is named in both files and in `PortActivity.RESET_VIDEO_PARAM` so the two sides cannot
+drift.
+
+Verified: `node android/tools/test-shim-diagnostics.mjs` grew 7 checks (36/36) for the key-removal, the
+untouched case, the malformed blob and the nothing-stored case; on the emulator the shim reports
+`ENGINE video: stored Resolution dropped; the game boots at its default` and the game boots at
+`resolution=960x540`, and the held-back key is gone; and on the Fold 7 with the build below the
+maintainer confirmed the button does what it says. The blob is re-written by the engine at each boot,
+so a second press legitimately finds a Resolution again — that is the engine persisting the default the
+reset restored, not the reset failing.
+
+### 19.4 Two things found on the way
+
+* The record had no way to see the rung: the diagnostics line now carries `resolution=WxH`, read from
+  the canvas the engine renders into (the same element the stats readout reports). A report about "too
+  slow" or "the dots are large" needs that number and it was previously only on screen, in the stats
+  overlay, which needs the side menu.
+* **Back**: on the emulator's API 34, `input keyevent 4` produced neither the `back: dispatcher` line nor
+  a panel. The framework is expected to route the Back *key* to the registered
+  `OnBackInvokedCallback` on API 33+ — it did on the API 36 device in §14.3 — so the *key* path looks
+  emulator-specific. The *gesture* is the callback's own path and is unaffected: the maintainer
+  confirmed on the Fold 7 that Back still opens the side menu. Either way the setup screen's
+  Troubleshoot panel is the door that never depends on the page.
+
+## 20. The recents entry, and a 30 fps cap (2026-09-30)
+
+Two requests from the maintainer, both about the way the game *ends* rather than how it runs: the app
+disappeared from the launcher's task list after an Exit, and playing on the go burns battery that a
+30 fps cap would halve.
+
+### 20.1 Why the app left the task list
+
+The exit path (§11) was `teardownWebView()` → `finishAndRemoveTask()` → `Process.killProcess()`. The
+middle call is the whole cause: on Android, **a task leaves recents when its last activity finishes**,
+and `finishAndRemoveTask` is the explicit form of that (`finish()` does it too, one activity at a
+time). Nothing about ending the process removes the task record — a killed process keeps its task,
+which is why a crashed app is still in recents — so the process kill that makes the next launch clean
+was never what dropped the entry.
+
+The fix is to stop finishing: `moveTaskToBack(true)` (so the task is backgrounded deliberately, with
+the normal pause path run) followed by the same `Process.killProcess`. The task stays listed, and
+because the process is gone the system starts a **new** process for it when the card is tapped — the
+renderer-freshness the old comment was protecting is untouched.
+
+Verified on the Fold 7 with the signed release build (granted folders kept, so the launch is the real
+one): Exit printed `exit requested`, `pidof` was empty, `dumpsys activity recents` still showed
+`Recent #1: Task{… A=10655:io.github.moronigranja.alabasterdawn}`, and tapping that card in the
+overview brought up the setup screen in a new pid.
+
+### 20.2 The 30 fps cap, and why it is a `requestAnimationFrame` gate
+
+The engine has a `force30fps` debug option that does exactly this — `runInner` returns before any
+update or draw when `this.clock.previewTick() < 1/30` (bundle 34851) — but it is unreachable: every
+`addDebugOption` returns immediately unless `window.XG_GAME_DEBUG` is set (24914), and that flag gates
+116 sites in the bundle (debug menus, cheat paths, physics overlays). Turning it on to reach one
+option would change the game.
+
+The engine's *only* frame driver is `requestAnimationFrame`, though: `fps` is `SYSTEM_CONF.FPS = 60`
+(34459), and both `startBooting` (34795) and the end of every `run()` (34833) re-arm
+`window.requestAnimationFrame(this.runCallback)` when `fps >= 60`. So the shim wraps rAF and serves one
+frame on the first vsync at least one frame interval after the last one served, batching every callback
+that arrived in between (the engine re-requests inside its own callback, so a batch is normally one).
+No game file is touched, and no clock is fooled: `Timer.step` reads `performance.now()` itself
+(51937), so the game logic keeps its 60 Hz fixed step and only the presents drop.
+
+The tolerance is the one subtlety. A 60 Hz vsync is 16.7 ms and 30 fps is 33.3 ms; if the gate waited
+for `t - last >= 33.33` exactly, the deadline would fall a fraction after the second vsync and every
+frame would slip to the *third* one — 20 fps, not 30. The interval is therefore shortened by a tenth of
+itself (30 ms), which is one vsync at 60 Hz and four at 120 Hz — 30 fps on both.
+
+The Kotlin side is a switch and a preference (`KEY_LIMIT_FPS`) exactly like the readout and the log
+switches; the shim reads it on the same once-per-frame gamepad poll that already carries the picture
+alignment and the readout, so the change lands on the next frame with no reload.
+
+Verified: `node android/tools/test-shim-diagnostics.mjs` grew four checks (41/41) driving the vsync
+queue directly — every vsync served with the limit off, ~30 per second of 120 Hz vsyncs with it on,
+30 (not 20) per second of 60 Hz vsyncs, and the same shim following the switch back off live. On the
+Fold 7 the running game's own readout went `30 fps · 960x540` → `60 fps · 960x540` → `30 fps · 960x540`
+as the row was toggled, with `frame limit on: 30 fps` / `ENGINE fps: limited to 30 fps` in the record
+and no reload or restart.
+
+## 21. The Mali report (2026-09-30) — the compiler's own words, now in the record
+
+A player on a **Poco X7 Pro** (MediaTek Dimensity 8400 → **Mali-G720**, Immortalis 5th gen) reported on
+the game's community that the port runs, but that he "had to use Gemini and logs to fix the game",
+naming *a compilation error in some water files and post-processing issues*. He shared what he changed
+as a ZIP: four shader files and his `index.html`.
+
+### 21.1 What the ZIP actually is
+
+The three water-family shaders are replaced by stubs that draw nothing, and the post pass by a
+passthrough:
+
+```glsl
+/* water-plane.frag, water-fx-wall.frag, weather-drops.frag */   /* post/analog-filter.frag */
+void main() { fragColor = vec4(0.0); }                          fragColor = texture(u_texture, v_texCoord);
+```
+
+so water surfaces, rain and the analogue-film post pass are switched *off* — a workaround, not a fix.
+The `index.html` adds an `error` listener that swallows a runtime `TypeError: … reading 'set'`, which
+is what a *program that did not link* looks like from the JS side (no active uniforms, so the engine's
+uniform setters are read off `undefined`). His game is `0.1.0-7`; the copy this repository is developed
+against is `0.1.0-10`. No log was posted — the compiler's message is the one datum missing, and it is
+the one that decides what to do.
+
+### 21.2 Nothing invalid in the bytes the port serves
+
+The four shaders, expanded the engine's own way (`#import "lib/x";` → `data/shader/lib/x.glsl`,
+recursively), pass a strict ES 3.0 front end with no diagnostics:
+
+| check | result |
+|---|---|
+| `glslangValidator` (ES 3.0 fragment stage) on the four expanded shaders | 4/4 accepted, no warnings |
+| ANGLE + SwiftShader (the same translator the WebView uses, over the device's GL) on the four | 4/4 compile clean |
+| `glslangValidator` on **all 39 served fragment shaders**, with the port's own rewrites applied (precision raise, dither grid, `v_barycentric` keep-alive) | 39/39 accepted |
+
+The four are also not the interface-heavy ones — `weather-drops` declares 9 varyings where `light.frag`
+and `decal.frag` declare 18 and were left alone — so a varying or uniform ceiling does not explain the
+set either. All three water shaders *are* requested at boot (the port's own log lists
+`water-plane.frag` among the boot-time rewrites), which is consistent with a boot that freezes.
+
+### 21.3 What the record was missing (and why a player reached for Gemini)
+
+`ShaderResource.loadShader` (bundle 38652) logs a failed compile as console **groups**: the title of
+the first is `Shader Errors: <path>`, then one group per `ERROR: 0:<line>: <message>` the driver
+returned, and only the offending *source* lines under them go through `console.error`. It then throws
+`An error occurred compiling the shader "<path>"`, and the resource stays pending, so the loading bar
+freezes (§10) instead of failing loudly.
+
+The shim forwarded `console.error`/`console.warn` only. A record from a failing device therefore kept
+*a line of shader code* and lost both the file it came from and the compiler's message — the two things
+the report needed.
+
+Reproduced end to end, no device required: a copy of the game tree with one deliberately broken line in
+`water-plane.frag`, served over HTTP, with the **port's own `ada-shim.js`** in front of the real bundle
+in Chromium and a recording `window.AdaBridge`. The boot freezes at 99.9 % with
+`pending 2 (shader=1 data=1)` and `fragmentShader.hasError = true` — the reported symptom exactly. What
+the shim reports for it, before and after the change:
+
+```
+before:  console.error | 1309:                          ← the source line only: which file? why?
+         jsError       | … An error occurred compiling the shader "…/water-plane.frag"
+after:   console.groupCollapsed | Shader Errors: data/shader/fragment/water-plane.frag
+         console.groupCollapsed | 1310: 'this' : Illegal use of reserved word     ← the driver's message
+         console.error          | 1309: <the offending source line>
+         jsError                | … An error occurred compiling the shader "…/water-plane.frag"
+         boot stall             | no progress for 8001ms at 99.9% of 1753 resources; pending 2 …
+```
+
+### 21.4 The change
+
+`ada-shim.js` now forwards the titles of `console.group`/`console.groupCollapsed` as well, and
+`console.log` is deliberately still not forwarded: the engine dumps the whole expanded source under the
+`Shader Code` group (`console.log(codeLines.join("\n"))`, ~1 200 lines), which would spend the 200-line
+budget before any later useful line. The node harness grew three checks for it (44/44): the path, the
+driver's message and the source line are reported, and `console.log` is not.
+
+On the Fold 7 the same build boots as before (`ENGINE boot: complete in 3013ms, 1757 resources`) and a
+healthy boot logs **no** console lines at all, so the forwarding adds nothing to a working record.
+
+### 21.5 What is still needed, and the candidates it will settle
+
+The Mali compiler's message, from a failing device: **Back → Troubleshoot** and a screenshot of the
+record (always reachable, in-game or from the setup screen), or `ada-diagnostics.log` out of the saves
+folder — noting that the log switch turns itself off after the first boot that *completes*, so a player
+who has already booted successfully once has that file switched off and the on-screen record is the
+door. With the message in hand the candidates are distinguishable in one run, because it names the
+stage and the line:
+
+* a construct ARM's front end rejects — the water shaders' `flat in mat4 v_mat` / `v_invMat` pairs and
+  `flat in vec2[4] v_flowDirs` are their unusual declarations, and the port's own `v_barycentric`
+  keep-alive injects `vec3(-1e30)` into `water-plane.frag`, which is a **mediump** shader (the solid
+  ones it also patches are highp). Literals are highp-typed and the spec allows it, but it is the one
+  thing in those bytes that is not the game's;
+* the post pass's `textureLod(u_texture, uv, 4.)` on a render target with no mip chain — legal but
+  driver-defined, and a black or dark film pass on Mali is a *behaviour* difference, not a compile
+  error, which would fit "post-processing issues" being fixed by a passthrough;
+* a link failure, which the engine throws with both paths and the program log.

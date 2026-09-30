@@ -16,7 +16,7 @@ Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`)
 |---|---|---|---|
 | ![Game files and saves pickers](docs/setup.png) | ![Title screen](docs/title-screen.png) | ![On-screen pad over the title screen](docs/on-screen-pad.png) | ![Moving and resizing a pad control](docs/pad-editor.png) |
 
-![The side menu, opened with Back: one uniform icon-led list — the switches, the picture position, the status block with the port version, Diagnostics and Exit — with the FPS/battery/temperature readout on](docs/side-menu.png)
+![The side menu, opened with Back: one uniform icon-led list — the switches, the picture position, the status block with the port version, Troubleshoot and Exit — with the FPS/battery/temperature readout on](docs/side-menu.png)
 
 ![The diagnostics record while the engine's boot was stuck: the port's and the game's versions, the device, WebView, GL backend, asset counters, and the log naming the resources still pending](docs/diagnostics.png)
 
@@ -66,15 +66,21 @@ Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`)
   ("Hide pad with external input" — a controller, a mouse or a keyboard),
   a **Game position** choice (Top / Center / Bottom) for where the picture sits inside the black
   letterbox bands (the current choice is a filled pill), a switch for an **FPS / battery /
-  temperature** readout, a switch to **keep a log file with the saves**, the port version, three
+  temperature** readout, a switch to **limit the frame rate to 30 fps** (for battery: the port is
+  GPU-bound, and half the frames is half the GPU time — the game logic keeps its 60 Hz fixed step,
+  because the engine's clock reads `performance.now()` itself), a switch to **keep a log file with
+  the saves**, the port version, three
   status lines (external input active/idle, where saves go, the last thing the engine reported) and
   **Exit**. Back again, a tap on the dimmed area or Exit closes it (from Android 13 the registered
   predictive-back callback owns Back and the key is only handled below it — handling both ran the
-  toggle twice and opened the menu only to close it); all four settings live in the app's prefs,
+  toggle twice and opened the menu only to close it); all five settings live in the app's prefs,
   and nothing is written into the game folder — the saves tree only ever gains the Steam `Saves/`
   layout, `pad-layout.json` and that log, all at its root. **Exit ends the app process** (the game's
   own in-menu Exit does too — see below), so the next launch is a fresh process with a fresh WebView
-  renderer, and the saved record is flushed before the process goes.
+  renderer, and the saved record is flushed before the process goes. The task itself is deliberately
+  **not** finished, so the app stays in the launcher's task list (recents) and can be reopened from
+  there — ending the process alone is what makes the next launch clean, and finishing the task was
+  what used to drop it out of recents.
 * **The game's own Exit works**: the title screen's **Exit** button (and `System.quit`) now leave the
   app. The engine's only two ways out — `nw.Window.get().close()` and `nw.App.quit()` — used to be
   shim no-ops, so the engine tore its own menu down and waited for a process exit that never came, and
@@ -88,14 +94,18 @@ Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`)
   audio-decode callbacks counted; and when the page's own thread stops instead, it says so and names
   the file-system call it is stuck in. A line the engine repeats every frame while it is stuck
   collapses in place (`… There are unwrapped loadTrackers (x412)`), so the lines that name the cause
-  are still in the record when the user opens the panel. With the log switch on, the same text is
+  are still in the record when the user opens the panel. A shader the device's own compiler rejects is
+  reported the way the engine reports it — the file's path and the compiler's message are the titles
+  of the console groups the engine logs a failed shader with, so they are in the record too (the
+  engine's other console output is forwarded as before; the whole-source dump it logs under them is
+  not). With the log switch on, the same text is
   also kept as `ada-diagnostics.log` in the saves folder — the record survives a force-stop — and the
   switch turns itself off after the first boot that *completes*, so the default is a file for boots
   that fail and nothing for the ones that work. A frozen boot usually forces a restart, so the app
   does not start from an empty record: the newest lines of that file are carried back in behind a
   `--- previous session, carried from ada-diagnostics.log ---` marker, and the file also starts
   being written the moment **START** is tapped — a hang while the game's files are being read leaves
-  the same evidence as a hang while they load. There is also a **Diagnostics** button on the setup
+  the same evidence as a hang while they load. There is also a **Troubleshoot** button on the setup
   screen, before the game starts.
 * Resolution can be raised in-game: `640x360 / 960x540 / 1280x720 / 1920x1080 / 2560x1440`.
 * Leaving the app pauses the game: the music stops and the loop stops burning CPU. An Android
@@ -172,11 +182,21 @@ The panel and the log now also carry the device's uniform budget and forward the
 says so in the record. See `FINDINGS.md` §10.9 for the measurements, including what the fix costs (64
 fewer atlas slots per atlas on a floored device, out of the game's 256).
 
+**The reported count turned out to be the wrong question** (2026-09-29). The Fold 7 reports the same
+256 — yet it booted the game fine on port 0.4, before the rewrite existed, which is the tell. What a
+driver *reports* is not what a shader *carries*: Adreno's compiler packs a `vec2` array two slots per
+`vec4` (the GLSL ES 3.0 default-block packing), so the game's own 256-slot table fits a 256-vector
+budget there, while SwiftShader packs one slot per vector and genuinely does not. The port now decides
+from a **link**: before the first shader is requested the shim compiles the two shapes the game's
+shaders have — a 256-slot table with the real 48-vector reserve, and `gui.vert`'s two with 32 — and the
+rewrite only happens where the device's own table does not link. See `FINDINGS.md` §17.
+
 The exit/version/side-menu work (2026-09-26) was verified on the same Android 14 emulator (`-gpu
 host`). Driving the engine's own exit over CDP — `python3 tools/probes/cdp.py
 'window.nw.Window.get().close()'`, the exact call the title screen's EXIT button makes — and the side
 menu's Exit both printed `exit requested`, left `pidof` empty and `dumpsys activity activities` with
-no task, so the next launch is a fresh process: three consecutive launches each reached `ENGINE boot:
+no task (that build used `finishAndRemoveTask`; since 2026-09-30 the exit leaves the task in recents,
+see below), so the next launch is a fresh process: three consecutive launches each reached `ENGINE boot:
 complete` with the title screen drawn and a new pid. The setup screen showed `port 0.5 (7)`, the
 side menu's status block the same line, and the in-game Diagnostics header `game 0.1.0-10 Early
 Access` — the game's own build, read from `bundle.js` (`class VersionManager { … }`, hotfix 10, suffix
@@ -195,6 +215,19 @@ D-pad and confirmed with **A** — the menu is pad-driven, a plain tap does noth
 and no task, and a relaunch reached `ENGINE boot: complete` in a new process. The shim inside the
 release APK is byte-identical to `assets/ada-shim.js` (`sha256` matched), which is what makes the
 debug-build CDP evidence above carry over to the release build.
+
+The **task list and the 30 fps switch** (2026-09-30) were verified on the maintainer's Fold 7
+(SM-F971B, Android 17) with the signed release build, installed over the previous one so the two
+folder grants stayed. The game booted (`ENGINE boot: complete in 3131ms, 1757 resources;
+resolution=960x540`), Back opened the side menu, and its dump shows the new row — `Limit to 30 FPS
+(battery)` with its own switch, between the readout switch and the log switch. Toggling it live in
+the running game gave `frame limit on: 30 fps` in the port's record and `ENGINE fps: limited to 30
+fps` from the shim, with the on-screen readout going `30 fps · 960x540` → (off) `60 fps · 960x540` →
+(on) `30 fps · 960x540`, in one process with no reload; the setting survives a relaunch with the
+other switches. The side menu's **Exit** then printed `exit requested`, left `pidof` empty — and
+`dumpsys activity recents` still lists the task (`Recent #1`, `A=10655`), which is the fix: tapping
+that card in the overview started a **new** pid on the setup screen, so the app is reopenable from
+the task list while the next launch is still a fresh process with a fresh WebView renderer.
 
 The **Steam demo** was run through the port on the same emulator (`terra/` 226 MB / 2 327 files):
 `ENGINE boot: complete in 6655ms, 1641 resources`, 0 failed decodes, its own title screen and intro
@@ -233,6 +266,31 @@ where the old code read the picture's centre as `y = -280.8` instead of `y = 180
 checks, 7 of which fail against the pre-fix shim). The Android mouse path itself is unchanged from
 v0.6.0, and no phone was attached. See `FINDINGS.md` §15.
 
+The **GPU/shader pass** (2026-09-30, v0.7.0) was verified on the Fold 7 with the release build
+installed (both folder grants kept, so the launch is the real one). The GUI-precision fix was
+measured at the element the reporter's screenshot carried the comb on: std 8.1 across the selected
+menu row with no peak at any lag, where the reported build measured std 19.7 with a 16-pixel
+periodicity. The uniform-link decision reports `256-slot links, gui two-table links -> TEX_SLOT_COUNT
+256` and rewrites no shader on that device at all (its compiler packs two `vec2` slots per `vec4`),
+while the probe still reports `does not link` for a 4096-slot table, so it is not a rubber stamp. The
+same build took the 30 fps switch live (`30 fps · 960x540` → `60 fps · 960x540` → `30 fps · 960x540`,
+no reload, setting kept), kept the app in the task list across an Exit (`dumpsys activity recents`
+still listed the task, and tapping the card started a new pid on the setup screen), and booted clean
+(`ENGINE boot: complete in 3013ms, 1757 resources`) with no console lines in the record. The shader
+work has unit tests behind it (`ShaderPrecisionTest`, `ShaderSlotsTest`, `ShaderDitherTest`) and the
+harness has 44 checks; the dither change was measured in a harness that renders the engine's own
+dither lines verbatim. See `FINDINGS.md` §16-§20.
+
+The **Mali shader report** (2026-09-30, v0.7.0) has no fix and no reproduction on Mali hardware. The
+shaders the reporter replaced were checked against a strict ES 3.0 front end (`glslangValidator`) and
+ANGLE — the four, expanded the engine's way, and **all 39 served fragment shaders** with the port's own
+rewrites applied — and nothing in them is invalid, so the driver's message is what decides. What the
+port could do, it does now: the engine's own shader-error console groups (the file's path and the
+compiler's message) are in the record, verified end to end by serving a deliberately broken
+`water-plane.frag` to the real engine in Chromium through the port's own shim — the boot freezes at
+99.9 % with `pending 2 (shader=1 data=1)`, and the record names the file and the message. See
+`FINDINGS.md` §21.
+
 ### Download
 
 Grab `AlabasterDawn-Android-<version>.apk` from
@@ -243,7 +301,7 @@ certificate** — `CN=Alabaster Dawn Android port, O=moronigranja, C=BR`, SHA-25
 install:
 
 ```bash
-apksigner verify --print-certs AlabasterDawn-Android-0.6.1.apk   # no SDK? keytool -printcert -jarfile …
+apksigner verify --print-certs AlabasterDawn-Android-0.7.0.apk   # no SDK? keytool -printcert -jarfile …
 ```
 
 The APK carries `assets/LICENSE` + `assets/NOTICE.md` inside, so the binary ships the notices it is
@@ -262,6 +320,12 @@ say) needs an uninstall first.
   code, and the port's own conversion is exactly what handles a missing one. A keyboard's keys carry
   their scan code and take the WebView's path untouched, which is the pre-0.6 behaviour for every key.
 * Performance is GPU-bound; see the ledger below before expecting 1080p.
+* **A shader some mobile GPUs reject is not worked around.** Reported on **Mali** (a Poco X7 Pro): the
+  device's own compiler refuses a shader the port serves, the engine's loading bar then freezes with
+  that shader still pending, and the game never starts. The port's bytes are valid ES 3.0 as far as a
+  strict front end and ANGLE can tell, so the driver's message is what decides, and there is no Mali
+  device here to get it from — the record now names the file and the compiler's message (see
+  `FINDINGS.md` §21), and a report with that record is what a fix needs.
 * **The emulator's software GL stack draws the in-game map wrong.** SwiftShader
   (`-gpu swiftshader_indirect`) renders black tiles with purple/pink fragments where the *same build*
   is correct on real hardware and on the same emulator with the host GPU (`-gpu host`). The port
@@ -311,7 +375,7 @@ keytool -genkeypair -keystore ~/.android/alabasterdawn-release.jks -alias alabas
 # then android/keystore.properties: storeFile / storePassword / keyAlias / keyPassword (chmod 600)
 
 android/tools/release.sh                       # signed build + digest + signature check
-android/tools/release.sh --upload --publish --notes docs/release-0.6.1.md
+android/tools/release.sh --upload --publish --notes docs/release-0.7.0.md
 ```
 
 `--notes` takes the **release body**: since v0.5 that is a terse changelog plus links to the full
@@ -352,8 +416,13 @@ A device-only failure is silent by nature: no crash, no log, usually just the en
 stopped at a few percent. The port therefore keeps its own record of what happened, and the record
 can be read on the device itself:
 
-* **Diagnostics** on the setup screen (before the game starts), or **Back → Diagnostics** while the
+* **Troubleshoot** on the setup screen (before the game starts), or **Back → Troubleshoot** while the
   game runs — including while the loading bar is stuck, which is exactly when it matters.
+* **Reset resolution**, next to Share and Close in that panel. The engine never caps the Resolution
+  option, and 2560x1440 is eight times the pixels of the phone ladder's 960x540 default — slow enough
+  that the game's own Options menu, the only in-game way back, is painful to use. This drops the
+  game's stored Resolution option (it lives in the WebView's storage, not in the game's files) and the
+  next start boots at the default rung.
 * The header carries the device, the Android version, the **WebView package and version**, whether
   the WebView supports document-start scripts, which GL backend the page got, the picked folders, the
   asset-path counters (`served / missed / inFlight / slowest`) and how long the engine has been quiet.
@@ -396,6 +465,12 @@ Measured on the S22 Ultra (Snapdragon 8 Gen 1, Adreno 730), `gpubusy` sampling:
 Thermals, not CPU, are the limit: the same 720p scene measured 42 fps cool and 19–21 fps with
 `Thermal Status: 3` / 45 °C skin. Don't charge while playing; `640×360` is the safe default,
 `960×540` the sharpest resolution that still holds 60.
+
+The renderer is the GPU cost, so the side menu's **Limit to 30 FPS** switch is the battery lever
+that costs nothing in game speed: the shim gates the page's `requestAnimationFrame` (the engine's
+only loop) to one frame per frame interval, which on the S22 Ultra's measurements is roughly half
+the GPU time of the rung in use — measured on the Fold 7 below, the readout went `60 fps → 30 fps`
+and back with the switch, in the same session, without a reload.
 
 ### How it works (short)
 
@@ -445,8 +520,22 @@ Thermals, not CPU, are the limit: the same 720p scene measured 42 fps cool and 1
   kind, plus the `decodeAudioData` callback counts (the one load path in this engine that can stay
   unfinished without an error: a sound finalizes from its success callback alone).
 * `ShaderSlots` (pure Kotlin, unit-tested) is the rule behind the served shader text: how big a
-  `TEX_SLOT_COUNT` the device's reported vertex-uniform budget can carry, and when `gui.vert`'s two
-  tables have to be packed into `vec4`s — the fix for the frozen boot of issue #1.
+  `TEX_SLOT_COUNT` the device can carry, and when `gui.vert`'s two tables have to be packed into
+  `vec4`s — the fix for the frozen boot of issue #1. It is told what the page's own compiler *linked*
+  (`AdaBridge.setShaderTables`), not what the driver reports, so a device whose count sits at the
+  GLES3 floor but whose compiler packs the table keeps the game's own bytes and atlas size; a page that
+  never answers keeps the count-based fallback.
+* `ShaderPrecision` (pure Kotlin, unit-tested) raises the GUI shaders' `precision mediump float` to
+  `highp`, which ES 3.0 guarantees in both stages. On a mobile GPU the GUI's screen-space and tiled
+  maths otherwise quantises into a visible stripe pattern on the shaded fills (the selected side-menu
+  row, the slider track) — invisible on the desktop build, where GL promotes mediump. See
+  `FINDINGS.md` §16.
+* `ShaderDither` (pure Kotlin, unit-tested) serves the five world shaders that index the engine's
+  ordered dither by the *art* pixel (`gl_FragCoord.xy / (u_screenScale * u_ditherScale)`) on the
+  *render* pixel instead — the convention the engine's own `solid.frag` and the water's radial dither
+  already use. The dither is a binary discard, so at one art pixel per cell its dots are as large as
+  the art and read as a grid over the terrain on a phone panel (issue #3, `FINDINGS.md` §18). Nothing
+  else in those bytes changes.
 * `DiagnosticsDialog` renders that record and hands it to any text share target; `LogFile` (pure
   Kotlin, unit-tested) is the name and the rules behind the saves-folder copy — the same `snapshot`
   text, written on its own thread at most every watchdog tick, switched off by itself after a boot

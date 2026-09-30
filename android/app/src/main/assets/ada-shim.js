@@ -75,46 +75,117 @@
      * request - this runs at document start, i.e. before the bundle asks for anything. One throwaway
      * context, closed immediately; a device without WebGL2 answers 0 and gets the safe default. */
     var glLimits = (function () {
+        /* What the driver *reports* is not what a shader can *carry*. Adreno's compiler packs a vec2
+         * array two slots to a vec4 (the GLSL ES 3.0 default-block rules allow it), so the game's own
+         * 256-slot table links on a device stuck at the GLES3 minimum of 256 vectors - while
+         * SwiftShader packs one slot per vector and genuinely fails with `too many uniforms` (issue
+         * #1). Deciding from the number alone therefore rewrites the shaders on devices that never
+         * needed it, which shrinks the engine's atlas and packs `gui.vert` for nothing. So the port is
+         * told the outcome of a *link*, for the two shapes the game's shaders have: one table of 256
+         * (every `.vert`) and two of them (`gui.vert`), each with the reserve the real shaders carry
+         * besides (48 and 32 vectors, see ShaderSlots). */
+        var GAME_SLOTS = 256;
+        function links(tables) {
+            var reserve = tables === 2 ? 32 : 48;
+            var source = [
+                "#version 300 es",
+                "precision mediump float;",
+                "uniform vec2 u_slot[" + GAME_SLOTS + "];",
+                tables === 2 ? "uniform vec2 u_font[" + GAME_SLOTS + "];" : "",
+                "uniform vec4 u_reserve[" + reserve + "];",
+                "uniform mat4 u_m;",
+                "uniform float u_index;",
+                "void main() {",
+                "    vec4 r = u_reserve[0];",
+                "    for (int i = 0; i < " + reserve + "; i++) r += u_reserve[i];",
+                "    vec2 s = u_slot[int(u_index)]" +
+                    (tables === 2 ? " + u_font[int(u_index)]" : "") + ";",
+                "    gl_Position = u_m * vec4(s, 0.0, 1.0) + r;",
+                "}"
+            ].join("\n");
+            var fragment = "#version 300 es\nprecision mediump float;\nout vec4 c;\n" +
+                "void main() { c = vec4(1.0); }";
+            var program = gl.createProgram();
+            var vertex = gl.createShader(gl.VERTEX_SHADER);
+            var pixel = gl.createShader(gl.FRAGMENT_SHADER);
+            gl.shaderSource(vertex, source);
+            gl.compileShader(vertex);
+            gl.shaderSource(pixel, fragment);
+            gl.compileShader(pixel);
+            gl.attachShader(program, vertex);
+            gl.attachShader(program, pixel);
+            gl.linkProgram(program);
+            var ok = gl.getShaderParameter(vertex, gl.COMPILE_STATUS) === true &&
+                gl.getShaderParameter(pixel, gl.COMPILE_STATUS) === true &&
+                gl.getProgramParameter(program, gl.LINK_STATUS) === true;
+            gl.deleteShader(vertex);
+            gl.deleteShader(pixel);
+            gl.deleteProgram(program);
+            return ok;
+        }
         try {
             var canvas = document.createElement("canvas");
             var gl = canvas.getContext("webgl2");
-            if (!gl) return { vertexUniforms: 0, fragmentUniforms: 0, varyingVectors: 0 };
+            if (!gl) {
+                return {
+                    vertexUniforms: 0, fragmentUniforms: 0, varyingVectors: 0,
+                    oneTableLinks: false, twoTablesLinks: false
+                };
+            }
             var limits = {
                 vertexUniforms: gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS),
                 fragmentUniforms: gl.getParameter(gl.MAX_FRAGMENT_UNIFORM_VECTORS),
-                varyingVectors: gl.getParameter(gl.MAX_VARYING_VECTORS)
+                varyingVectors: gl.getParameter(gl.MAX_VARYING_VECTORS),
+                oneTableLinks: links(1),
+                twoTablesLinks: links(2)
             };
             var lose = gl.getExtension("WEBGL_lose_context");
             if (lose) lose.loseContext();
             return limits;
         } catch (e) {
             report("gl limits", e);
-            return { vertexUniforms: 0, fragmentUniforms: 0, varyingVectors: 0 };
+            return {
+                vertexUniforms: 0, fragmentUniforms: 0, varyingVectors: 0,
+                oneTableLinks: false, twoTablesLinks: false
+            };
         }
     })();
     call(function (bridge) { return bridge.setVertexUniformVectors(glLimits.vertexUniforms); });
+    call(function (bridge) { return bridge.setShaderTables(glLimits.oneTableLinks, glLimits.twoTablesLinks); });
 
-    /* The engine reports its real trouble through `console.error`/`console.warn` - a shader that will
-     * not compile, a resource that will not load, an atlas that ran out of slots - and on a release
-     * build none of that reaches a log anyone can read. Forward the first line of each (bounded, and
-     * the app collapses repeats) so a device-only failure is in the diagnostics panel. */
+    /* The engine reports its real trouble through the console - a shader that will not compile, a
+     * resource that will not load, an atlas that ran out of slots - and on a release build none of
+     * that reaches a log anyone can read. Forward the first line of each (bounded, and the app
+     * collapses repeats) so a device-only failure is in the diagnostics panel.
+     *
+     * The *group titles* are forwarded too, and they are what a shader failure is actually made of:
+     * the engine logs `console.groupCollapsed("Shader Errors: <path>")`, then one group per
+     * `ERROR: 0:<line>: <message>` the driver returned, and only the offending *source* lines under
+     * them go through `console.error` (bundle, `ShaderResource.loadShader`). A record that took
+     * error/warn alone therefore kept a line of shader code and lost both the file it came from and
+     * the compiler's own message - exactly the two things a report about "the water shader will not
+     * compile" needs. `console.log` is deliberately not forwarded: the engine dumps the whole shader
+     * source through it (~1 200 lines), which would spend the budget before the next useful line. */
     (function () {
         var forwarded = 0;
-        ["error", "warn"].forEach(function (level) {
+        function forward(level, args) {
+            try {
+                if (forwarded >= 200) return;
+                forwarded++;
+                var text = Array.prototype.map.call(args, function (a) {
+                    if (typeof a === "string") return a;
+                    try { return JSON.stringify(a); } catch (e) { return String(a); }
+                }).join(" ").split("\n")[0];
+                if (HAS_BRIDGE) {
+                    window.AdaBridge.reportDiag("console." + level, text.slice(0, 300));
+                }
+            } catch (e) { /* the console must never break */ }
+        }
+        ["error", "warn", "group", "groupCollapsed"].forEach(function (level) {
             var original = console[level];
+            if (typeof original !== "function") return;
             console[level] = function () {
-                try {
-                    if (forwarded < 200) {
-                        forwarded++;
-                        var text = Array.prototype.map.call(arguments, function (a) {
-                            if (typeof a === "string") return a;
-                            try { return JSON.stringify(a); } catch (e) { return String(a); }
-                        }).join(" ").split("\n")[0];
-                        if (HAS_BRIDGE) {
-                            window.AdaBridge.reportDiag("console." + level, text.slice(0, 300));
-                        }
-                    }
-                } catch (e) { /* the console must never break */ }
+                forward(level, arguments);
                 return original.apply(console, arguments);
             };
         });
@@ -452,6 +523,7 @@
     }
 
     function pollGamepads() {
+        applyFpsLimit();
         applyViewAlign();
         updateStats();
         var st = parseJson(call(function (b) { return b.getGamepadJson(); }, ""));
@@ -503,6 +575,84 @@
             }
         }
     })();
+
+    /* ---- frame-rate limit -------------------------------------------------
+     * The side menu's 30 fps switch. The engine drives *everything* it draws from
+     * `requestAnimationFrame` - `System.run` re-arms itself at the end of every frame, and the GUI's
+     * own canvases do the same - so gating rAF gates the frames, and half the frames is half the
+     * GPU time (the port is GPU-bound, see README "Performance"). Nothing in the game's files is
+     * touched and the engine's clock is not fooled: `Timer.step` reads `performance.now()` itself,
+     * so the game logic keeps advancing by the real elapsed time and still runs at its 60 Hz fixed
+     * step; only the presents drop.
+     *
+     * The display can only present on a vsync, so the gate serves one frame on the first vsync at
+     * least one frame interval after the last one served, and every callback that arrived in the
+     * meantime rides that frame (the engine re-requests inside its own callback, so a batch is
+     * normally one). The interval is shortened by a tenth of itself because a 60 Hz vsync is
+     * 16.7 ms and 30 fps is 33.3 ms: without the tolerance the deadline falls 0.3 ms after the
+     * second vsync and every frame slips to the third, i.e. 20 fps instead of 30. */
+    var FPS_LIMIT = 30;
+    var FPS_FRAME_MS = 1000 / FPS_LIMIT;
+    var fpsLimited = false;
+    var fpsLastFrame = 0;
+    var fpsScheduled = false;
+    var fpsQueue = [];
+    var fpsCancelled = {};
+    var fpsNextId = 1;
+
+    (function installFpsGate() {
+        var original = window.requestAnimationFrame;
+        var cancel = window.cancelAnimationFrame;
+        if (typeof original !== "function") return;
+
+        function schedule() {
+            if (fpsScheduled) return;
+            fpsScheduled = true;
+            original.call(window, tick);
+        }
+
+        function tick(t) {
+            fpsScheduled = false;
+            if (fpsLimited && t - fpsLastFrame < FPS_FRAME_MS - FPS_FRAME_MS / 10) {
+                schedule();
+                return;
+            }
+            fpsLastFrame = t;
+            var batch = fpsQueue;
+            fpsQueue = [];
+            for (var i = 0; i < batch.length; i++) {
+                var job = batch[i];
+                if (fpsCancelled[job.id]) {
+                    delete fpsCancelled[job.id];
+                    continue;
+                }
+                job.cb(t);
+            }
+        }
+
+        window.requestAnimationFrame = function (cb) {
+            if (!fpsLimited) return original.call(window, cb);
+            var id = fpsNextId++;
+            fpsQueue.push({ id: id, cb: cb });
+            schedule();
+            return id;
+        };
+        window.cancelAnimationFrame = function (id) {
+            /* Only the ids this gate handed out exist while it is on; with it off the calls go
+             * straight through to the browser, exactly as they did before. */
+            if (!fpsLimited && typeof cancel === "function") return cancel.call(window, id);
+            fpsCancelled[id] = true;
+        };
+    })();
+
+    /** Read on the same once-per-frame poll as the overlays; the change lands on the next frame. */
+    function applyFpsLimit() {
+        var on = call(function (b) { return b.getLimitFps(); }, false) === true;
+        if (on === fpsLimited) return;
+        fpsLimited = on;
+        fpsLastFrame = 0;
+        reportDiag("fps", on ? "limited to " + FPS_LIMIT + " fps" : "unlimited");
+    }
 
     /* ---- port overlays ---------------------------------------------------
      * Both are driven by the Kotlin side and both are applied on the gamepad poll, which the engine
@@ -738,10 +888,19 @@
         return info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.VERSION);
     }
 
+    /* What the engine is actually rendering at: the Resolution option times SCREEN (640x360). That is
+     * the number behind "the game is too slow" and behind how large the dither's dots look, and it is
+     * the one device fact the record did not carry. */
+    function resolutionText() {
+        var canvas = gameCanvas();
+        return (canvas && canvas.width) ? canvas.width + "x" + canvas.height : "?";
+    }
+
     function sendFacts(gl) {
         var parts = ["webgl2=" + !!window.WebGL2RenderingContext, "gl=" + glDescription(gl),
             "uniforms=" + glLimits.vertexUniforms + "/" + glLimits.fragmentUniforms,
             "varyings=" + glLimits.varyingVectors,
+            "resolution=" + resolutionText(),
             "audio=" + audioState()];
         reportDiag("facts", parts.join("; "));
     }
@@ -779,7 +938,8 @@
         if (tracker.state === 2 || progress >= 0.999) {
             boot.done = true;
             reportDiag("boot", "complete in " + Math.round(t - boot.startedAt) + "ms, " +
-                tracker.maxResource + " resources; audio=" + audioState() +
+                tracker.maxResource + " resources; resolution=" + resolutionText() +
+                "; audio=" + audioState() +
                 "; decodes started=" + DECODE.started + " done=" + DECODE.done + " failed=" + DECODE.failed);
             return;
         }
@@ -810,6 +970,40 @@
             report("unhandledrejection", (r && r.message) ? r.message : String(r));
         } catch (err) { /* ignore */ }
     }, true);
+
+    /* ---- the port's video reset ------------------------------------------
+     * The engine keeps its device-local options as one JSON object under `xg_local_options`
+     * (`const LOCAL_STORAGE_KEY`, bundle 24828) — `pixel-size`, the Resolution option, among them,
+     * because that option is registered `local: true` — and reads it when it boots. A rung this
+     * device cannot drive (2560x1440 on a phone is eight times the pixels of 960x540) makes the game
+     * slow enough that its own Options menu is painful to reach, so the port can open the game with
+     * `?adaResetVideo=1` (PortActivity.RESET_VIDEO_PARAM) and the stored value is dropped here, at
+     * document start, before the engine reads it: the option then holds its own default, which the
+     * phone ladder's default rung is. Only that one key goes and every other stored option survives;
+     * the game's files are never touched (FINDINGS §19). */
+    (function resetStoredResolution() {
+        try {
+            var search = (window.location && window.location.search) || "";
+            if (String(search).indexOf("adaResetVideo") < 0) return;
+            var store = window.localStorage;
+            var raw = store && store.getItem("xg_local_options");
+            if (!raw) {
+                reportDiag("video", "asked to reset the Resolution; nothing stored");
+                return;
+            }
+            var data = JSON.parse(raw);
+            if (data && data["pixel-size"] !== undefined) {
+                delete data["pixel-size"];
+                store.setItem("xg_local_options", JSON.stringify(data));
+                reportDiag("video", "stored Resolution dropped; the game boots at its default");
+            } else {
+                reportDiag("video", "asked to reset the Resolution; it was not stored");
+            }
+        } catch (e) {
+            /* A malformed blob is the engine's to repair; never break the boot over this. */
+            report("reset the stored Resolution", e);
+        }
+    })();
 
     report("shim", "loaded" + (HAS_BRIDGE ? "" : " (no AdaBridge!)"));
 })();

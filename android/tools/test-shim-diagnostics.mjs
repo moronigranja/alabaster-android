@@ -14,6 +14,17 @@
  * WebView is not needed to check the arithmetic, so the three positions are asserted here against
  * both display scales.
  *
+ * The video reset drops the engine's stored Resolution option when the port opens the game with
+ * `?adaResetVideo=1` (FINDINGS §19). The engine's option blob is a stub here, so what the shim does
+ * to it — one key removed, a malformed blob reported rather than thrown — is asserted directly.
+ *
+ * The 30 fps switch wraps `requestAnimationFrame` (the engine's whole loop is a chain of those), so
+ * the vsync queue is a drivable stub here and the served frames are counted against it.
+ *
+ * The console forwarding is what a device-only failure is read from: the engine logs a shader it
+ * cannot compile as console groups (the file's path and the driver's message are the group titles),
+ * so those titles are asserted here along with the rule that `console.log` stays unforwarded.
+ *
  *   node android/tools/test-shim-diagnostics.mjs
  */
 import { readFileSync } from "node:fs";
@@ -24,10 +35,12 @@ const shimPath = join(dirname(fileURLToPath(import.meta.url)), "..", "app", "src
 const source = readFileSync(shimPath, "utf8");
 
 /** Installs the globals the shim expects and returns the recorder of what it reported. */
-function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = null, viewAlign = "center" } = {}) {
+function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = null, viewAlign = "center", tablesLink = true, search = "", store = {}, limitFps = false } = {}) {
   const reports = [];
   const errors = [];
   const vertexUniforms = [];
+  const shaderTables = [];
+  const shaderSources = [];
   const resource = (name) => ({ identification: () => name });
 
   globalThis.window = globalThis;
@@ -52,8 +65,27 @@ function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = nul
                     MAX_VERTEX_UNIFORM_VECTORS: 256,
                     MAX_FRAGMENT_UNIFORM_VECTORS: 896,
                     MAX_VARYING_VECTORS: 31,
+                    VERTEX_SHADER: 0x8b31,
+                    FRAGMENT_SHADER: 0x8b30,
+                    COMPILE_STATUS: 0x8b81,
+                    LINK_STATUS: 0x8b82,
                     getParameter: (which) => which,
                     getExtension: () => null,
+                    /* The link probe: `tablesLink: false` stands for a compiler that cannot carry the
+                     * game's own 256-slot table (SwiftShader, issue #1). */
+                    createShader: (type) => ({ type }),
+                    shaderSource: (shader, source) => {
+                      shader.source = source;
+                      shaderSources.push(source);
+                    },
+                    compileShader: () => {},
+                    getShaderParameter: () => tablesLink,
+                    createProgram: () => ({}),
+                    attachShader: () => {},
+                    linkProgram: () => {},
+                    getProgramParameter: () => tablesLink,
+                    deleteShader: () => {},
+                    deleteProgram: () => {},
                   }
                 : null,
           }
@@ -62,13 +94,37 @@ function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = nul
   });
   define("addEventListener", () => {});
   define("removeEventListener", () => {});
+  /* The frame-rate limit gate wraps `requestAnimationFrame`, so it is a real, drivable queue here:
+   * `pump(t)` is one display vsync at timestamp `t`, which is exactly the shape the shim sees. */
+  const rafQueue = [];
+  let rafHandle = 1;
+  define("requestAnimationFrame", (cb) => rafQueue.push({ handle: rafHandle, cb }) && rafHandle++);
+  define("cancelAnimationFrame", (handle) => {
+    const i = rafQueue.findIndex((f) => f.handle === handle);
+    if (i >= 0) rafQueue.splice(i, 1);
+  });
+  const pump = (t) => {
+    const batch = rafQueue.splice(0);
+    for (const frame of batch) frame.cb(t);
+  };
+  /* The video reset (FINDINGS §19) reads `location.search` and rewrites the engine's stored options,
+   * which is where a Resolution the device cannot drive otherwise stays. */
+  define("location", { search });
+  define("localStorage", {
+    getItem: (key) => (Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null),
+    setItem: (key, value) => { store[key] = String(value); },
+    removeItem: (key) => { delete store[key]; },
+  });
+  const limitFlag = { value: limitFps };
   window.AdaBridge = {
     reportDiag: (kind, payload) => reports.push({ kind, payload }),
     reportJsError: (message) => errors.push(message),
     setVertexUniformVectors: (vectors) => vertexUniforms.push(vectors),
+    setShaderTables: (oneTable, twoTables) => shaderTables.push({ oneTable, twoTables }),
     getGamepadJson: () => "",
     getViewAlign: () => viewAlign,
     getStatsEnabled: () => false,
+    getLimitFps: () => limitFlag.value,
     getTelemetry: () => "",
     fsExists: () => false,
     fsMkdir: () => false,
@@ -103,7 +159,7 @@ function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = nul
   };
   /* eslint-disable-next-line no-eval */
   (0, eval)(source);
-  return { reports, errors, vertexUniforms, tracker: window.g.resource.bootTracker, canvas };
+  return { reports, errors, vertexUniforms, shaderTables, shaderSources, tracker: window.g.resource.bootTracker, canvas, store, pump, limitFlag };
 }
 
 const results = [];
@@ -113,7 +169,7 @@ function check(name, condition, detail = "") {
 }
 
 async function main() {
-  const { reports, errors, vertexUniforms, tracker } = bootShim();
+  const { reports, errors, vertexUniforms, shaderTables, shaderSources, tracker } = bootShim();
 
   // The shim loads without an engine; facts go out once the engine has a GL context.
   await new Promise((r) => setTimeout(r, 40));
@@ -126,6 +182,19 @@ async function main() {
     errors.length === 1 && errors[0] === "shim: loaded", JSON.stringify(errors));
   check("the device's vertex-uniform budget reaches the bridge",
     vertexUniforms.length === 1 && vertexUniforms[0] === 256, JSON.stringify(vertexUniforms));
+  check("the page reports whether the game's own table shapes link",
+    shaderTables.length === 1 && shaderTables[0].oneTable === true && shaderTables[0].twoTables === true,
+    JSON.stringify(shaderTables));
+  /* The probe must ask the question the shaders ask: a 256-slot table with the reserve the real
+   * shaders carry besides (48 vectors, or 32 for gui.vert's two), used so the compiler cannot drop
+   * them. */
+  const probe = shaderSources.filter((s) => s.includes("u_slot"));
+  check("the probe compiles a 256-slot table with a 48-vector reserve",
+    probe.length === 2 && probe.some((s) => s.includes("u_slot[256]") && s.includes("u_reserve[48]")),
+    JSON.stringify(probe.map((s) => s.length)));
+  check("the probe compiles gui.vert's shape: two tables, 32-vector reserve",
+    probe.some((s) => s.includes("u_font[256]") && s.includes("u_reserve[32]")),
+    JSON.stringify(probe.map((s) => s.length)));
 
   // Progress frozen past the threshold: exactly one stall report, naming what is pending by kind.
   await new Promise((r) => setTimeout(r, 120));
@@ -226,6 +295,127 @@ async function main() {
   navigator.getGamepads();
   check("an unmeasured canvas is not written, then applied once it has been laid out",
     late.canvas.style.top === "-287px", `top=${late.canvas.style.top}`);
+
+  /* A compiler that cannot carry the game's own table (SwiftShader, issue #1) answers false, and the
+   * count-based path stays in charge. Last, because bootShim installs fresh globals. */
+  const noTables = bootShim({ tablesLink: false });
+  check("a device whose table does not link reports that",
+    noTables.shaderTables.length === 1 && noTables.shaderTables[0].oneTable === false &&
+    noTables.shaderTables[0].twoTables === false, JSON.stringify(noTables.shaderTables));
+
+  /* The facts carry the resolution the engine renders at — the Resolution option times SCREEN
+   * (640x360). It is the number behind "the game is too slow" and behind how large the dither's dots
+   * look, and the record did not carry it before. */
+  /* A size no other boot here uses, and `some` rather than a single line: every earlier boot's shim
+   * is still polling and reports through whatever bridge is current, so the newest recorder can carry
+   * lines from older boots (their per-shim facts are once-only, but a boot given no canvas re-queries
+   * every time). What is under test is the field, read from the element the shim is looking at. */
+  const sized = bootShim({ canvas: canvasStub({ bufW: 1024, bufH: 576, clientW: 1024, clientH: 576, boxH: 576 }) });
+  await new Promise((r) => setTimeout(r, 40));
+  check("the facts carry the resolution the engine renders at",
+    sized.reports.some((r) => r.kind === "facts" && r.payload.includes("resolution=1024x576")),
+    JSON.stringify(sized.reports.filter((r) => r.kind === "facts").map((r) => r.payload)));
+
+  /* The video reset (FINDINGS §19). The port opens the game with `?adaResetVideo=1` and the shim
+   * drops the engine's stored Resolution before the engine reads it — the one value a phone user can
+   * set that leaves the game too slow to reach its own Options menu. Every other option stays. */
+  const options = { "pixel-size": 4, "language": "en_US", "skip-confirm": true };
+  const reset = bootShim({ search: "?adaResetVideo=1", store: { xg_local_options: JSON.stringify(options) } });
+  const after = JSON.parse(reset.store.xg_local_options);
+  check("the video reset drops the stored Resolution and nothing else",
+    after["pixel-size"] === undefined && after["language"] === "en_US" && after["skip-confirm"] === true,
+    reset.store.xg_local_options);
+  check("the video reset says what it did",
+    reset.reports.some((r) => r.kind === "video" && /dropped/.test(r.payload)),
+    JSON.stringify(reset.reports));
+
+  const plain = bootShim({ store: { xg_local_options: JSON.stringify(options) } });
+  check("without the parameter the stored options are untouched",
+    plain.store.xg_local_options === JSON.stringify(options), plain.store.xg_local_options);
+  check("and nothing is reported about it",
+    !plain.reports.some((r) => r.kind === "video") && !plain.errors.some((e) => /Resolution/.test(e)),
+    JSON.stringify([plain.reports, plain.errors]));
+
+  const broken = bootShim({ search: "?adaResetVideo=1", store: { xg_local_options: "{not json" } });
+  check("a malformed blob is reported, not thrown",
+    broken.errors.some((e) => /reset the stored Resolution/.test(e)), JSON.stringify(broken.errors));
+  check("and the blob is left exactly as it was",
+    broken.store.xg_local_options === "{not json", broken.store.xg_local_options);
+
+  const empty = bootShim({ search: "?adaResetVideo=1" });
+  check("with nothing stored the reset reports that and breaks nothing",
+    empty.reports.some((r) => r.kind === "video" && /nothing stored/.test(r.payload)) &&
+    !empty.errors.some((e) => /reset/.test(e)) && !("xg_local_options" in empty.store),
+    JSON.stringify([empty.reports, empty.errors]));
+
+  /* The 30 fps switch. The engine drives its loop from `requestAnimationFrame`, re-requesting at the
+   * end of every frame (System.run), so a chain of self-re-requesting callbacks is exactly the shape
+   * the gate sees. Unlimited serves every vsync; limited serves one frame per interval - 4 vsyncs
+   * apart on a 120 Hz display - and rides the callbacks that arrived in between on that one frame. */
+  const unlimited = bootShim();
+  let unlimitedFrames = 0;
+  const unlimitedLoop = () => { unlimitedFrames++; window.requestAnimationFrame(unlimitedLoop); };
+  window.requestAnimationFrame(unlimitedLoop);
+  for (let i = 0; i < 120; i++) unlimited.pump(i * 8.33);
+  check("with the limit off every display vsync is served",
+    unlimitedFrames === 120, String(unlimitedFrames));
+
+  const limited = bootShim({ limitFps: true });
+  /* The engine polls the app once per frame; that poll is what carries the switch to the gate. */
+  navigator.getGamepads();
+  let limitedFrames = 0;
+  const limitedLoop = () => { limitedFrames++; window.requestAnimationFrame(limitedLoop); };
+  window.requestAnimationFrame(limitedLoop);
+  for (let i = 0; i < 120; i++) limited.pump(i * 8.33); // 1 s of a 120 Hz display
+  check("the limit serves about 30 frames in a second of 120 Hz vsyncs",
+    limitedFrames >= 29 && limitedFrames <= 31, String(limitedFrames));
+  check("the limit is reported once it is applied",
+    limited.reports.some((r) => r.kind === "fps" && /limited to 30/.test(r.payload)),
+    JSON.stringify(limited.reports.filter((r) => r.kind === "fps").map((r) => r.payload)));
+
+  /* A 60 Hz device is the case the tolerance exists for: every second vsync is one frame, and
+   * without it the 33.3 ms deadline lands just after that vsync and every frame slips to the third
+   * one (20 fps). */
+  const hz60 = bootShim({ limitFps: true });
+  navigator.getGamepads();
+  let frames60 = 0;
+  const loop60 = () => { frames60++; window.requestAnimationFrame(loop60); };
+  window.requestAnimationFrame(loop60);
+  for (let i = 0; i < 60; i++) hz60.pump(i * 16.67); // 1 s of a 60 Hz display
+  check("a 60 Hz display is served 30 frames a second, not 20",
+    frames60 >= 29 && frames60 <= 30, String(frames60));
+
+  /* The switch is live: the same shim follows the app's answer without a reload. */
+  hz60.limitFlag.value = false;
+  navigator.getGamepads();
+  const before = frames60;
+  for (let i = 0; i < 60; i++) hz60.pump(1000 + i * 16.67);
+  check("turning the limit off restores every vsync, live",
+    frames60 - before === 60, String(frames60 - before));
+
+  /* A shader that will not compile reaches the console as groups: the file's path, then one group per
+   * driver message, with only the offending source lines under them as console.error (bundle,
+   * ShaderResource.loadShader). The record must carry the first two - they are the only place the file
+   * and the compiler's own words appear - and must not be flooded by the whole-source dump. */
+  const shaderLog = bootShim();
+  console.groupCollapsed("Shader Errors: data/shader/fragment/water-plane.frag");
+  console.groupCollapsed("123: error: illegal use of reserved word 'sample'");
+  console.error("121:     float sample = 1.0;");
+  console.groupCollapsed("Shader Code");
+  console.log("1200: ... the whole shader source would follow ...");
+  console.groupEnd();
+  console.groupEnd();
+  console.groupEnd();
+  const logged = shaderLog.reports.filter((r) => r.kind.indexOf("console.") === 0);
+  check("a shader failure's group titles are reported, with the file and the driver's message",
+    logged.some((r) => r.payload === "Shader Errors: data/shader/fragment/water-plane.frag") &&
+    logged.some((r) => r.payload === "123: error: illegal use of reserved word 'sample'"),
+    JSON.stringify(logged));
+  check("the offending source line is still reported",
+    logged.some((r) => r.kind === "console.error" && r.payload === "121:     float sample = 1.0;"),
+    JSON.stringify(logged));
+  check("console.log is not forwarded (the engine dumps the whole source through it)",
+    !logged.some((r) => r.kind === "console.log"), JSON.stringify(logged));
 
   const failed = results.filter((r) => !r.ok);
   console.log(`\n${results.length - failed.length}/${results.length} checks passed`);

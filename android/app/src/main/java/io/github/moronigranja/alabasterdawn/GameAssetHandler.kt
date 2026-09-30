@@ -94,17 +94,28 @@ class GameAssetHandler(
         }
 
         var body = read(entry) ?: return miss(rel)
+        /* `bundle.js` carries the engine's own `TEX_SLOT_COUNT`, and the preload scanner asks for it
+         * before a document-start script's bridge call can land (measured on the Fold 7). Hold that one
+         * request briefly so the decision is taken with the page's link outcome in hand; a page that
+         * never answers times out into the count-based plan, unchanged. */
+        if (rel == BUNDLE_JS) {
+            ShaderSlots.awaitReport(WAIT_FOR_REPORT_MS)
+            ShaderSlots.lock()
+        }
         /* Only the assets that are actually rewritten are cached: everything else (images, audio,
          * JSON) is served verbatim and read once per boot, and caching all 2 652 of them
          * would cost tens of megabytes for nothing. The `.vert` shaders only join in when the device
          * cannot carry the game's own 256-slot uniform table (see [ShaderSlots]). */
-        val vertexShaders = ShaderSlots.rewrites(ShaderSlots.vertexUniformVectors)
-        val cacheable = rel == BUNDLE_JS || rel == OPTIONS_DB || rel.endsWith(".frag") ||
+        val vertexShaders = ShaderSlots.rewrites()
+        val cacheable = rel == BUNDLE_JS || rel == OPTIONS_DB ||
+            (ShaderPrecision.rewrites(rel) || rel.endsWith(".frag")) ||
             (injectShim && rel == INDEX_HTML) ||
             (vertexShaders && rel.endsWith(".vert"))
         if (injectShim && rel == INDEX_HTML) body = injectShimTag(body)
         if (rel.endsWith(".frag")) body = keepBarycentricAlive(rel, body)
         if (rel.endsWith(".vert")) body = vertexShader(rel, body)
+        if (rel.endsWith(".frag") || rel.endsWith(".vert")) body = ShaderPrecision.rewrite(rel, body)
+        if (rel.endsWith(".frag")) body = ditherGrid(rel, body)
         if (rel == BUNDLE_JS) body = phoneResolutionLadder(rel, body)
         if (rel == OPTIONS_DB) body = relabelResolutions(rel, body)
         if (cacheable && !rewrite.put(rel, body) && cacheWarned.add(rel)) {
@@ -157,15 +168,28 @@ class GameAssetHandler(
      * is rewritten in `bundle.js`, which must agree with the served shaders.
      */
     private fun vertexShader(rel: String, source: ByteArray): ByteArray {
-        val vectors = ShaderSlots.vertexUniformVectors
-        if (!ShaderSlots.rewrites(vectors)) return source
+        if (!ShaderSlots.rewrites()) return source
         val text = String(source, Charsets.UTF_8)
         val slots = ShaderSlots.slots()
-        val pack = ShaderSlots.packsTables(vectors) && ShaderSlots.tables(text) > 1
+        val pack = ShaderSlots.packs() && ShaderSlots.tables(text) > 1
         val rewritten = ShaderSlots.rewriteShader(text, slots, pack)
         if (rewritten == text) return source
         Log.i(TAG, "TEX_SLOT_COUNT $slots${if (pack) " packed" else ""} in $rel")
         return rewritten.toByteArray(Charsets.UTF_8)
+    }
+
+    /**
+     * The five world shaders that index the engine's ordered dither by the art pixel (see
+     * [ShaderDither]). Served indexed by the render pixel, which is where the engine's own
+     * `solid.frag` and the water's radial dither already sit, so a light's fade reads as a stipple
+     * instead of a grid of art-pixel-sized dots. Only the divisor changes.
+     */
+    private fun ditherGrid(rel: String, source: ByteArray): ByteArray {
+        val text = String(source, Charsets.UTF_8)
+        val served = ShaderDither.rewrite(rel, text)
+        if (served == text) return source
+        Log.i(TAG, "dither at the render grid in $rel")
+        return served.toByteArray(Charsets.UTF_8)
     }
 
     /** Matches the resolution labels in the option database and gives them the phone ladder's text. */
@@ -318,6 +342,9 @@ class GameAssetHandler(
         private const val SHIM_TAG = "<script src=\"ada-shim.js\"></script>\n"
 
         private const val BUNDLE_JS = "terra/dist/bundle.js"
+        /* Long enough for the page's throwaway shaders to compile and its bridge call to land; the
+         * probe answered in ~170 ms on the Fold 7. */
+        private const val WAIT_FOR_REPORT_MS = 400L
         private const val OPTIONS_DB = "terra/data/database/options.json"
         private const val RESOLUTION_MAP_ORIGINAL = "const RESOLUTION_MAP = [1, 2, 3, 4, 6];"
         private const val RESOLUTION_MAP_PHONE = "const RESOLUTION_MAP = [1, 1.5, 2, 3, 4];"

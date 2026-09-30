@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
 /**
@@ -15,6 +16,78 @@ import org.junit.Test
  * own atlas ceiling and nothing here should lower it needlessly.
  */
 class ShaderSlotsTest {
+
+    /** The object holds what the page reported; one test must not see another's device. */
+    @Before
+    fun reset() {
+        ShaderSlots.reset()
+    }
+
+    @Test
+    fun `the page's own link decides before the reported count does`() {
+        // Adreno reports the GLES3 minimum of 256 *and* links the game's own 256-slot table, because
+        // its compiler packs two vec2 slots into one vector. Rewriting there would shrink the engine's
+        // atlas and pack gui.vert for nothing, so the link is what decides.
+        ShaderSlots.vertexUniformVectors = 256
+        assertEquals(192, ShaderSlots.slots())
+        assertTrue(ShaderSlots.rewrites())
+
+        // the page answered in time: the game's own 256 and no packing
+        ShaderSlots.oneTableLinked = true
+        ShaderSlots.twoTablesLinked = true
+        assertEquals(256, ShaderSlots.slots())
+        assertFalse(ShaderSlots.packs())
+        assertFalse(ShaderSlots.rewrites())
+
+        // one table links, gui.vert's two do not: keep 256, pack only gui.vert
+        ShaderSlots.twoTablesLinked = false
+        assertEquals(256, ShaderSlots.slots())
+        assertTrue(ShaderSlots.packs())
+        assertTrue(ShaderSlots.rewrites())
+
+        // neither links (SwiftShader, issue #1): the count-based path, unchanged
+        ShaderSlots.oneTableLinked = false
+        assertEquals(192, ShaderSlots.slots())
+        assertTrue(ShaderSlots.packs())
+        assertTrue(ShaderSlots.rewrites())
+    }
+
+    @Test
+    fun `serving the bundle locks the decision, so the engine and the shaders cannot disagree`() {
+        // What the Fold 7 does: the bundle is asked for before the page's link answer lands, so it is
+        // served with the count-based plan...
+        ShaderSlots.vertexUniformVectors = 256
+        ShaderSlots.lock()
+        assertEquals(192, ShaderSlots.slots())
+
+        // ...and the answer that arrives afterwards must not move it, or the shaders would declare a
+        // table the engine's own constant does not upload.
+        ShaderSlots.oneTableLinked = true
+        ShaderSlots.twoTablesLinked = true
+        assertEquals("a late link does not move a served constant", 192, ShaderSlots.slots())
+        assertTrue(ShaderSlots.packs())
+
+        // a device that answered in time locks the game's own bytes for the whole session
+        ShaderSlots.reset()
+        ShaderSlots.vertexUniformVectors = 256
+        ShaderSlots.oneTableLinked = true
+        ShaderSlots.twoTablesLinked = true
+        ShaderSlots.lock()
+        assertEquals(256, ShaderSlots.slots())
+        assertFalse(ShaderSlots.packs())
+
+        // and the lock is a no-op once taken
+        ShaderSlots.vertexUniformVectors = 1024
+        ShaderSlots.lock()
+        assertEquals(256, ShaderSlots.slots())
+    }
+
+    @Test
+    fun `a page that never answers holds the wait for its own report`() {
+        assertFalse(ShaderSlots.awaitReport(1))
+        ShaderSlots.report(true, true)
+        assertTrue(ShaderSlots.awaitReport(1))
+    }
 
     @Test
     fun `the game's own 256 is kept when the device has the room`() {
@@ -90,9 +163,17 @@ class ShaderSlotsTest {
         ShaderSlots.vertexUniformVectors = 256
         assertEquals(192, ShaderSlots.slots())
         assertTrue(ShaderSlots.rewrites(ShaderSlots.vertexUniformVectors))
+
+        // a lock already taken holds its value even as a newer budget arrives
+        ShaderSlots.lock()
         ShaderSlots.vertexUniformVectors = 1024
+        assertEquals(192, ShaderSlots.slots())
+
+        // a device with room locks the game's own 256
+        ShaderSlots.reset()
+        ShaderSlots.vertexUniformVectors = 1024
+        ShaderSlots.lock()
         assertEquals(256, ShaderSlots.slots())
         assertFalse(ShaderSlots.rewrites(ShaderSlots.vertexUniformVectors))
-        ShaderSlots.vertexUniformVectors = 0
     }
 }

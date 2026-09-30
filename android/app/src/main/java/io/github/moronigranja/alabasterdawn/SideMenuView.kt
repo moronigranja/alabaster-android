@@ -20,15 +20,16 @@ import android.widget.TextView
 
 /**
  * The port's side panel, opened by Back: a scrim over the whole window plus a panel pinned to the
- * right edge carrying the overlay switch, the frame-readout switch, the keep-a-log-file switch, the
- * picture position, three read-only status lines and Exit. Every entry is the same full-width,
- * icon-led row, after the Eden / Sudachi / Azahar side menus: an icon in a fixed left gutter, the
- * label beside it on a single line, the control at the right edge, and the whole row is the target.
+ * right edge carrying the overlay switch, the frame-readout switch, the 30 fps switch, the
+ * keep-a-log-file switch, the picture position, three read-only status lines and Exit. Every entry is
+ * the same full-width, icon-led row, after the Eden / Sudachi / Azahar side menus: an icon in a fixed
+ * left gutter, the label beside it on a single line, the control at the right edge, and the whole row
+ * is the target.
  *
  * Two things decide the details. The switches and the position are stored and owned by the
  * Activity, so this view is only told what to show ([setHideWithExternalInput], [setStatsEnabled],
- * [setLogToSaves], [setAlign]) and reports taps through callbacks. And nothing inside it may take
- * view focus: the engine stops its loop and suspends audio on the page's `blur` (see
+ * [setLimitFps], [setLogToSaves], [setAlign]) and reports taps through callbacks. And nothing inside
+ * it may take view focus: the engine stops its loop and suspends audio on the page's `blur` (see
  * PortActivity.setPageFocus), so the descendants are made unfocusable and the WebView keeps focus
  * while the panel is open.
  */
@@ -40,6 +41,9 @@ class SideMenuView(context: Context) : FrameLayout(context) {
     /** A tap on the frame-readout switch. */
     var onStatsEnabled: ((Boolean) -> Unit)? = null
 
+    /** A tap on the 30 fps switch. */
+    var onLimitFps: ((Boolean) -> Unit)? = null
+
     /** A tap on the keep-a-log-file switch. */
     var onLogToSaves: ((Boolean) -> Unit)? = null
 
@@ -49,7 +53,7 @@ class SideMenuView(context: Context) : FrameLayout(context) {
     /** A tap on Exit. */
     var onExit: (() -> Unit)? = null
 
-    /** A tap on Diagnostics: the owner shows the record, which it owns. */
+    /** A tap on Troubleshoot: the owner shows the record, which it owns. */
     var onDiagnostics: (() -> Unit)? = null
 
     /** A tap on the scrim; the owner closes the panel, because it owns the WebView re-focus. */
@@ -57,6 +61,7 @@ class SideMenuView(context: Context) : FrameLayout(context) {
 
     private val hideToggle = Switch(context)
     private val statsToggle = Switch(context)
+    private val fpsToggle = Switch(context)
     private val logToggle = Switch(context)
     private val radios = LinkedHashMap<ViewAlign, RadioButton>()
 
@@ -79,6 +84,7 @@ class SideMenuView(context: Context) : FrameLayout(context) {
 
     private var hideWithExternalInput = true
     private var statsEnabled = false
+    private var limitFps = false
     private var logToSaves = true
     private var align = ViewAlign.DEFAULT
 
@@ -99,6 +105,11 @@ class SideMenuView(context: Context) : FrameLayout(context) {
 
     fun setStatsEnabled(value: Boolean) {
         statsEnabled = value
+        sync()
+    }
+
+    fun setLimitFps(value: Boolean) {
+        limitFps = value
         sync()
     }
 
@@ -192,6 +203,13 @@ class SideMenuView(context: Context) : FrameLayout(context) {
             statsToggle.isChecked = !statsToggle.isChecked
         }
 
+        fpsToggle.setOnCheckedChangeListener { _, checked ->
+            if (!syncing) onLimitFps?.invoke(checked)
+        }
+        addRow(panel, R.drawable.ic_menu_fps, "Limit to 30 FPS (battery)", fpsToggle) {
+            fpsToggle.isChecked = !fpsToggle.isChecked
+        }
+
         logToggle.setOnCheckedChangeListener { _, checked ->
             if (!syncing) onLogToSaves?.invoke(checked)
         }
@@ -239,7 +257,7 @@ class SideMenuView(context: Context) : FrameLayout(context) {
         }
         panel.addView(engineStatus)
 
-        addRow(panel, R.drawable.ic_menu_diagnostics, "Diagnostics", null) {
+        addRow(panel, R.drawable.ic_menu_diagnostics, "Troubleshoot", null) {
             onDiagnostics?.invoke()
         }
         addRow(panel, R.drawable.ic_menu_exit, "Exit", null, last = true) {
@@ -358,6 +376,7 @@ class SideMenuView(context: Context) : FrameLayout(context) {
         syncing = true
         hideToggle.isChecked = hideWithExternalInput
         statsToggle.isChecked = statsEnabled
+        fpsToggle.isChecked = limitFps
         logToggle.isChecked = logToSaves
         for ((value, radio) in radios) radio.isChecked = value == align
         for ((value, row) in radioRows) row.background = rowBackground(value == align)

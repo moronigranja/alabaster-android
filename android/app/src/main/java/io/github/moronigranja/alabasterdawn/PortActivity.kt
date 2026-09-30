@@ -67,6 +67,8 @@ class PortActivity : Activity() {
     private var hideWithExternalInput = true
     private var viewAlign = ViewAlign.DEFAULT
     private var statsEnabled = false
+    /** Whether the shim caps the page's frame rate at 30 fps (the side menu's battery switch). */
+    private var limitFps = false
     private var shimSource: String = ""
 
     /** Whether the record is also kept as [LogFile.FILE] in the saves folder. */
@@ -136,6 +138,7 @@ class PortActivity : Activity() {
         hideWithExternalInput = prefs.getBoolean(KEY_HIDE_EXTERNAL_INPUT, true)
         viewAlign = ViewAlign.fromWire(prefs.getString(KEY_VIEW_ALIGN, null))
         statsEnabled = prefs.getBoolean(KEY_STATS, false)
+        limitFps = prefs.getBoolean(KEY_LIMIT_FPS, false)
         logToSaves = prefs.getBoolean(LogFile.PREF_KEY, true)
         /* The store is opened here and not at START, and the previous session's record is read back
          * into the ring: a user who freezes and restarts expects the panel (and the file) to still
@@ -194,9 +197,10 @@ class PortActivity : Activity() {
                     )
                 )
                 /* A device-only failure is reported from here: the record names the WebView, the GL
-                 * backend and what the engine was doing, without adb. */
+                 * backend and what the engine was doing, without adb. The panel it opens is also
+                 * where the stored Resolution can be dropped (FINDINGS §19). */
                 addView(Button(this@PortActivity).apply {
-                    text = "Diagnostics"
+                    text = "Troubleshoot"
                     setOnClickListener { showDiagnostics() }
                 })
             }
@@ -378,6 +382,32 @@ class PortActivity : Activity() {
         return FileStore.appPrivate(this)
     }
 
+    /**
+     * Drops the game's stored Resolution option — the one value a phone user can set that leaves the
+     * game too slow to reach its own Options menu. The engine keeps its device-local options as one
+     * JSON object in `localStorage` and reads it at boot, so the reset is a URL parameter the shim
+     * acts on before the engine boots ([RESET_VIDEO_PARAM]); with a page to reload it happens now,
+     * and from the pre-game screen it is armed for the next start instead. The one-shot is cleared
+     * as the URL is built, so a kill in between cannot leave it half-applied.
+     */
+    private fun resetVideoOptions() {
+        closeMenu()
+        val view = webView
+        if (view == null) {
+            prefs.edit().putBoolean(KEY_RESET_VIDEO, true).apply()
+            status.text = "The game's Resolution will be reset when it starts."
+            diag.line("the game's stored Resolution will be reset at the next start")
+            return
+        }
+        prefs.edit().putBoolean(KEY_RESET_VIDEO, false).apply()
+        diag.line("reloading to reset the game's stored Resolution")
+        view.loadUrl(gameUrl(resetVideo = true))
+    }
+
+    /** The game's URL, carrying the one-shot video reset to the shim when one was armed. */
+    private fun gameUrl(resetVideo: Boolean): String =
+        if (resetVideo) "$INDEX_URL?$RESET_VIDEO_PARAM=1" else INDEX_URL
+
     private fun launchWebView() {
         val built = index ?: return
         val bridge = fsBridge ?: return
@@ -418,6 +448,7 @@ class PortActivity : Activity() {
                 bridge,
                 viewAlign = { viewAlign },
                 statsEnabled = { statsEnabled },
+                limitFps = { limitFps },
                 telemetry = telemetry,
                 diag = diag,
                 onQuit = { runOnUiThread { exitGame() } },
@@ -466,6 +497,7 @@ class PortActivity : Activity() {
         val menu = SideMenuView(this).apply {
             setHideWithExternalInput(this@PortActivity.hideWithExternalInput)
             setStatsEnabled(statsEnabled)
+            setLimitFps(limitFps)
             setLogToSaves(logToSaves)
             setAlign(viewAlign)
             onHideWithExternalInput = {
@@ -476,6 +508,12 @@ class PortActivity : Activity() {
             onStatsEnabled = {
                 this@PortActivity.statsEnabled = it
                 prefs.edit().putBoolean(KEY_STATS, it).apply()
+            }
+            /* The shim reads this on its once-per-frame poll, so the cap lands on the next frame. */
+            onLimitFps = {
+                this@PortActivity.limitFps = it
+                prefs.edit().putBoolean(KEY_LIMIT_FPS, it).apply()
+                diag.line("frame limit " + (if (it) "on: 30 fps" else "off"))
             }
             /* An explicit tap ends the auto-off for good, whichever way it went. */
             onLogToSaves = {
@@ -509,7 +547,9 @@ class PortActivity : Activity() {
         webViewStartedAt = monotonicMs()
         watchdog.removeCallbacksAndMessages(null)
         watchdog.postDelayed(watchdogTick, WATCHDOG_TICK_MS)
-        view.loadUrl(INDEX_URL)
+        val resetVideo = prefs.getBoolean(KEY_RESET_VIDEO, false)
+        if (resetVideo) prefs.edit().putBoolean(KEY_RESET_VIDEO, false).apply()
+        view.loadUrl(gameUrl(resetVideo))
     }
 
     /**
@@ -564,7 +604,7 @@ class PortActivity : Activity() {
     private fun showDiagnostics() {
         diag.line("diagnostics opened")
         val text = diag.snapshot(diagFacts())
-        DiagnosticsDialog(this, text) { shareDiagnostics(text) }.apply {
+        DiagnosticsDialog(this, text, { shareDiagnostics(text) }, { resetVideoOptions() }).apply {
             setOnDismissListener {
                 /* The dialog held window focus, which blurred the page; hand it back like closeMenu. */
                 webView?.requestFocus()
@@ -934,16 +974,21 @@ class PortActivity : Activity() {
      * The WebView renderer is shared for the life of the app process, and starting the game a second
      * time in the same process was measured to come up black (README "Not in this milestone"); the
      * documented workaround was to swipe the app away from recents. This is that workaround: tear the
-     * WebView down, drop the task, then end the process, so the next launch is a new process, a new
-     * renderer and a clean GL state. `Process.killProcess` is a deliberate exit, not a crash - no
-     * dialog, and no task left in recents.
+     * WebView down, send the task to the back, then end the process, so the next launch is a new
+     * process, a new renderer and a clean GL state. `Process.killProcess` is a deliberate exit, not a
+     * crash - no dialog.
+     *
+     * The task is *not* finished. On Android the last activity of a task finishing removes the task
+     * from recents (`finishAndRemoveTask` does it explicitly, and plain `finish` does it too), which
+     * is why the app disappeared from the task list after an Exit; ending the process alone leaves
+     * the recents entry in place, and the system starts a fresh process for it when the user taps it.
      */
     private fun exitGame() {
         diag.line("exit requested")
         flushLogBlocking()
         menuView?.close()
         teardownWebView()
-        finishAndRemoveTask()
+        moveTaskToBack(true)
         Process.killProcess(Process.myPid())
     }
 
@@ -1034,8 +1079,17 @@ class PortActivity : Activity() {
         private const val KEY_HIDE_EXTERNAL_INPUT = "hide_with_controller"
         /* Where the picture sits vertically: a ViewAlign.wire value. */
         private const val KEY_VIEW_ALIGN = "view_align"
+        /* Whether the next start of the game should drop the game's stored Resolution option: set
+         * from the side menu's Reset resolution row, or from the pre-game screen where there is no
+         * page to reload yet, and cleared as the URL that carries it to the shim is built. */
+        private const val KEY_RESET_VIDEO = "reset_video"
+        /* The query parameter the injected shim watches for (ada-shim.js, `resetStoredResolution`),
+         * so the two sides cannot drift. */
+        private const val RESET_VIDEO_PARAM = "adaResetVideo"
         /* Whether the shim draws its frame-rate/resolution/battery/thermal readout. */
         private const val KEY_STATS = "stats_overlay"
+        /* Whether the shim caps the page's frame rate at 30 fps, for battery. */
+        private const val KEY_LIMIT_FPS = "limit_fps"
         private const val REQ_GAME = 101
         private const val REQ_SAVES = 102
         private const val BRIDGE_NAME = "AdaBridge"

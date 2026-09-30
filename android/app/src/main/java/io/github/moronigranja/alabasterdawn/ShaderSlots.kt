@@ -1,5 +1,9 @@
 package io.github.moronigranja.alabasterdawn
 
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
+
 /**
  * The game's vertex shaders declare `uniform vec2 u_texSlotCoords[TEX_SLOT_COUNT]` (256 elements) and
  * the engine sizes its own upload and its texture atlases from the same constant (`const
@@ -56,6 +60,85 @@ object ShaderSlots {
     @Volatile
     var vertexUniformVectors: Int = 0
 
+    /**
+     * Whether the page *linked* a shader declaring the game's own 256-slot table (and, separately,
+     * `gui.vert`'s two of them), reported through `AdaBridge.setShaderTables`. `null` until the page
+     * answers.
+     *
+     * The reported vector count is not the same question: Adreno's compiler packs a `vec2` array two
+     * slots to a `vec4` (the GLSL ES 3.0 default-block rules allow it), so the game's own table links
+     * on a device whose reported budget is the GLES3 minimum — and rewriting it there needlessly
+     * shrinks the engine's atlas and packs `gui.vert`. SwiftShader packs one slot per vector and
+     * really does fail the link (issue #1), so that device keeps the count-based path.
+     */
+    @Volatile
+    var oneTableLinked: Boolean? = null
+
+    @Volatile
+    var twoTablesLinked: Boolean? = null
+
+    /** Released by [report]: the page has answered (or the wait gave up on it). */
+    private val reported = AtomicReference(CountDownLatch(1))
+
+    /**
+     * The decision, taken **once** — by [lock], when `bundle.js` is served. The engine's own constant
+     * and the shaders must name the same `TEX_SLOT_COUNT` or the engine uploads a shorter table than
+     * the shader declares, and the page's link answer can land after the first requests (measured on
+     * the Fold 7: the preload scanner asks for the bundle before a document-start script's bridge call
+     * is through). Before the lock every query answers from what has arrived so far.
+     */
+    private val locked = AtomicReference<Plan?>(null)
+
+    private data class Plan(val slots: Int, val pack: Boolean)
+
+    /**
+     * Fixes the decision. The engine's constant leaves the app in `bundle.js`, so this is called for
+     * that one request (after [awaitReport] has had its chance) and never again: everything asked
+     * afterwards — every shader — follows the same plan, whatever the page reports later.
+     */
+    fun lock() {
+        locked.updateAndGet { it ?: Plan(decidedSlots(), decidedPacks()) }
+    }
+
+    /** Records what the page's own shaders did, and releases [awaitReport]. */
+    fun report(oneTable: Boolean, twoTables: Boolean) {
+        oneTableLinked = oneTable
+        twoTablesLinked = twoTables
+        reported.get().countDown()
+    }
+
+    /**
+     * Waits up to [timeoutMs] for the page's answer, so the first decision is taken with it in hand
+     * where the device is quick enough. A page that never answers times out into the count-based plan,
+     * which is what it got before this existed.
+     */
+    fun awaitReport(timeoutMs: Long): Boolean = reported.get().await(timeoutMs, TimeUnit.MILLISECONDS)
+
+    private fun plan(): Plan = locked.get() ?: Plan(decidedSlots(), decidedPacks())
+
+    /** The table size to serve: the game's own when the page linked it. */
+    fun slots(): Int = plan().slots
+
+    /** Whether `gui.vert`'s two tables have to be packed. */
+    fun packs(): Boolean = plan().pack
+
+    /** Whether anything at all has to be rewritten for this device. */
+    fun rewrites(): Boolean = plan().let { it.slots < GAME || it.pack }
+
+    private fun decidedSlots(): Int = if (oneTableLinked == true) GAME else slotsFor(vertexUniformVectors)
+
+    private fun decidedPacks(): Boolean =
+        if (twoTablesLinked == true) false else packsTables(vertexUniformVectors)
+
+    /** Tests only: back to "the page has not answered, nothing has been decided". */
+    internal fun reset() {
+        vertexUniformVectors = 0
+        oneTableLinked = null
+        twoTablesLinked = null
+        reported.set(CountDownLatch(1))
+        locked.set(null)
+    }
+
     /** The budget to plan against: what the page said, or the GLES3 minimum when it never answered. */
     private fun budget(vertexUniformVectors: Int): Int =
         if (vertexUniformVectors <= 0) GAME else vertexUniformVectors
@@ -69,17 +152,18 @@ object ShaderSlots {
     fun slotsFor(vertexUniformVectors: Int): Int =
         (budget(vertexUniformVectors) - RESERVE).coerceIn(FLOOR, GAME)
 
-    /** The table size the app serves right now. */
-    fun slots(): Int = slotsFor(vertexUniformVectors)
-
     /**
      * Whether the multi-table shaders must be packed: true whenever the budget cannot hold both of
-     * `gui.vert`'s tables at the game's own size.
+     * `gui.vert`'s tables at the game's own size. Only the fallback for a page that never answered;
+     * [packs] is what the app asks.
      */
     fun packsTables(vertexUniformVectors: Int): Boolean =
         2 * GAME + PACK_RESERVE > budget(vertexUniformVectors)
 
-    /** Whether anything at all has to be rewritten for this device. */
+    /**
+     * Whether anything at all has to be rewritten for a budget, ignoring what the page linked. The
+     * count-based fallback [rewrites] falls back to.
+     */
     fun rewrites(vertexUniformVectors: Int): Boolean =
         slotsFor(vertexUniformVectors) < GAME || packsTables(vertexUniformVectors)
 

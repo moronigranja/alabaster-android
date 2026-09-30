@@ -14,6 +14,8 @@ class AdaBridge(
     /** Read once per engine frame by the shim, which polls like it polls `getGamepadJson`. */
     private val viewAlign: () -> ViewAlign,
     private val statsEnabled: () -> Boolean,
+    /** Whether the shim caps the page's frame rate at 30 (the side menu's battery switch). */
+    private val limitFps: () -> Boolean,
     /** Battery/thermal numbers, asked for only when the shim repaints the readout. */
     private val telemetry: Telemetry,
     /** The app's own log, so a device-only failure is reportable without adb. */
@@ -42,6 +44,10 @@ class AdaBridge(
     /** Whether the shim draws its frame-rate/resolution/battery readout. */
     @JavascriptInterface
     fun getStatsEnabled(): Boolean = statsEnabled()
+
+    /** Whether the shim caps the page's frame rate at 30 fps (battery, not pacing). */
+    @JavascriptInterface
+    fun getLimitFps(): Boolean = limitFps()
 
     /** `{"level":65,"temp":388,"thermal":"critical"}`; a field is null when it is unavailable. */
     @JavascriptInterface
@@ -98,7 +104,24 @@ class AdaBridge(
     @JavascriptInterface
     fun setVertexUniformVectors(vectors: Int) {
         ShaderSlots.vertexUniformVectors = vectors
-        diag.line("gl limits: vertex uniforms $vectors -> TEX_SLOT_COUNT ${ShaderSlots.slots()}")
+        /* The decision is not this number: it is what the page's own compiler linked, reported next. */
+        diag.line("gl limits: vertex uniforms $vectors")
+    }
+
+    /**
+     * Whether the page's throwaway shaders *linked* with the game's own 256-slot table shapes. The
+     * shaders are fetched after this lands, so it decides whether the game's own bytes are served:
+     * `true`/`true` keeps `TEX_SLOT_COUNT` at 256 and leaves `gui.vert` unpacked (see [ShaderSlots]).
+     */
+    @JavascriptInterface
+    fun setShaderTables(oneTable: Boolean, twoTables: Boolean) {
+        ShaderSlots.report(oneTable, twoTables)
+        diag.line(
+            "shader tables: 256-slot " + (if (oneTable) "links" else "does not link") +
+                ", gui two-table " + (if (twoTables) "links" else "does not link") +
+                " -> TEX_SLOT_COUNT ${ShaderSlots.slots()}" +
+                (if (ShaderSlots.packs()) " packed" else ""),
+        )
     }
 
     /** Device-only failures would otherwise be a black screen with nothing in logcat. */

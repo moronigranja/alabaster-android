@@ -1,0 +1,12 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp" android:height="24dp"
+    android:viewportWidth="960" android:viewportHeight="960">
+    <group android:translateY="960">
+        <!-- A gauge: an open ring in the same 960 viewport and colour as the other menu icons, with a
+             needle from its centre to the rim. -->
+        <path android:fillColor="#FFFFFFFF" android:fillType="evenOdd"
+            android:pathData="M480,-160 a320,320 0 1,0 0,-640 a320,320 0 1,0 0,640 Z M480,-240 a240,240 0 1,0 0,-480 a240,240 0 1,0 0,480 Z" />
+        <path android:fillColor="#FFFFFFFF"
+            android:pathData="M500,-460 L650,-650 L610,-690 L460,-500 Z" />
+    </group>
+</vector>
