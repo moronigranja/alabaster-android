@@ -5,6 +5,11 @@ android/build/
 android/app/build/
 android/captures/
 android/local.properties
+# The Mali shader probe is its own project (`tools/mali-probe/`), built with the port's wrapper.
+tools/mali-probe/.gradle/
+tools/mali-probe/.kotlin/
+tools/mali-probe/build/
+tools/mali-probe/app/build/
 # Release signing: the keystore lives outside the repo; only the gitignored properties file
 # (storeFile/storePassword/keyAlias/keyPassword) is local to a machine that publishes.
 android/keystore.properties
@@ -41,3 +46,7 @@ gp_out.json
 # tree next to his log for reference (FINDINGS §22.8), never committed, like `terra/` above.
 logs/mali/fixmali/
 logs/mali/fixmali.zip
+# The Mali shader probe's cases are generated from a local install by tools/mali-probe/make-cases.py:
+# game files again, so never committed (`tools/mali-probe/README.md`).
+tools/mali-probe/cases/
+tools/mali-probe/local.properties

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A stub app: the probe runs as an instrumentation test inside its process, so that the platform
+     resolves this package's GL driver exactly as it would the port's (no ANGLE opt-in by us). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:label="Mali shader probe" android:hasCode="true" />
+</manifest>
