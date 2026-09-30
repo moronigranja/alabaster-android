@@ -1,0 +1,276 @@
+app 0.7.1 (12) on Xiaomi 2412DPC0AG, Android 16 (SDK 36, arm64-v8a)
+game 0.1.0-10 Early Access
+webView com.google.android.webview.beta 155.0.8059.16 document-start scripts=true
+game files: Alabaster Dawn (3138 entries)
+saves: Alabaster Dawn
+engine: silent for 15ms, last bridge call: -
+assets served=986 missed=0 inFlight=0 slowest=741ms terra/dist/bundle.js; rewrite cached=41 hits=0 12864426/33554432 bytes
+
+--- log (267 lines, oldest first) ---
++1ms port 0.7.1 (12) on Xiaomi 2412DPC0AG, Android 16 (SDK 36, arm64-v8a)
+--- previous session, carried from ada-diagnostics.log ---
++21931ms ENGINE console.error: 4: precision mediump vec4;
++21931ms ENGINE console.groupCollapsed: 6: 'float' : illegal type argument for default precision qualifier
++21932ms ENGINE console.error: 5: precision mediump vec3;
++21933ms ENGINE console.groupCollapsed: Shader Code
++21934ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:38680 Uncaught Error: An error occurred compiling the shader "data/shader/fragment/post/analog-filter.frag
++22003ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++22004ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++22041ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++22044ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++22135ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++22137ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++22138ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++22140ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++22143ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++22145ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++22162ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++22163ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++22178ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++22185ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++22212ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++22220ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++22234ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++22237ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++22327ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++22332ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++22984ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++22985ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++23276ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++23277ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++23375ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++23377ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++23564ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++23565ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++23654ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++23655ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++23727ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++23729ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++23795ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++23796ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++23857ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++23858ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++23938ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++23942ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++23975ms ENGINE console.groupCollapsed: Shader Errors: data/shader/fragment/water-fx-wall.frag
++23976ms ENGINE console.groupCollapsed: 4: 'float' : illegal type argument for default precision qualifier
++23977ms ENGINE console.error: 3: precision mediump int;
++23979ms ENGINE console.groupCollapsed: 5: 'float' : illegal type argument for default precision qualifier
++23980ms ENGINE console.error: 4: precision mediump vec4;
++23980ms ENGINE console.groupCollapsed: 6: 'float' : illegal type argument for default precision qualifier
++23981ms ENGINE console.error: 5: precision mediump vec3;
++23981ms ENGINE console.groupCollapsed: Shader Code
++23983ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:38680 Uncaught Error: An error occurred compiling the shader "data/shader/fragment/water-fx-wall.frag
++24001ms ENGINE console.groupCollapsed: Shader Errors: data/shader/fragment/water-plane.frag
++24003ms ENGINE console.groupCollapsed: 4: 'float' : illegal type argument for default precision qualifier
++24005ms ENGINE console.error: 3: precision mediump int;
++24006ms ENGINE console.groupCollapsed: 5: 'float' : illegal type argument for default precision qualifier
++24008ms ENGINE console.error: 4: precision mediump vec4;
++24009ms ENGINE console.groupCollapsed: 6: 'float' : illegal type argument for default precision qualifier
++24010ms ENGINE console.error: 5: precision mediump vec3;
++24011ms ENGINE console.groupCollapsed: Shader Code
++24013ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:38680 Uncaught Error: An error occurred compiling the shader "data/shader/fragment/water-plane.frag
++25742ms back: dispatcher (game)
++26788ms diagnostics opened
++32541ms ENGINE boot stall: no progress for 8495ms at 96.8% of 1765 resources; pending 57 (shader=3 data=8 effect=41 figure=1 spritesheet=4); audio ctx=running; decodes started=586 done=586 failed=0; first pending: SHADER: water-plane, data/shader/fragment/water-plane.frag, SHADER: water-fx-wall#define WATERFALL_SHADER, data/shader/fragment/water-fx-wall.frag, SHADER: texturedpost/analog-filter, data/shader/fragment/post/analog-filter.frag, Character[ CHA:main#Juno ], Effect[ FX:player.projectile#arrowHitN ], Effect[ FX:player.projectile#arrowWallN ], Effect[ FX:player.projectile#arrowHitA ], Effect[ FX:player.projectile
++3350ms indexing content://com.android.externalstorage.documents/tree/primary%3AWinlator%2FAlabaster%20Dawn
++15919ms indexed 3139 entries in 12569ms
++16035ms webView com.google.android.webview.beta 155.0.8059.16 document-start scripts=true ua=Mozilla/5.0 (Linux; Android 16; 2412DPC0AG Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/155.0.8059.16 Mobile Safari/537.36
++16219ms loading https://appassets.androidplatform.net/game/terra/index.html
++16663ms gl limits: vertex uniforms 4096
++16668ms shader tables: 256-slot links, gui two-table links -> TEX_SLOT_COUNT 256
++16679ms JS ERROR shim: loaded
++17539ms JS ERROR webgl: OES_draw_buffers_indexed missing; installed index-0 fallback
++19244ms ENGINE facts: webgl2=true; gl=Mali-G720 MC7; uniforms=4096/4096; varyings=31; resolution=640x360; audio=running
++21997ms ENGINE console.groupCollapsed: Shader Errors: data/shader/fragment/post/analog-filter.frag
++22000ms ENGINE console.groupCollapsed: 0:62: S0032: no default precision defined for variable 'vec3[5]'
++22001ms ENGINE console.error: 1: #version 300 es
++22023ms ENGINE console.groupCollapsed: Shader Code
++22026ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:38680 Uncaught Error: An error occurred compiling the shader "data/shader/fragment/post/analog-filter.frag
++22374ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++22376ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++22599ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++22600ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++22876ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++22877ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++22967ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++22972ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++23045ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++23045ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++23299ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++23301ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++23548ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++23549ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++23558ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++23558ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++23611ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++23614ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++23703ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++23707ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++23785ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++23788ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++23894ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++23898ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++24047ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++24050ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++24141ms ENGINE console.groupCollapsed: Shader Errors: data/shader/fragment/water-plane.frag
++24142ms ENGINE console.groupCollapsed: 0:275: S0032: no default precision defined for variable 'vec4[4]'
++24144ms ENGINE console.error: 1: #version 300 es
++24145ms ENGINE console.groupCollapsed: Shader Code
++24148ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:38680 Uncaught Error: An error occurred compiling the shader "data/shader/fragment/water-plane.frag
++24150ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++24151ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++24194ms ENGINE console.groupCollapsed: Shader Errors: data/shader/fragment/water-fx-wall.frag
++24196ms ENGINE console.groupCollapsed: 0:308: S0032: no default precision defined for variable 'vec4[4]'
++24198ms ENGINE console.error: 1: #version 300 es
++24201ms ENGINE console.groupCollapsed: Shader Code
++24206ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:38680 Uncaught Error: An error occurred compiling the shader "data/shader/fragment/water-fx-wall.frag
++29225ms back: dispatcher (game) (x2)
++1047ms indexing content://com.android.externalstorage.documents/tree/primary%3AWinlator%2FAlabaster%20Dawn
++10119ms indexed 3138 entries in 9072ms
++10229ms webView com.google.android.webview.beta 155.0.8059.16 document-start scripts=true ua=Mozilla/5.0 (Linux; Android 16; 2412DPC0AG Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/155.0.8059.16 Mobile Safari/537.36
++10403ms loading https://appassets.androidplatform.net/game/terra/index.html
++10781ms gl limits: vertex uniforms 4096
++10784ms shader tables: 256-slot links, gui two-table links -> TEX_SLOT_COUNT 256
++10794ms JS ERROR shim: loaded
++11671ms JS ERROR webgl: OES_draw_buffers_indexed missing; installed index-0 fallback
++13375ms ENGINE facts: webgl2=true; gl=Mali-G720 MC7; uniforms=4096/4096; varyings=31; resolution=640x360; audio=running
++18957ms ENGINE console.groupCollapsed: Shader Errors: data/shader/fragment/water-fx-wall.frag
++18960ms ENGINE console.groupCollapsed: 873: '{' : syntax error
++18962ms ENGINE console.error: 872:     return res;
++19000ms ENGINE console.groupCollapsed: Shader Code
++19004ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:38680 Uncaught Error: An error occurred compiling the shader "data/shader/fragment/water-fx-wall.frag
++19040ms ENGINE console.groupCollapsed: Shader Errors: data/shader/fragment/water-plane.frag
++19042ms ENGINE console.groupCollapsed: 868: '{' : syntax error
++19044ms ENGINE console.error: 867:     return res;
++19047ms ENGINE console.groupCollapsed: Shader Code
++19052ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:38680 Uncaught Error: An error occurred compiling the shader "data/shader/fragment/water-plane.frag
++19054ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++19056ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++22843ms back: dispatcher (game)
++24393ms diagnostics opened
++27293ms ENGINE boot stall: no progress for 8000ms at 99.8% of 1757 resources; pending 4 (shader=2 data=2); audio ctx=running; decodes started=608 done=608 failed=0; first pending: SHADER: water-plane, data/shader/fragment/water-plane.frag, SHADER: water-fx-wall#define WATERFALL_SHADER, data/shader/fragment/water-fx-wall.frag
++32159ms back: dispatcher (game)
++1672ms indexing content://com.android.externalstorage.documents/tree/primary%3AWinlator%2FAlabaster%20Dawn
++13982ms indexed 3138 entries in 12311ms
++14112ms webView com.google.android.webview.beta 155.0.8059.16 document-start scripts=true ua=Mozilla/5.0 (Linux; Android 16; 2412DPC0AG Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/155.0.8059.16 Mobile Safari/537.36
++14268ms loading https://appassets.androidplatform.net/game/terra/index.html
++14717ms gl limits: vertex uniforms 4096
++14721ms shader tables: 256-slot links, gui two-table links -> TEX_SLOT_COUNT 256
++14735ms JS ERROR shim: loaded
++15651ms JS ERROR webgl: OES_draw_buffers_indexed missing; installed index-0 fallback
++17494ms ENGINE facts: webgl2=true; gl=Mali-G720 MC7; uniforms=4096/4096; varyings=31; resolution=640x360; audio=running
++23792ms ENGINE boot: complete in 9061ms, 1757 resources; resolution=640x360; audio=running; decodes started=608 done=608 failed=0
++96580ms engine silent for 6899ms; last bridge call: fsRename /saves/Saves/Default/Save_ID_auto.save
++1954ms indexing content://com.android.externalstorage.documents/tree/primary%3AWinlator%2FAlabaster%20Dawn
++10906ms indexed 3139 entries in 8951ms
++11033ms webView com.google.android.webview.beta 155.0.8059.16 document-start scripts=true ua=Mozilla/5.0 (Linux; Android 16; 2412DPC0AG Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/155.0.8059.16 Mobile Safari/537.36
++11240ms loading https://appassets.androidplatform.net/game/terra/index.html
++11674ms gl limits: vertex uniforms 4096
++11676ms shader tables: 256-slot links, gui two-table links -> TEX_SLOT_COUNT 256
++11682ms JS ERROR shim: loaded
++12750ms JS ERROR webgl: OES_draw_buffers_indexed missing; installed index-0 fallback
++14798ms ENGINE facts: webgl2=true; gl=Mali-G720 MC7; uniforms=4096/4096; varyings=31; resolution=640x360; audio=running
++20864ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:38743 Uncaught Error: Unable to initialize the shader program data/shader/vertex/water-plane.vert +data/shader/fragment/water-plane.frag: Uniforms with the same name but different type/precision: u_waveHeight
++20949ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20953ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++20955ms ENGINE boot: complete in 9274ms, 1757 resources; resolution=640x360; audio=running; decodes started=608 done=608 failed=0
++24067ms back: dispatcher (game)
++25102ms diagnostics opened
++1830ms indexing content://com.android.externalstorage.documents/tree/primary%3AWinlator%2FAlabaster%20Dawn
++13613ms indexed 3139 entries in 11783ms
++13722ms webView com.google.android.webview.beta 155.0.8059.16 document-start scripts=true ua=Mozilla/5.0 (Linux; Android 16; 2412DPC0AG Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/155.0.8059.16 Mobile Safari/537.36
++13896ms loading https://appassets.androidplatform.net/game/terra/index.html
++14266ms gl limits: vertex uniforms 4096
++14268ms shader tables: 256-slot links, gui two-table links -> TEX_SLOT_COUNT 256
++14274ms JS ERROR shim: loaded
++15174ms JS ERROR webgl: OES_draw_buffers_indexed missing; installed index-0 fallback
++16773ms ENGINE facts: webgl2=true; gl=Mali-G720 MC7; uniforms=4096/4096; varyings=31; resolution=640x360; audio=running
++22310ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:38743 Uncaught Error: Unable to initialize the shader program data/shader/vertex/water-fx-wall.vert +data/shader/fragment/water-fx-wall.frag: Uniforms with the same name but different type/precision: u_cameraProjM
++22454ms ENGINE boot: complete in 8182ms, 1757 resources; resolution=640x360; audio=running; decodes started=608 done=608 failed=0
++22456ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++22457ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++27624ms back: dispatcher (game)
++29010ms diagnostics opened
++1081ms indexing content://com.android.externalstorage.documents/tree/primary%3AWinlator%2FAlabaster%20Dawn
++13259ms indexed 3138 entries in 12178ms
++13399ms webView com.google.android.webview.beta 155.0.8059.16 document-start scripts=true ua=Mozilla/5.0 (Linux; Android 16; 2412DPC0AG Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/155.0.8059.16 Mobile Safari/537.36
++13558ms loading https://appassets.androidplatform.net/game/terra/index.html
++13962ms gl limits: vertex uniforms 4096
++13965ms shader tables: 256-slot links, gui two-table links -> TEX_SLOT_COUNT 256
++13974ms JS ERROR shim: loaded
++14864ms JS ERROR webgl: OES_draw_buffers_indexed missing; installed index-0 fallback
++16623ms ENGINE facts: webgl2=true; gl=Mali-G720 MC7; uniforms=4096/4096; varyings=31; resolution=640x360; audio=running
++22755ms ENGINE boot: complete in 8782ms, 1757 resources; resolution=640x360; audio=running; decodes started=608 done=608 failed=0
++69172ms back: dispatcher (game)
++70250ms frame limit on: 30 fps
++70254ms ENGINE fps: limited to 30 fps
++84063ms back: dispatcher (game)
++85777ms frame limit off
++85791ms ENGINE fps: unlimited
++1387ms indexing content://com.android.externalstorage.documents/tree/primary%3AWinlator%2FAlabaster%20Dawn
++11945ms indexed 3138 entries in 10558ms
++12080ms webView com.google.android.webview.beta 155.0.8059.16 document-start scripts=true ua=Mozilla/5.0 (Linux; Android 16; 2412DPC0AG Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/155.0.8059.16 Mobile Safari/537.36
++12313ms loading https://appassets.androidplatform.net/game/terra/index.html
++12797ms gl limits: vertex uniforms 4096
++12799ms shader tables: 256-slot links, gui two-table links -> TEX_SLOT_COUNT 256
++12845ms shader arrays: the page's compiler accepts the game's declarations
++12876ms JS ERROR shim: loaded
++13845ms JS ERROR webgl: OES_draw_buffers_indexed missing; installed index-0 fallback
++16680ms ENGINE facts: webgl2=true; gl=Mali-G720 MC7; uniforms=4096/4096; varyings=31; resolution=640x360; audio=suspended
++19564ms ENGINE console.groupCollapsed: Shader Errors: data/shader/fragment/post/analog-filter.frag
++19565ms ENGINE console.groupCollapsed: 0:62: S0032: no default precision defined for variable 'vec3[5]'
++19566ms ENGINE console.error: 1: #version 300 es
++19587ms ENGINE console.groupCollapsed: Shader Code
++19589ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:38680 Uncaught Error: An error occurred compiling the shader "data/shader/fragment/post/analog-filter.frag
++19652ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++19660ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++19705ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++19706ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++19730ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++19734ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++19745ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++19749ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++19754ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++19755ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++19819ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++19822ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++19862ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++19863ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++19938ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++19939ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++20206ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20209ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++20623ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20624ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++20891ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20893ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++20927ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20928ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++21074ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++21074ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++21219ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++21221ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++21380ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++21386ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++21423ms ENGINE console.groupCollapsed: Shader Errors: data/shader/fragment/water-plane.frag
++21425ms ENGINE console.groupCollapsed: 0:275: S0032: no default precision defined for variable 'vec4[4]'
++21426ms ENGINE console.error: 1: #version 300 es
++21427ms ENGINE console.groupCollapsed: Shader Code
++21430ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:38680 Uncaught Error: An error occurred compiling the shader "data/shader/fragment/water-plane.frag
++21468ms ENGINE console.groupCollapsed: Shader Errors: data/shader/fragment/water-fx-wall.frag
++21469ms ENGINE console.groupCollapsed: 0:308: S0032: no default precision defined for variable 'vec4[4]'
++21471ms ENGINE console.error: 1: #version 300 es
++21473ms ENGINE console.groupCollapsed: Shader Code
++21477ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:38680 Uncaught Error: An error occurred compiling the shader "data/shader/fragment/water-fx-wall.frag
++21527ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++21531ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:32144 Uncaught Error: There are unwrapped loadTrackers 
++29877ms ENGINE boot stall: no progress for 8000ms at 97.2% of 1763 resources; pending 49 (shader=3 data=7 effect=35 figure=1 spritesheet=3); audio ctx=running; decodes started=589 done=589 failed=0; first pending: SHADER: water-plane, data/shader/fragment/water-plane.frag, SHADER: water-fx-wall#define WATERFALL_SHADER, data/shader/fragment/water-fx-wall.frag, SHADER: texturedpost/analog-filter, data/shader/fragment/post/analog-filter.frag, Character[ CHA:main#Juno ], Effect[ FX:player.projectile#arrowHitN ], Effect[ FX:player.projectile#arrowWallN ], Effect[ FX:player.projectile#arrowHitA ], Effect[ FX:player.projectile
++33295ms back: dispatcher (game)
++35381ms frame limit on: 30 fps
++35384ms ENGINE fps: limited to 30 fps
++36709ms frame limit: 45 fps
++36717ms ENGINE fps: limited to 45 fps
++38693ms diagnostics opened
++45377ms ENGINE boot stall: no progress for 23500ms at 97.2% of 1763 resources; pending 49 (shader=3 data=7 effect=35 figure=1 spritesheet=3); audio ctx=running; decodes started=589 done=589 failed=0; first pending: SHADER: water-plane, data/shader/fragment/water-plane.frag, SHADER: water-fx-wall#define WATERFALL_SHADER, data/shader/fragment/water-fx-wall.frag, SHADER: texturedpost/analog-filter, data/shader/fragment/post/analog-filter.frag, Character[ CHA:main#Juno ], Effect[ FX:player.projectile#arrowHitN ], Effect[ FX:player.projectile#arrowWallN ], Effect[ FX:player.projectile#arrowHitA ], Effect[ FX:player.projectil
++47448ms back: dispatcher (game)

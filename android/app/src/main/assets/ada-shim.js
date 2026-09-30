@@ -158,45 +158,177 @@
      * `type[size] name`, and refuse the shader with
      * `S0032: no default precision defined for variable 'vec4[4]'` - though the shader does declare
      * one (`precision mediump float;`). That is what froze the boot on a Mali-G720 device with three
-     * fragment shaders pending and nothing readable in the record (FINDINGS 22). The shapes the game
-     * writes are compiled here, one fragment shader, before the engine asks for anything; the app
-     * serves those declarations lifted into the declarator spelling (`type name[size]`) only when the
-     * page's own compiler refuses them - see ShaderArrays. Every compiler measured so far, ANGLE and
-     * SwiftShader included, accepts them, so those devices keep the game's own bytes. */
+     * fragment shaders pending (FINDINGS 22). The app serves those declarations lifted into the
+     * declarator spelling (`type name[size]`) only when the page's own compiler refuses them.
+     *
+     * The first version of this probe compiled **one synthetic shader** of the same shapes, and on
+     * that device the driver accepted that text while refusing the game's own bytes, so the app
+     * served them and the boot froze again (FINDINGS 22.5). This one compiles **the declarations the
+     * game's shaders are written with**, one program per shape, on a context made with the engine's
+     * own attributes, and it **links** every program: the front end that refuses them was answering a
+     * compile-only question differently from the engine's own compiles.
+     *
+     * The answer is deliberately one-sided: any shape refused, or no context to ask, means "lift".
+     * Lifting is the side that compiles everywhere - the same bytes, spelled the way the game's own
+     * vertex shaders already spell arrays - while the game's own spelling is exactly what the probe
+     * doubts, so doubting wrongly costs a frozen boot and lifting wrongly costs nothing. What each
+     * shape did goes to the record, so the next device that disagrees says so in one line. */
     var shaderArrays = (function () {
-        var source = [
+        var VERTEX = [
             "#version 300 es",
-            "precision mediump float;",
-            "out vec4 o;",
-            "flat in vec2[4] v_flowDirs;",
-            "vec3 ramp(float t, vec3[5] colors) { return colors[1]; }",
-            "vec4[4] waves() { return vec4[](vec4(1.0), vec4(1.0), vec4(1.0), vec4(1.0)); }",
-            "void main() {",
-            "    vec4[4] w = waves();",
-            "    o = w[0] + vec4(ramp(0.5, vec3[5](vec3(0.0), vec3(1.0), vec3(2.0), vec3(3.0), vec3(4.0))), 0.0)" +
-                " + vec4(v_flowDirs[0], 0.0, 1.0);",
-            "}"
+            "precision highp float;",
+            "void main() { gl_Position = vec4(0.0); }"
         ].join("\n");
+
+        /* `flat in vec2[4] v_flowDirs;` is in the fragment shaders of `water-plane` and
+         * `plane-depth`, whose vertex shaders write the array on the name - so the probe's vertex
+         * side is the spelling the game's own `.vert` already uses. */
+        var VERTEX_FLOW = [
+            "#version 300 es",
+            "precision highp float;",
+            "flat out vec2 v_flowDirs[4];",
+            "void main() { for (int i = 0; i < 4; i++) v_flowDirs[i] = vec2(0.0);",
+            "    gl_Position = vec4(0.0); }"
+        ].join("\n");
+
+        var HEAD = ["#version 300 es", "precision mediump float;", "out vec4 o;"];
+
+        /* One shape per declaration the game writes, copied from the files the Mali report named:
+         * `lib/water.glsl` (the global const, the parameter, the return type, the two parameter
+         * arrays and the local), `lib/color-utils.glsl` (the parameter sized by a macro),
+         * `fragment/water-plane.frag` (the varying) and `fragment/post/analog-filter.frag` (the
+         * constructor in an argument). Only the code around a declaration is written to be small. */
+        function entry(name, lines, vertex) {
+            return {
+                name: name,
+                vertex: vertex || VERTEX,
+                source: HEAD.concat(lines).join("\n")
+            };
+        }
+        var SHAPES = [
+            entry("in/out", [
+                "flat in vec2[4] v_flowDirs;",
+                "void main() { o = vec4(v_flowDirs[0], 0.0, 1.0); }"
+            ], VERTEX_FLOW),
+            entry("const-global", [
+                "const vec2[12] DIRECTIONS = vec2[](",
+                "    vec2(0.0, -1.0), vec2(0.0, -1.0), vec2(0.0, -1.0),",
+                "    vec2(1.0, 0.0), vec2(1.0, 0.0), vec2(1.0, 0.0),",
+                "    vec2(0.0, 1.0), vec2(0.0, 1.0), vec2(0.0, 1.0),",
+                "    vec2(-1.0, 0.0), vec2(-1.0, 0.0), vec2(-1.0, 0.0));",
+                "void main() { o = vec4(DIRECTIONS[0], 0.0, 1.0); }"
+            ]),
+            entry("param", [
+                "vec2 bilinear(vec2[4] v, float t0, float t1) {" +
+                    " return mix(v[0], v[1], clamp(t0, 0.0, 1.0)) + vec2(t1); }",
+                "void main() { o = vec4(bilinear(vec2[](vec2(0.0), vec2(1.0), vec2(2.0), vec2(3.0))," +
+                    " 0.0, 1.0), 0.0, 1.0); }"
+            ]),
+            entry("return", [
+                "uniform vec2 u_flow;",
+                "vec4[4] computeWaveFactors(out vec2 globalFlow, vec2 flowDir) {",
+                "    globalFlow = normalize(flowDir);",
+                "    return vec4[](",
+                "        vec4(globalFlow, 1.0, 0.5),",
+                "        vec4(globalFlow, 0.5, 0.25),",
+                "        vec4(globalFlow, 0.25, 0.125),",
+                "        vec4(globalFlow, 0.125, 0.125));",
+                "}",
+                "void main() { vec2 g; vec4 w[4] = computeWaveFactors(g, u_flow);" +
+                    " o = vec4(w[0].xy + g, 0.0, 1.0); }"
+            ]),
+            entry("params", [
+                "vec3 computeGerstnerOffset(vec3 pos, vec4[4] waves, out vec3 tangent," +
+                    " out vec3 binormal, float zScale, float wShift, float speed," +
+                    " float[4] amps, float[4] phases) {",
+                "    tangent = vec3(1.0, 0.0, 0.0); binormal = vec3(0.0, 0.0, 1.0);",
+                "    return pos + waves[0].xyz * amps[0] + vec3(phases[0]) * zScale" +
+                    " + vec3(wShift + speed);",
+                "}",
+                "void main() { vec3 t, b; vec4 w[4]; float a[4]; float p[4];",
+                "    o = vec4(computeGerstnerOffset(vec3(0.0), w, t, b, 1.0, 0.0, 1.0, a, p), 1.0); }"
+            ]),
+            entry("local", [
+                "void main() { vec4[4] waves; o = vec4(waves[0].xy, 0.0, 1.0); }"
+            ]),
+            entry("macro-size", [
+                "#ifndef COLOR_RAMP_COUNT",
+                "#define COLOR_RAMP_COUNT 5",
+                "#endif",
+                "vec3 colorRamp(float t, vec3[COLOR_RAMP_COUNT] colors) { return colors[1]; }",
+                "void main() { o = vec4(colorRamp(0.5," +
+                    " vec3[](vec3(0.0), vec3(1.0), vec3(2.0), vec3(3.0), vec3(4.0))), 1.0); }"
+            ]),
+            entry("ctor-arg", [
+                "vec3 colorRamp(float t, vec3 colors[5]) { return colors[1]; }",
+                "void main() { o = vec4(colorRamp(0.5," +
+                    " vec3[5](vec3(0.0), vec3(1.0), vec3(2.0), vec3(3.0), vec3(4.0))), 1.0); }"
+            ])
+        ];
+
+        function firstLine(log) {
+            var lines = String(log || "").split("\n");
+            for (var i = 0; i < lines.length; i++) {
+                if (lines[i].replace(/^\s+|\s+$/g, "").length > 0) return lines[i].slice(0, 80);
+            }
+            return "";
+        }
+
+        function compileOne(gl, type, source) {
+            var shader = gl.createShader(type);
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+            var ok = gl.getShaderParameter(shader, gl.COMPILE_STATUS) === true;
+            return { shader: shader, ok: ok, log: ok ? "" : firstLine(gl.getShaderInfoLog(shader)) };
+        }
+
+        function measure(gl, shape) {
+            var vertex = compileOne(gl, gl.VERTEX_SHADER, shape.vertex);
+            var pixel = compileOne(gl, gl.FRAGMENT_SHADER, shape.source);
+            var program = gl.createProgram();
+            gl.attachShader(program, vertex.shader);
+            gl.attachShader(program, pixel.shader);
+            gl.linkProgram(program);
+            var linked = gl.getProgramParameter(program, gl.LINK_STATUS) === true;
+            var log = pixel.log || (linked ? "" : firstLine(gl.getProgramInfoLog(program)));
+            gl.deleteProgram(program);
+            gl.deleteShader(vertex.shader);
+            gl.deleteShader(pixel.shader);
+            return { ok: vertex.ok && pixel.ok && linked, log: log };
+        }
+
         try {
             var canvas = document.createElement("canvas");
-            var gl = canvas.getContext("webgl2");
-            if (!gl) return false;
-            var pixel = gl.createShader(gl.FRAGMENT_SHADER);
-            gl.shaderSource(pixel, source);
-            gl.compileShader(pixel);
-            var ok = gl.getShaderParameter(pixel, gl.COMPILE_STATUS) === true;
-            gl.deleteShader(pixel);
+            /* The engine's own attributes: a context made some other way may not be the stack the
+             * engine's shaders are compiled on. */
+            var gl = canvas.getContext("webgl2",
+                { antialias: false, powerPreference: "high-performance" });
+            if (!gl) return { needed: true, detail: "no webgl2 context to ask" };
+            var renderer = glDescription(gl);
+            var refused = [];
+            for (var i = 0; i < SHAPES.length; i++) {
+                var result = measure(gl, SHAPES[i]);
+                if (!result.ok) refused.push(SHAPES[i].name + (result.log ? " (" + result.log + ")" : ""));
+            }
             var lose = gl.getExtension("WEBGL_lose_context");
             if (lose) lose.loseContext();
-            return ok;
+            var named = refused.slice(0, 2).join(", ") +
+                (refused.length > 2 ? " and " + (refused.length - 2) + " more" : "");
+            return {
+                needed: refused.length > 0,
+                detail: renderer + ": " + (refused.length > 0
+                    ? refused.length + " of " + SHAPES.length + " shapes refused: " + named +
+                        " -> lifting them"
+                    : "all " + SHAPES.length + " shapes compile and link -> the game's bytes")
+            };
         } catch (e) {
             report("shader arrays", e);
             /* Nothing could be measured: answer "not accepted", because lifting is the side that
              * compiles everywhere and the game's own spelling is exactly what this probe doubts. */
-            return false;
+            return { needed: true, detail: "the probe failed: " + String(e).slice(0, 60) };
         }
     })();
-    call(function (bridge) { return bridge.setShaderArrays(shaderArrays); });
+    call(function (bridge) { return bridge.setShaderArrays(!shaderArrays.needed, shaderArrays.detail); });
 
     /* The engine reports its real trouble through the console - a shader that will not compile, a
      * resource that will not load, an atlas that ran out of slots - and on a release build none of

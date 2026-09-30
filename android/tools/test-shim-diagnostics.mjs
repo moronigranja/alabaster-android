@@ -75,25 +75,40 @@ function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = nul
                     FRAGMENT_SHADER: 0x8b30,
                     COMPILE_STATUS: 0x8b81,
                     LINK_STATUS: 0x8b82,
-                    getParameter: (which) => which,
-                    getExtension: () => null,
-                    /* The link probe: `tablesLink: false` stands for a compiler that cannot carry the
-                     * game's own 256-slot table (SwiftShader, issue #1). */
-                    createShader: (type) => ({ type }),
+                    /* The array probe reads the renderer of its own context, the way the facts line
+                     * reads the engine's. */
+                    getParameter: (which) => (which === 0x9246 ? "test-gl" : which),
+                    getExtension: (name) =>
+                      name === "WEBGL_debug_renderer_info" ? { UNMASKED_RENDERER_WEBGL: 0x9246 } : null,
+                    /* Two probes ask two different questions, and each is answered for every shader
+                     * the shim compiles. The link probe: `tablesLink: false` stands for a compiler
+                     * that cannot carry the game's own 256-slot table (SwiftShader, issue #1). The
+                     * array probe: a compiler that does not carry a shader's declared default
+                     * precision onto an array type written `type[size]` refuses exactly those
+                     * shaders - and nothing else, so a device that refuses them is exercised as one. */
+                    createShader: (type) => ({ type, source: "", ok: true, log: "" }),
                     shaderSource: (shader, source) => {
                       shader.source = source;
                       shaderSources.push(source);
                     },
-                    compileShader: () => {},
-                    /* Two probes ask two different questions, and which one is being answered is read
-                     * off the source the shim just compiled: the link probe carries the slot table,
-                     * the array probe the declarations the Mali report named. */
-                    getShaderParameter: (shader) =>
-                      (shader.source.includes("vec3[5] colors") ? arraysCompile : tablesLink),
-                    createProgram: () => ({}),
-                    attachShader: () => {},
-                    linkProgram: () => {},
-                    getProgramParameter: () => tablesLink,
+                    compileShader: (shader) => {
+                      const sized = /\b(vec[234]|float|int)\s*\[\s*[0-9A-Za-z_]/.test(shader.source);
+                      shader.ok = arraysCompile || !sized;
+                      shader.log = shader.ok
+                        ? ""
+                        : "0:62: S0032: no default precision defined for variable 'vec4[4]'";
+                    },
+                    getShaderParameter: (shader, which) => (which === 0x8b81 ? shader.ok : false),
+                    getShaderInfoLog: (shader) => shader.log,
+                    createProgram: () => ({ shaders: [], ok: true, log: "" }),
+                    attachShader: (program, shader) => program.shaders.push(shader),
+                    linkProgram: (program) => {
+                      const slots = program.shaders.some((s) => s.source.includes("u_slot"));
+                      program.ok = (tablesLink || !slots) && program.shaders.every((s) => s.ok);
+                      program.log = program.ok ? "" : "ERROR: link failed";
+                    },
+                    getProgramParameter: (program, which) => (which === 0x8b82 ? program.ok : 0),
+                    getProgramInfoLog: (program) => program.log,
                     deleteShader: () => {},
                     deleteProgram: () => {},
                   }
@@ -131,7 +146,7 @@ function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = nul
     reportJsError: (message) => errors.push(message),
     setVertexUniformVectors: (vectors) => vertexUniforms.push(vectors),
     setShaderTables: (oneTable, twoTables) => shaderTables.push({ oneTable, twoTables }),
-    setShaderArrays: (compiled) => shaderArrays.push(compiled),
+    setShaderArrays: (compiled, detail) => shaderArrays.push({ compiled, detail }),
     getGamepadJson: () => "",
     getViewAlign: () => viewAlign,
     getStatsEnabled: () => false,
@@ -208,14 +223,27 @@ async function main() {
     JSON.stringify(probe.map((s) => s.length)));
   /* The second document-start question, for the driver quirk a Mali-G720 report named (FINDINGS §22):
    * an ES 3.0 front end that does not carry a shader's declared default precision onto an array type
-   * written `type[size] name` / `type[size](…)`. The probe has to speak the game's own spellings. */
-  const arrayProbe = shaderSources.find((s) => s.includes("vec3[5] colors")) || "";
-  check("the page reports what its compiler did with the game's array declarations",
-    shaderArrays.length === 1 && shaderArrays[0] === true, JSON.stringify(shaderArrays));
+   * written `type[size] name` / `type[size](…)`. The probe has to speak the game's own declarations -
+   * one program per shape, on the engine's own kind of context, compiled **and linked** - because the
+   * device that made this necessary answered a compile-only question with "accepts" while refusing
+   * the game's own bytes (FINDINGS §22.5). */
+  const arrayProbe = shaderSources.filter((s) => s.includes("out vec4 o;"));
+  check("the array probe is one program per declaration the game's shaders write",
+    arrayProbe.length === 8, JSON.stringify(arrayProbe.map((s) => s.split("\n")[2])));
   check("the array probe compiles every declaration the Mali report named",
-    ["flat in vec2[4] v_flowDirs;", "vec3 ramp(float t, vec3[5] colors)", "vec4[4] waves()",
-      "vec4[4] w = waves();", "vec3[5](vec3(0.0)"].every((f) => arrayProbe.includes(f)),
-    arrayProbe.slice(0, 240));
+    ["flat in vec2[4] v_flowDirs;",
+      "const vec2[12] DIRECTIONS = vec2[](",
+      "vec2 bilinear(vec2[4] v, float t0, float t1) {",
+      "vec4[4] computeWaveFactors(out vec2 globalFlow, vec2 flowDir)",
+      "float[4] amps, float[4] phases) {",
+      "vec4[4] waves;",
+      "vec3[COLOR_RAMP_COUNT] colors",
+      "vec3[5](vec3(0.0)"].every((f) => arrayProbe.some((s) => s.includes(f))),
+    JSON.stringify(arrayProbe.map((s) => s.length)));
+  check("the page reports what its compiler did with the game's array declarations",
+    shaderArrays.length === 1 && shaderArrays[0].compiled === true &&
+      shaderArrays[0].detail === "test-gl: all 8 shapes compile and link -> the game's bytes",
+    JSON.stringify(shaderArrays));
 
   // Progress frozen past the threshold: exactly one stall report, naming what is pending by kind.
   await new Promise((r) => setTimeout(r, 120));
@@ -324,10 +352,16 @@ async function main() {
     noTables.shaderTables.length === 1 && noTables.shaderTables[0].oneTable === false &&
     noTables.shaderTables[0].twoTables === false, JSON.stringify(noTables.shaderTables));
   /* A compiler that refuses the array declarations (the reporting Mali device) must be reported as
-   * such: that answer is what makes the app serve the lifted spelling. */
+   * such, and the line must name what it refused: that answer is what makes the app serve the lifted
+   * spelling, and the names are what the next device to disagree is read from. */
   const noArrays = bootShim({ arraysCompile: false });
-  check("a compiler that refuses the game's array declarations reports that",
-    noArrays.shaderArrays.length === 1 && noArrays.shaderArrays[0] === false, JSON.stringify(noArrays.shaderArrays));
+  const refusal = noArrays.shaderArrays[0]?.detail || "";
+  check("a compiler that refuses the game's array declarations reports that, with the shapes named",
+    noArrays.shaderArrays.length === 1 && noArrays.shaderArrays[0].compiled === false &&
+    refusal.startsWith("test-gl: 8 of 8 shapes refused: in/out (0:62: S0032") &&
+    refusal.includes(", const-global (0:62: S0032") &&
+    refusal.endsWith("and 6 more -> lifting them"),
+    JSON.stringify(noArrays.shaderArrays));
 
   /* The facts carry the resolution the engine renders at — the Resolution option times SCREEN
    * (640x360). It is the number behind "the game is too slow" and behind how large the dither's dots

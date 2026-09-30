@@ -133,13 +133,20 @@ class AdaBridge(
      * ends refuse them with `S0032: no default precision defined for variable 'vec4[4]'` (see
      * [ShaderArrays]); the shaders are fetched after this lands, so a late answer only ever means the
      * game's own bytes.
+     *
+     * [detail] is the probe's own line: the renderer of the context it asked on and what each shape
+     * did. The answer used to be one bit from one synthetic shader, and on the device this exists for
+     * that bit was wrong - the driver accepted the synthetic text and refused the game's own bytes, so
+     * the lift never ran and the boot froze again (FINDINGS 22.5).
      */
     @JavascriptInterface
-    fun setShaderArrays(compiled: Boolean) {
+    fun setShaderArrays(compiled: Boolean, detail: String) {
         ShaderArrays.report(!compiled)
         diag.line(
-            "shader arrays: the page's compiler " +
-                (if (compiled) "accepts the game's declarations" else "rejects them -> lifting them"),
+            "shader arrays: " + detail.ifBlank {
+                if (compiled) "the page's compiler accepts the game's declarations"
+                else "the page's compiler rejects them -> lifting them"
+            },
         )
     }
 

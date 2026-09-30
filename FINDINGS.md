@@ -2076,6 +2076,11 @@ uniform setters are read off `undefined`). His game is `0.1.0-7`; the copy this 
 against is `0.1.0-10`. No log was posted — the compiler's message is the one datum missing, and it is
 the one that decides what to do.
 
+**This is the *first* ZIP** (the stub workaround). The reporter later sent a **second** one — his real
+hand fix plus the log that names the driver's messages — and that is the one in the working tree here
+(`logs/mali/fixmali.zip`, the files under `logs/mali/fixmali/`, git-ignored as game files); it is read in
+§22.8. It contains no `weather-drops.frag` at all, which is the file the first ZIP had stubbed.
+
 ### 21.2 Nothing invalid in the bytes the port serves
 
 The four shaders, expanded the engine's own way (`#import "lib/x";` → `data/shader/lib/x.glsl`,
@@ -2284,16 +2289,20 @@ flowStrengths = float[4](…)` in `water-plane.vert`) are a spelling this driver
 stage — so they are left alone deliberately rather than by oversight. What the lift does *not* touch
 anywhere is the global `type[] name = type[](…)` form, which that device compiles.
 
-The gate is a document-start probe in the shim, in the shape of the slot probe (§17): one fragment
-shader built from the game's own spellings (a sized varying, a sized array parameter, an array return
-type, a sized local and a sized constructor), compiled on a throwaway context before the engine asks for
-anything, reported through `AdaBridge.setShaderArrays`. Only a page whose compiler *refuses* them gets
-the lift, and the record says which way it went:
+The gate is a document-start probe in the shim, in the shape of the slot probe (§17): it compiles the
+declarations the game's shaders are written with — one program per shape, on a context made with the
+engine's own attributes, **linked** — before the engine asks for anything, and reports through
+`AdaBridge.setShaderArrays`. Only a page whose compiler *refuses* one gets the lift, and the record says
+which way it went, and since §22.8 what each shape did:
 
 ```
-+24ms ENGINE shader arrays: the page's compiler rejects them -> lifting them
++24ms ENGINE shader arrays: Mali-G720 MC7: 2 of 8 shapes refused: in/out (0:62: S0032 …) -> lifting them
 +25ms ENGINE array declarations lifted in terra/data/shader/lib/water.glsl (9/9)
 ```
+
+(A first version of this gate compiled one *synthetic* shader of the same shapes and answered with one bit.
+That is what the Mali run in §22.8 falsified: the driver accepted the synthetic text and refused the
+game's own bytes, and the lift never ran.)
 
 A file whose bytes do not match (another build) is served as it came with a `Log.w` naming it — a
 partial lift would be worse than none. The files on the user's disk are never touched, and each rewritten
@@ -2329,13 +2338,94 @@ satisfies the rule is the one to serve.
 ### 22.7 What the next Mali record decides
 
 * Whether the lift is enough: the record now carries `shader arrays: …` and one `array declarations
-  lifted in …` line per file, so a run either boots or names the next type.
-* The reporter's own ZIP also stubbed `weather-drops.frag`, which carries **no** array type specifier at
-  all — under this rule it should compile, and the current record does not list it among the three
-  pending. If it fails on his build it fails for a second reason, and that reason is not in a record yet.
+  lifted in …` line per file, so a run either boots or names the next type. **Answered by §22.8**: the
+  first run's gate said `accepts` and the lift never ran, so the gate was hardened and the run repeats.
+* The reporter's **first** ZIP stubbed `weather-drops.frag`, which carries **no** array type specifier at
+  all — under this rule it compiles, and his own second ZIP, the one that boots on the device, does not
+  touch that file either. The current record does not list it among the three pending. If a later build
+  fails on it, it fails for a second reason that no record carries yet.
 * The driver named the `lib/water.glsl` `vec4[4]` in `water-plane.frag`, not that file's own
   `flat in vec2[4] v_flowDirs;` — either the driver reports one error per shader, or it resolves an
   interface array's precision from the vertex shader. The lift rewrites both spellings, so it does not
   depend on which.
 * Nothing here was measured on Mali hardware: the port has none. The fix is the spelling the driver's own
   rule calls for, verified end to end everywhere else it can be.
+
+---
+
+## 22.8 The device run: the old gate answered "accepts" (2026-09-30, issue #4)
+
+The reporter ran **0.7.1** and sent his own ZIP with the log in it. His log and the port's run are kept in
+the repo (`logs/mali/log alabaster fixmali.txt`, `logs/mali/log alabaster 0.7.1.txt`); the ZIP itself and
+his patched shaders stay in the working tree beside them as `logs/mali/fixmali.zip` and
+`logs/mali/fixmali/` — **git-ignored**, because they are game files and this repository carries none
+(`.gitignore`, "Game files"). His record shows the lift **never ran**:
+
+| t | line |
+|---|---|
+| +12845 ms | `shader arrays: the page's compiler accepts the game's declarations` |
+| +19565 ms | `Shader Errors: …/post/analog-filter.frag` — `0:62: S0032 … 'vec3[5]'` |
+| +21425 ms | `Shader Errors: …/water-plane.frag` — `0:275: S0032 … 'vec4[4]'` |
+| +21469 ms | `Shader Errors: …/water-fx-wall.frag` — `0:308: S0032 … 'vec4[4]'` |
+| +29877 / +45377 ms | `boot stall … at 97.2 % of 1763 resources; pending 49 (shader=3 …)` |
+
+So the gate's one bit was **wrong on the only device that ever needed it**: that driver accepted the
+synthetic shader's text and refused the game's own bytes, so the port served them and the boot froze. Every
+other stack measured (ANGLE, SwiftShader, Adreno, desktop) accepts both, which is why the "accepts" branch
+had never met a device that disagrees — a gate that decides from a **synthetic stand-in**, puts no evidence
+in the record, and has no way to notice the disagreement.
+
+**His hand patch confirms the rule on the hardware.** He fixed the same three shaders himself and his
+sessions boot (`boot: complete in 8782ms, 1757 resources`, no S0032) — through the *other* door into the
+same rule: an explicit precision on the array type, `highp vec4[4] computeWaveFactors(…)`,
+`mediump vec4 waves[4]`, and `flat in mediump vec2[4] v_flowDirs;`, i.e. the sized spelling **kept** with
+the precision written out. That is the sharpest datum in the file: it says the rule is exactly "the sized
+array type does not take the shader's declared default precision", which is what the lift answers by
+changing the spelling. (He also changed art, which the port does not copy: `max(0.65, …)` as a floor on the
+water's alpha, two `discard`s commented out — the water edge and the foam borders — the second wave's
+amplitude `0.5 → 0.6`, and the analog-filter ramp's fourth colour `132 → 152`.)
+
+**A second failure class, from his precision edits.** Raising the *default* precision in one stage only
+leaves a shared uniform with two precisions, and this driver refuses the program:
+
+```
+Unable to initialize the shader program data/shader/vertex/water-plane.vert +data/shader/fragment/water-plane.frag:
+  Uniforms with the same name but different type/precision: u_waveHeight
+… data/shader/vertex/water-fx-wall.vert +data/shader/fragment/water-fx-wall.frag: … u_cameraProjM
+```
+
+Checked against the port's own precision change (§16): `ShaderPrecision` raises `gui.frag`, **`gui.vert`**,
+`gui-bg.frag` and `gui-blur.frag`, and every GUI fragment in the game pairs with `gui.vert` — the only GUI
+vertex shader there is — so both stages of every GUI program are raised and no uniform is left mismatched.
+No action taken; the hazard is recorded here for the next precision edit.
+
+**The gate, hardened.** The rule this section is about is that a *stand-in* must never decide something a
+frozen boot depends on. The probe now:
+
+* compiles **the declarations the game's shaders are written with**, copied from the files the rule names,
+  one program per shape: the varying; the global `const vec2[12] DIRECTIONS = vec2[](…)`; the `vec2[4]`
+  parameter; the array **return type** with its `out` parameter; the `float[4]`/`vec4[4]` parameter list;
+  the sized local; the parameter sized by a macro; and the sized constructor in an argument;
+* asks on a context made with the **engine's own attributes** (`{antialias:false,
+  powerPreference:"high-performance"}`) and reports that context's own renderer — a stack the page opened
+  some other way is not the stack the engine's shaders are compiled on;
+* **links** every program, not only compiles it: this front end answered a compile-only question
+  differently from the engine's own compiles;
+* answers one-sidedly — **any** shape refused, a context that cannot be made, or a probe that throws all
+  mean "lift". Lifting is the side that compiles everywhere with identical active uniforms and attributes
+  (§22.6), and the game's own spelling is exactly what the probe doubts, so doubting wrongly costs a frozen
+  boot while lifting wrongly costs nothing;
+* puts what each shape did into the record, so the next device that disagrees names it:
+  `shader arrays: <renderer>: 2 of 8 shapes refused: in/out (0:62: S0032 …), return (…) -> lifting them`.
+
+Measured: the shim harness (54 checks; three are the gate's own — eight programs, every named declaration
+present, and a refusing compiler's line naming the shapes), and the **real shim in Chromium on a working
+stack** — `ANGLE (AMD, … OpenGL ES 3.2): all 8 shapes compile and link -> the game's bytes`, verdict
+"accepted", with the three real expanded shaders still compiling afterwards on a fresh context of the same
+page, which is also the check that the probe does not poison what compiles next (§22.6's warning).
+
+What this still is not: *measured on Mali*. If that device's next record says `all 8 shapes compile and
+link` while its compile still fails, the remaining difference is the **context** — the probe asks on one it
+makes itself, before the engine has one — and the next lever is to run the same shapes on `window.g.gl`
+itself at first-shader time, through the await the gate already uses. If the record says the lift ran and a
+shader still fails, the forwarded S0032 names the file and the type.
