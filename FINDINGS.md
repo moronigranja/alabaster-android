@@ -2429,3 +2429,46 @@ link` while its compile still fails, the remaining difference is the **context**
 makes itself, before the engine has one — and the next lever is to run the same shapes on `window.g.gl`
 itself at first-shader time, through the await the gate already uses. If the record says the lift ran and a
 shader still fails, the forwarded S0032 names the file and the type.
+
+---
+
+## 22.9 The second device run: the probe works, the water compiles, and the lift's own line was missing (2026-09-30)
+
+Two more records from the same phone, both **0.7.2 (13)**, one per WebView GL driver (kept as
+`logs/mali/log alabaster 0.7.2 angle.txt` and `… native.txt`):
+
+**ANGLE** — `gl=ANGLE (ARM, Vulkan 1.3.278 (Mali-G720 MC7 (0xC8700010)), Mali-G720 MC7-49.1.0)`:
+`shader arrays: ANGLE (ARM, …): all 8 shapes compile and link -> the game's bytes` (eight at the time),
+no lift, `boot: complete in 9240ms, 1757 resources`. **That is why the device runs on ANGLE**: ANGLE's own
+front end takes those declarations, the driver's front end never sees them, and the gate is right to serve
+the game's bytes. His report of that run — "it works with the angle driver now, but the water is invisible"
+— is therefore a *rendering* question, with no shader failure anywhere in the record.
+
+**Native** — `gl=Mali-G720 MC7`:
+`shader arrays: Mali-G720 MC7: 1 of 8 shapes refused: return (0:15: S0032: no default precision defined for
+variable 'vec4[4]') -> lifting them`. **The hardened gate works on the device it exists for**, and the lift
+runs. And the water shaders then compile — they are no longer in the pending list; only
+`analog-filter.frag` still fails (`0:62: S0032 … 'vec3[5]'`), so the boot stalled at 99.0 % with
+`pending 18 (shader=1 …)`.
+
+What that record could **not** say is what §22.8's gate was only half of: the lift's per-file outcome was
+`Log.i` — logcat only. So "the water shaders compile" cannot be attributed: it is either `water.glsl`'s
+nine edits or the reporter's own hand-fixed copies still in his game folder (§21.1/§22.8); and
+"`analog-filter` still fails" is either a file whose bytes carried none of the one edit the lift has for it
+(served as it came) or a driver that refuses the lifted form. **v0.7.3 puts both cases in the record**:
+
+```
+array declarations lifted in terra/data/shader/lib/water.glsl (9/9)
+array declarations NOT lifted in terra/data/shader/fragment/post/analog-filter.frag (0/1): its bytes carry none
+```
+
+And the gate grew the one shape its halves did not add up to. The post pass is a **macro-sized parameter
+called with a sized constructor**; both halves (`macro-size`, `ctor-arg`) compile on that driver, and the
+pair is what the file is — so `ramp-call` is now probed as one shape, nine programs in all. That is the
+second time this rule taught the same lesson: a gate must speak the *whole* construct, not the pieces.
+
+Still open, and now the reporter's question rather than ours: **the water is invisible on ANGLE**, with no
+shader failure in the record. Its candidates are the reporter's own patched water files — which change the
+water's alpha floor, its two border `discard`s and a wave amplitude (§22.8) — still being in the game
+folder, or an ANGLE-on-Mali rendering difference in the water pass itself. A run with the game's original
+files, plus a screenshot, is what separates them.

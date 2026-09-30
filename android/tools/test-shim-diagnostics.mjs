@@ -229,7 +229,7 @@ async function main() {
    * the game's own bytes (FINDINGS §22.5). */
   const arrayProbe = shaderSources.filter((s) => s.includes("out vec4 o;"));
   check("the array probe is one program per declaration the game's shaders write",
-    arrayProbe.length === 8, JSON.stringify(arrayProbe.map((s) => s.split("\n")[2])));
+    arrayProbe.length === 9, JSON.stringify(arrayProbe.map((s) => s.split("\n")[2])));
   check("the array probe compiles every declaration the Mali report named",
     ["flat in vec2[4] v_flowDirs;",
       "const vec2[12] DIRECTIONS = vec2[](",
@@ -240,9 +240,14 @@ async function main() {
       "vec3[COLOR_RAMP_COUNT] colors",
       "vec3[5](vec3(0.0)"].every((f) => arrayProbe.some((s) => s.includes(f))),
     JSON.stringify(arrayProbe.map((s) => s.length)));
+  /* The post pass is *one* shape, not two: a parameter sized by a macro, called with a sized
+   * constructor. Both halves can compile while the pair does not (FINDINGS §22.9). */
+  check("the array probe compiles the post pass's own pair, not only its halves",
+    arrayProbe.some((s) => s.includes("vec3[COLOR_RAMP_COUNT] colors") && s.includes("vec3[5](vec3(0.0)")),
+    JSON.stringify(arrayProbe.filter((s) => s.includes("COLOR_RAMP_COUNT")).map((s) => s.length)));
   check("the page reports what its compiler did with the game's array declarations",
     shaderArrays.length === 1 && shaderArrays[0].compiled === true &&
-      shaderArrays[0].detail === "test-gl: all 8 shapes compile and link -> the game's bytes",
+      shaderArrays[0].detail === "test-gl: all 9 shapes compile and link -> the game's bytes",
     JSON.stringify(shaderArrays));
 
   // Progress frozen past the threshold: exactly one stall report, naming what is pending by kind.
@@ -358,9 +363,9 @@ async function main() {
   const refusal = noArrays.shaderArrays[0]?.detail || "";
   check("a compiler that refuses the game's array declarations reports that, with the shapes named",
     noArrays.shaderArrays.length === 1 && noArrays.shaderArrays[0].compiled === false &&
-    refusal.startsWith("test-gl: 8 of 8 shapes refused: in/out (0:62: S0032") &&
+    refusal.startsWith("test-gl: 9 of 9 shapes refused: in/out (0:62: S0032") &&
     refusal.includes(", const-global (0:62: S0032") &&
-    refusal.endsWith("and 6 more -> lifting them"),
+    refusal.endsWith("and 7 more -> lifting them"),
     JSON.stringify(noArrays.shaderArrays));
 
   /* The facts carry the resolution the engine renders at — the Resolution option times SCREEN

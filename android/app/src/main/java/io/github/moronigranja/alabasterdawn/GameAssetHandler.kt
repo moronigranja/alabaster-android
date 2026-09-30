@@ -206,11 +206,19 @@ class GameAssetHandler(
      */
     private fun arrayTypes(rel: String, source: ByteArray): ByteArray {
         val served = ShaderArrays.rewrite(rel, String(source, Charsets.UTF_8))
+        /* Both outcomes go into the record, not only logcat: whether a file was lifted is what a
+         * shader that still fails is read against, and the served bytes are the only place that answer
+         * exists. A file whose bytes carry none of the declarations (another build of the game, or one a
+         * player edited) is served as it came; a *partial* match is served as well, and its count says
+         * so. The Mali run this line exists for reported only the probe's verdict, so a file that was
+         * never lifted and one that was lifted wrongly looked identical (FINDINGS §22.9). */
         if (served.applied == 0) {
             Log.w(TAG, "$rel carries none of the array declarations the port lifts; serving it as it came")
+            diag.line("array declarations NOT lifted in $rel (0/${served.expected}): its bytes carry none")
             return source
         }
         Log.i(TAG, "array declarations lifted in $rel (${served.applied}/${served.expected})")
+        diag.line("array declarations lifted in $rel (${served.applied}/${served.expected})")
         return served.text.toByteArray(Charsets.UTF_8)
     }
 

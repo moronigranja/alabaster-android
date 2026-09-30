@@ -263,6 +263,18 @@
                 "vec3 colorRamp(float t, vec3 colors[5]) { return colors[1]; }",
                 "void main() { o = vec4(colorRamp(0.5," +
                     " vec3[5](vec3(0.0), vec3(1.0), vec3(2.0), vec3(3.0), vec3(4.0))), 1.0); }"
+            ]),
+            /* The post pass's own pair, exactly as `lib/color-utils.glsl` and
+             * `fragment/post/analog-filter.frag` write it: a parameter sized by a macro, called with a
+             * sized constructor. Each half is above; this is the combination the file is, and the Mali
+             * run in §22.9 is what showed the halves are not the whole. */
+            entry("ramp-call", [
+                "#ifndef COLOR_RAMP_COUNT",
+                "#define COLOR_RAMP_COUNT 5",
+                "#endif",
+                "vec3 colorRamp(float t, vec3[COLOR_RAMP_COUNT] colors) { return colors[1]; }",
+                "void main() { o = vec4(colorRamp(0.5," +
+                    " vec3[5](vec3(0.0), vec3(1.0), vec3(2.0), vec3(3.0), vec3(4.0))), 1.0); }"
             ])
         ];
 
