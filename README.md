@@ -411,7 +411,10 @@ android/tools/release.sh --upload --publish --notes docs/release-0.7.2.md
 
 `--notes` takes the **release body**: since v0.5 that is a terse changelog plus links to the full
 `docs/release-notes-<version>.md` and the README, so the GitHub release page stays short and the
-install/requirements/limitations text lives in the README only.
+install/requirements/limitations text lives in the README only. Keep that body **user-facing and plain** —
+what changed, what to do, what is verified, upgrading — and leave the mechanism, logs and measurements to
+`docs/release-notes-<version>.md` and `FINDINGS.md`. v0.7.2 was first published with the long notes as the
+body; do not repeat that.
 
 `tools/release.sh` renames the shipped artifact to `AlabasterDawn-Android-<version>.apk` (never
 `app-release-unsigned.apk`, never `app-debug.apk`) and runs the digest and signature checks on that
