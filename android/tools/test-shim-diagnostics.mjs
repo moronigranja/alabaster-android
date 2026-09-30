@@ -205,6 +205,11 @@ async function main() {
   check("the facts name the GL backend and the audio state",
     facts[0]?.payload.includes("gl=test-gl") && facts[0]?.payload.includes("audio=suspended"),
     facts[0]?.payload);
+  /* The driver field (FINDINGS §22.11): on Mali phones `native` vs `ANGLE` is the whole difference
+   * between the game starting and the boot freezing, and it is derived from the renderer string — the
+   * harness's renderer is not ANGLE, so the field must say `native`. */
+  check("the facts say which GL driver the page got",
+    facts[0]?.payload.includes("driver=native"), facts[0]?.payload);
   check("reports nothing but the shim's own load line",
     errors.length === 1 && errors[0] === "shim: loaded", JSON.stringify(errors));
   check("the device's vertex-uniform budget reaches the bridge",

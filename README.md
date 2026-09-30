@@ -291,7 +291,7 @@ no reload, setting kept), kept the app in the task list across an Exit (`dumpsys
 still listed the task, and tapping the card started a new pid on the setup screen), and booted clean
 (`ENGINE boot: complete in 3013ms, 1757 resources`) with no console lines in the record. The shader
 work has unit tests behind it (`ShaderPrecisionTest`, `ShaderSlotsTest`, `ShaderDitherTest`) and the
-harness has 59 checks; the dither change was measured in a harness that renders the engine's own
+harness has 60 checks; the dither change was measured in a harness that renders the engine's own
 dither lines verbatim. See `FINDINGS.md` §16-§20.
 
 The **Mali shader report** (2026-09-30) was read back from the same device (a Poco X7 Pro, Mali-G720), and

@@ -2552,7 +2552,7 @@ the right stack, and puts the answer in the record he already knows how to send:
   with its own GL stack, and the platform's ANGLE is the system apk plus that per-package opt-in.
 
 Measured: `ShaderVariantsTest` (the expansion, every case, the `#define` placement, an unreadable file);
-the shim harness at **59 checks**, four of them the self-test's own (the engine-context path, a
+the shim harness at **60 checks**, four of them the self-test's own (plus the 'driver=…' field) (the engine-context path, a
 per-case verdict line, the summary reaching the app, and a case the app cannot build being reported as
 *unavailable* rather than as a refusal); and the real shim in Chromium against the fourteen generated
 cases — all fourteen compiled, one line each, summary delivered.
