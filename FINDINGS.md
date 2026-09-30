@@ -2517,3 +2517,45 @@ That is a result about the **bug**, not about the fix:
   per-file record is the measurement: `array declarations lifted in … (9/9)` beside the next `S0032` says
   whether that spelling is enough for r49 — and if it is not, the probe's `variants/` set is the list of
   spellings still to try, on the device itself.
+
+---
+
+## 22.11 Asking the phone instead of guessing (2026-09-30, v0.7.4)
+
+§22.10 measured four Mali generations and **none** of them refuse the game's bytes; the only refusing
+front end reachable from here is a user's phone (Mali-G720, driver r49). So the port asks *that* phone, in
+the right stack, and puts the answer in the record he already knows how to send:
+
+* **A shader self-test in the Troubleshoot panel.** `ShaderVariants` builds the game's own fragment
+  shaders — expanded the engine's way (`#import` inlined, the engine's `#define`s in place) — in every
+  spelling the port could serve: the post pass as the game writes it, with the port's lift, with each half
+  of that lift alone, and with each candidate repair (`local-ramp`, `global-ramp`, `mediump`/`highp` on the
+  parameter); the water family in both spellings. The page fetches the texts over a reserved path
+  (`ada-variants`, served by `GameAssetHandler` from the game's own bytes **on the device**, never from
+  the repo) and compiles each on **this device's front end** — the engine's own context when there is one,
+  a throwaway context otherwise — reporting one line per case and a summary:
+
+  ```
+  shader self-test: analog-filter~original compile=0 link=- log=0:62: S0032: no default precision defined for variable 'vec3[5]'
+  shader self-test: 14 cases, 13 compile, refused=analog-filter~original
+  ```
+
+  One tap, and the phone says which spelling its driver takes — the question four cloud runs and six
+  reports could only narrow. The texts never leave the device, and nothing about them is cached.
+* **The driver, in the record**: `driver=native|ANGLE`, derived from the renderer string. That difference
+  is the whole story of the last two Mali reports (the native driver refuses the declarations, ANGLE's own
+  front end never sees them), and an app can neither read nor write the choice.
+* **The switch, explained where it helps**: an **OpenGL driver** button in the same panel opens ANGLE
+  Preferences — `com.android.angle/.MainActivity`, or Google's `com.google.android.angle` — falling back to
+  Developer options, next to the sentence that says what to set it to. The port cannot set it itself (a
+  privileged `Settings.Global` entry), and **bundling ANGLE would change nothing**: the WebView renders
+  with its own GL stack, and the platform's ANGLE is the system apk plus that per-package opt-in.
+
+Measured: `ShaderVariantsTest` (the expansion, every case, the `#define` placement, an unreadable file);
+the shim harness at **58 checks**, three of them the self-test's own (the engine-context path, a
+per-case verdict line, and the summary reaching the app); and the real shim in Chromium against the
+fourteen generated cases — all fourteen compiled, one line each, summary delivered. The one step not
+exercised: the panel button's **on-device** click-through. The only phone in reach was behind a secure
+lock screen, and Android returns black frames from `screencap` for one, so the UI cannot be driven over
+adb. Everything behind the button is covered by the tests above; the button itself is three lines of
+`evaluateJavascript`.

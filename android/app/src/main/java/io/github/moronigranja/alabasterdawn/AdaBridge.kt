@@ -24,6 +24,12 @@ class AdaBridge(
     private val onQuit: () -> Unit,
 ) {
 
+    /**
+     * Set by the owner: the page's shader self-test finished (FINDINGS §22.11). Called on the
+     * JavaBridge thread, so the owner posts to the UI thread.
+     */
+    var onShaderSelfTestDone: ((String) -> Unit)? = null
+
     @JavascriptInterface
     fun getGamepadJson(): String {
         diag.noteFrame()
@@ -148,6 +154,17 @@ class AdaBridge(
                 else "the page's compiler rejects them -> lifting them"
             },
         )
+    }
+
+    /**
+     * The shader self-test's summary line, sent by the page once it has compiled every case
+     * (FINDINGS §22.11). The per-case verdicts arrive through [reportDiag]; this is the completion
+     * signal, and what the owner shows the refreshed record on.
+     */
+    @JavascriptInterface
+    fun shaderSelfTestDone(summary: String) {
+        diag.line("shader self-test done: $summary")
+        onShaderSelfTestDone?.invoke(summary)
     }
 
     /** Device-only failures would otherwise be a black screen with nothing in logcat. */

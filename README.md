@@ -291,7 +291,7 @@ no reload, setting kept), kept the app in the task list across an Exit (`dumpsys
 still listed the task, and tapping the card started a new pid on the setup screen), and booted clean
 (`ENGINE boot: complete in 3013ms, 1757 resources`) with no console lines in the record. The shader
 work has unit tests behind it (`ShaderPrecisionTest`, `ShaderSlotsTest`, `ShaderDitherTest`) and the
-harness has 55 checks; the dither change was measured in a harness that renders the engine's own
+harness has 58 checks; the dither change was measured in a harness that renders the engine's own
 dither lines verbatim. See `FINDINGS.md` §16-§20.
 
 The **Mali shader report** (2026-09-30) was read back from the same device (a Poco X7 Pro, Mali-G720), and
@@ -307,12 +307,23 @@ shape, on a context made with the engine's own attributes, compiled **and linked
 found the refusal and the lift ran, after which the two water shaders compile (native run:
 `logs/mali/log alabaster 0.7.2 native.txt`). One post-processing shader still fails there, and v0.7.3 makes
 the record say, per file, whether the lift applied — `array declarations lifted in … (9/9)`, or
-`… NOT lifted … (0/1): its bytes carry none` — which is the datum that was missing. Worth knowing when
-testing: **the WebView's ANGLE driver avoids the bug entirely** (ANGLE has its own shader front end, and the
-game boots with it — `… 0.7.2 angle.txt`), while the driver named *native* is what the port's own fix has to
-carry. The lift's bytes are verified by unit tests, `glslangValidator`, the shim harness (55 checks) and a
-boot A/B through the port's own shim in Chromium (identical active uniforms and attributes); this project
-has no Mali hardware, so that phone's own reports remain the test. See `FINDINGS.md` §21-§22.
+`… NOT lifted … (0/1): its bytes carry none`.
+
+**Measured on four other Mali generations, and asked of yours.** `tools/mali-probe/` — a small app that
+compiles the game's own shaders on a device's *native* driver — ran at Firebase Test Lab on a Pixel 8a
+(Mali-G715), Pixel 7 (G710), Pixel 6 (G78) and a Galaxy A35 (G68): **every case compiled on all four**,
+including the shapes other projects report this family refusing (`logs/mali/probe/`, `FINDINGS.md` §22.10).
+The reporting phone is a **Mali-G720 on driver r49**, so the refusal looks like a *driver revision*, not a
+GPU generation — a property that can arrive with a system update, which is why the port decides per device.
+Since v0.7.4 it can also ask the device directly: **Troubleshoot → "Test shader spellings"** compiles the
+game's own shaders in every spelling the port could serve, on your driver, and puts one verdict line each
+into the record (§22.11). The facts line carries `driver=native|ANGLE` too — on Mali phones that field is
+the difference between the game starting and the boot freezing — and **Troubleshoot → "OpenGL driver"**
+opens the screen where that choice is made, since an app can neither read nor write it.
+
+The lift's bytes are verified by unit tests, `glslangValidator`, the shim harness (58 checks) and a boot
+A/B through the port's own shim in Chromium (identical active uniforms and attributes); this project has no
+Mali hardware, so that phone's own reports remain the test. See `FINDINGS.md` §21-§22.
 
 ### Download
 
@@ -324,7 +335,7 @@ certificate** — `CN=Alabaster Dawn Android port, O=moronigranja, C=BR`, SHA-25
 install:
 
 ```bash
-apksigner verify --print-certs AlabasterDawn-Android-0.7.3.apk   # no SDK? keytool -printcert -jarfile …
+apksigner verify --print-certs AlabasterDawn-Android-0.7.4.apk   # no SDK? keytool -printcert -jarfile …
 ```
 
 The APK carries `assets/LICENSE` + `assets/NOTICE.md` inside, so the binary ships the notices it is
@@ -343,16 +354,17 @@ say) needs an uninstall first.
   code, and the port's own conversion is exactly what handles a missing one. A keyboard's keys carry
   their scan code and take the WebView's path untouched, which is the pre-0.6 behaviour for every key.
 * Performance is GPU-bound; see the ledger below before expecting 1080p.
-* **A shader some Mali drivers reject is handled, and the phone that has one is testing it.** Reported on
-  **Mali** (a Poco X7 Pro, Mali-G720): the device's own compiler refuses a shader the port serves with
+* **A shader some Mali drivers reject is handled, and the port can now ask the device itself.** Reported
+  on **Mali** (a Poco X7 Pro, Mali-G720): the device's compiler refuses a shader the port serves with
   `S0032: no default precision defined for variable 'vec3[5]'` / `'vec4[4]'` — an array written
-  `type[size] name`, which is valid ES 3.0 and works on Adreno, SwiftShader and desktop. The port serves
-  those five fragment-stage files in the declarator spelling for a device whose compiler refuses them, and
-  the check that decides it now compiles the game's own declarations and links them. On that phone the
-  check fires and the two water shaders compile; one post-processing shader is still being chased, and the
-  phone's record now names, per file, whether the fix applied. With the WebView's **ANGLE** driver the bug
-  does not happen at all. No Mali device is available here, so that phone's reports are the test —
-  `FINDINGS.md` §22.
+  `type[size] name`, which is valid ES 3.0 and works on Adreno, SwiftShader, desktop, and on four other
+  Mali generations measured through a device farm (§22.10). The port serves those five fragment-stage files
+  in the declarator spelling for a device whose compiler refuses them, and **Troubleshoot → "Test shader
+  spellings"** compiles every spelling it could serve on the device's own driver, one verdict line each,
+  so a phone that still refuses can say which spelling it wants (§22.11). With the WebView's **ANGLE**
+  driver the refusal does not happen at all — and the record now says which driver the page got
+  (`driver=native|ANGLE`), with a button that opens the screen where that choice is made. No Mali device is
+  available here beyond a reporter's, so that phone's reports are the test — `FINDINGS.md` §22.
 * **The emulator's software GL stack draws the in-game map wrong.** SwiftShader
   (`-gpu swiftshader_indirect`) renders black tiles with purple/pink fragments where the *same build*
   is correct on real hardware and on the same emulator with the host GPU (`-gpu host`). The port
@@ -402,7 +414,7 @@ keytool -genkeypair -keystore ~/.android/alabasterdawn-release.jks -alias alabas
 # then android/keystore.properties: storeFile / storePassword / keyAlias / keyPassword (chmod 600)
 
 android/tools/release.sh                       # signed build + digest + signature check
-android/tools/release.sh --upload --publish --notes docs/release-0.7.3.md
+android/tools/release.sh --upload --publish --notes docs/release-0.7.4.md
 ```
 
 `--notes` takes the **release body**: since v0.5 that is a terse changelog plus links to the full

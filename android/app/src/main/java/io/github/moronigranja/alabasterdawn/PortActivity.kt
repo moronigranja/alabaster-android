@@ -2,6 +2,7 @@ package io.github.moronigranja.alabasterdawn
 
 import android.app.Activity
 import android.content.ActivityNotFoundException
+import android.content.ComponentName
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
@@ -12,6 +13,7 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
+import android.provider.Settings
 import android.util.Log
 import android.view.InputDevice
 import android.view.KeyEvent
@@ -456,7 +458,11 @@ class PortActivity : Activity() {
                 telemetry = telemetry,
                 diag = diag,
                 onQuit = { runOnUiThread { exitGame() } },
-            ),
+            ).also { ada ->
+                /* The page's shader self-test finishes asynchronously; show the record again once it
+                 * carries the verdicts (FINDINGS §22.11). */
+                ada.onShaderSelfTestDone = { runOnUiThread { if (!isFinishing) showDiagnostics() } }
+            },
             BRIDGE_NAME
         )
         if (!injectShim) {
@@ -620,7 +626,14 @@ class PortActivity : Activity() {
     private fun showDiagnostics() {
         diag.line("diagnostics opened")
         val text = diag.snapshot(diagFacts())
-        DiagnosticsDialog(this, text, { shareDiagnostics(text) }, { resetVideoOptions() }).apply {
+        DiagnosticsDialog(
+            this,
+            text,
+            { shareDiagnostics(text) },
+            { resetVideoOptions() },
+            { runShaderSelfTest() },
+            { openDriverSettings() },
+        ).apply {
             setOnDismissListener {
                 /* The dialog held window focus, which blurred the page; hand it back like closeMenu. */
                 webView?.requestFocus()
@@ -631,6 +644,47 @@ class PortActivity : Activity() {
              * while it is open is expected, so the watchdog must not call it a hang. */
             engineActive = false
             show()
+        }
+    }
+
+    /**
+     * Asks the page to run the shader self-test (FINDINGS §22.11): every spelling the port could serve,
+     * compiled on this device's own GL front end. The verdicts arrive as record lines, and the summary
+     * brings this panel back with them in it.
+     */
+    private fun runShaderSelfTest() {
+        val page = webView
+        if (page == null) {
+            diag.line("shader self-test: no page to ask")
+            return
+        }
+        diag.line("shader self-test: asked")
+        page.evaluateJavascript("window.adaShaderSelfTest && window.adaShaderSelfTest()", null)
+    }
+
+    /**
+     * Where the driver choice lives: ANGLE Preferences — the ANGLE apk ships it as a Developer-options
+     * entry, under either of its two package names — with Developer options as the fallback. The port
+     * cannot set the choice itself (it is a privileged `Settings.Global` entry, FINDINGS §22.8), so the
+     * most it can do is put the screen in front of the user.
+     */
+    private fun openDriverSettings() {
+        for (component in ANGLE_PREFERENCES) {
+            val intent = Intent(Intent.ACTION_MAIN).setComponent(component)
+            if (packageManager.resolveActivity(intent, 0) == null) continue
+            try {
+                startActivity(intent)
+                diag.line("opened ${component.flattenToShortString()}")
+                return
+            } catch (e: Exception) {
+                Log.w(TAG, "cannot open $component", e)
+            }
+        }
+        try {
+            startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS))
+            diag.line("opened Developer options: no ANGLE Preferences on this device")
+        } catch (e: Exception) {
+            diag.line("no driver settings screen: ${e.javaClass.simpleName}")
         }
     }
 
@@ -1126,5 +1180,14 @@ class PortActivity : Activity() {
          * Event is all it takes: both listeners sit on `window` itself. */
         private const val PAGE_BLUR_JS = "window.dispatchEvent(new Event('blur'))"
         private const val PAGE_FOCUS_JS = "window.dispatchEvent(new Event('focus'))"
+
+        /**
+         * ANGLE Preferences, under both of the names its apk ships with: AOSP's `com.android.angle`
+         * and Google's `com.google.android.angle` (the activity is `MainActivity` in both).
+         */
+        private val ANGLE_PREFERENCES = listOf(
+            ComponentName("com.android.angle", "com.android.angle.MainActivity"),
+            ComponentName("com.google.android.angle", "com.google.android.angle.MainActivity"),
+        )
     }
 }

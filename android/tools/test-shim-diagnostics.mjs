@@ -40,13 +40,14 @@ const shimPath = join(dirname(fileURLToPath(import.meta.url)), "..", "app", "src
 const source = readFileSync(shimPath, "utf8");
 
 /** Installs the globals the shim expects and returns the recorder of what it reported. */
-function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = null, viewAlign = "center", tablesLink = true, arraysCompile = true, search = "", store = {}, fpsLimit = 0 } = {}) {
+function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = null, viewAlign = "center", tablesLink = true, arraysCompile = true, search = "", store = {}, fpsLimit = 0, variants = {} } = {}) {
   const reports = [];
   const errors = [];
   const vertexUniforms = [];
   const shaderTables = [];
   const shaderArrays = [];
   const shaderSources = [];
+  const selfTestDone = [];
   const resource = (name) => ({ identification: () => name });
 
   globalThis.window = globalThis;
@@ -55,6 +56,51 @@ function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = nul
   /* Node 24 defines some of these as getter-only globals, so they are (re)defined rather than set. */
   const define = (name, value) =>
     Object.defineProperty(globalThis, name, { value, configurable: true, writable: true });
+  /* The GL stub the throwaway canvas and the engine's own `g.gl` both hand out: the shim's slot/array
+   * probes and the shader self-test compile through these calls, and each probe's question is
+   * answered from the source it is handed. The link probe: `tablesLink: false` stands for a compiler
+   * that cannot carry the game's own 256-slot table (SwiftShader, issue #1). The array probe and the
+   * self-test: a compiler that does not carry a shader's declared default precision onto an array type
+   * written `type[size]` refuses exactly those shaders - and nothing else. */
+  const fakeGl = () => ({
+    MAX_VERTEX_UNIFORM_VECTORS: 256,
+    MAX_FRAGMENT_UNIFORM_VECTORS: 896,
+    MAX_VARYING_VECTORS: 31,
+    VERTEX_SHADER: 0x8b31,
+    FRAGMENT_SHADER: 0x8b30,
+    COMPILE_STATUS: 0x8b81,
+    LINK_STATUS: 0x8b82,
+    /* The probes read the renderer of their own context, the way the facts line reads the engine's. */
+    getParameter: (which) => (which === 0x9246 ? "test-gl" : which),
+    getExtension: (name) =>
+      name === "WEBGL_debug_renderer_info" ? { UNMASKED_RENDERER_WEBGL: 0x9246 } : null,
+    createShader: (type) => ({ type, source: "", ok: true, log: "" }),
+    shaderSource: (shader, source) => {
+      shader.source = source;
+      shaderSources.push(source);
+    },
+    compileShader: (shader) => {
+      const sized = /\b(vec[234]|float|int)\s*\[\s*[0-9A-Za-z_]/.test(shader.source);
+      shader.ok = arraysCompile || !sized;
+      shader.log = shader.ok
+        ? ""
+        : "0:62: S0032: no default precision defined for variable 'vec4[4]'";
+    },
+    getShaderParameter: (shader, which) => (which === 0x8b81 ? shader.ok : false),
+    getShaderInfoLog: (shader) => shader.log,
+    createProgram: () => ({ shaders: [], ok: true, log: "" }),
+    attachShader: (program, shader) => program.shaders.push(shader),
+    linkProgram: (program) => {
+      const slots = program.shaders.some((s) => s.source.includes("u_slot"));
+      program.ok = (tablesLink || !slots) && program.shaders.every((s) => s.ok);
+      program.log = program.ok ? "" : "ERROR: link failed";
+    },
+    getProgramParameter: (program, which) => (which === 0x8b82 ? program.ok : 0),
+    getProgramInfoLog: (program) => program.log,
+    deleteShader: () => {},
+    deleteProgram: () => {},
+  });
+
   define("performance", performance);
   define("navigator", {});
   define("document", {
@@ -63,57 +109,7 @@ function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = nul
      * asks for its first shader; without `getContext` it reports a `gl limits` error instead. */
     createElement: (tag) =>
       tag === "canvas"
-        ? {
-            style: {},
-            getContext: (kind) =>
-              kind === "webgl2"
-                ? {
-                    MAX_VERTEX_UNIFORM_VECTORS: 256,
-                    MAX_FRAGMENT_UNIFORM_VECTORS: 896,
-                    MAX_VARYING_VECTORS: 31,
-                    VERTEX_SHADER: 0x8b31,
-                    FRAGMENT_SHADER: 0x8b30,
-                    COMPILE_STATUS: 0x8b81,
-                    LINK_STATUS: 0x8b82,
-                    /* The array probe reads the renderer of its own context, the way the facts line
-                     * reads the engine's. */
-                    getParameter: (which) => (which === 0x9246 ? "test-gl" : which),
-                    getExtension: (name) =>
-                      name === "WEBGL_debug_renderer_info" ? { UNMASKED_RENDERER_WEBGL: 0x9246 } : null,
-                    /* Two probes ask two different questions, and each is answered for every shader
-                     * the shim compiles. The link probe: `tablesLink: false` stands for a compiler
-                     * that cannot carry the game's own 256-slot table (SwiftShader, issue #1). The
-                     * array probe: a compiler that does not carry a shader's declared default
-                     * precision onto an array type written `type[size]` refuses exactly those
-                     * shaders - and nothing else, so a device that refuses them is exercised as one. */
-                    createShader: (type) => ({ type, source: "", ok: true, log: "" }),
-                    shaderSource: (shader, source) => {
-                      shader.source = source;
-                      shaderSources.push(source);
-                    },
-                    compileShader: (shader) => {
-                      const sized = /\b(vec[234]|float|int)\s*\[\s*[0-9A-Za-z_]/.test(shader.source);
-                      shader.ok = arraysCompile || !sized;
-                      shader.log = shader.ok
-                        ? ""
-                        : "0:62: S0032: no default precision defined for variable 'vec4[4]'";
-                    },
-                    getShaderParameter: (shader, which) => (which === 0x8b81 ? shader.ok : false),
-                    getShaderInfoLog: (shader) => shader.log,
-                    createProgram: () => ({ shaders: [], ok: true, log: "" }),
-                    attachShader: (program, shader) => program.shaders.push(shader),
-                    linkProgram: (program) => {
-                      const slots = program.shaders.some((s) => s.source.includes("u_slot"));
-                      program.ok = (tablesLink || !slots) && program.shaders.every((s) => s.ok);
-                      program.log = program.ok ? "" : "ERROR: link failed";
-                    },
-                    getProgramParameter: (program, which) => (which === 0x8b82 ? program.ok : 0),
-                    getProgramInfoLog: (program) => program.log,
-                    deleteShader: () => {},
-                    deleteProgram: () => {},
-                  }
-                : null,
-          }
+        ? { style: {}, getContext: (kind) => (kind === "webgl2" ? fakeGl() : null) }
         : { style: {}, appendChild() {} },
     body: null,
   });
@@ -141,12 +137,17 @@ function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = nul
     removeItem: (key) => { delete store[key]; },
   });
   const limitFlag = { value: fpsLimit };
+  /* The shader self-test asks the app for its cases over the reserved path `ada-variants`; the harness
+   * serves whatever a case is given here, so both a refusing and an accepting verdict are exercised. */
+  const bodies = Object.assign({}, variants);
+  define("fetch", (url) => Promise.resolve({ text: () => Promise.resolve(bodies[url] ?? "") }));
   window.AdaBridge = {
     reportDiag: (kind, payload) => reports.push({ kind, payload }),
     reportJsError: (message) => errors.push(message),
     setVertexUniformVectors: (vectors) => vertexUniforms.push(vectors),
     setShaderTables: (oneTable, twoTables) => shaderTables.push({ oneTable, twoTables }),
     setShaderArrays: (compiled, detail) => shaderArrays.push({ compiled, detail }),
+    shaderSelfTestDone: (summary) => selfTestDone.push(summary),
     getGamepadJson: () => "",
     getViewAlign: () => viewAlign,
     getStatsEnabled: () => false,
@@ -163,7 +164,7 @@ function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = nul
     fsCopyFile: () => false,
   };
   window.g = {
-    gl: { getExtension: () => null, getParameter: () => "test-gl" },
+    gl: fakeGl(),
     audio: { context: { state: "suspended" } },
     resource: {
       bootTracker: {
@@ -185,7 +186,7 @@ function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = nul
   };
   /* eslint-disable-next-line no-eval */
   (0, eval)(source);
-  return { reports, errors, vertexUniforms, shaderTables, shaderArrays, shaderSources, tracker: window.g.resource.bootTracker, canvas, store, pump, limitFlag };
+  return { reports, errors, vertexUniforms, shaderTables, shaderArrays, selfTestDone, shaderSources, tracker: window.g.resource.bootTracker, canvas, store, pump, limitFlag };
 }
 
 const results = [];
@@ -367,6 +368,32 @@ async function main() {
     refusal.includes(", const-global (0:62: S0032") &&
     refusal.endsWith("and 7 more -> lifting them"),
     JSON.stringify(noArrays.shaderArrays));
+
+  /* The shader self-test (FINDINGS §22.11): the page asks the app for every spelling it could serve,
+   * compiles each on this device's own front end and puts the verdicts in the record. The harness's
+   * compiler refuses sized array types, so one case compiles and one does not — the shape the
+   * reporting Mali driver produces, read from the device instead of guessed at. */
+  const selfTest = bootShim({
+    arraysCompile: false,
+    variants: {
+      "/game/ada-variants": "post~original\npost~lifted\n",
+      "/game/ada-variants/post~original": "vec3[5](",
+      "/game/ada-variants/post~lifted": "vec3[](",
+    },
+  });
+  window.adaShaderSelfTest();
+  await new Promise((r) => setTimeout(r, 20));
+  const selfLines = selfTest.reports.filter((r) => r.kind === "shader self-test").map((r) => r.payload);
+  check("the shader self-test asks on the engine's own context",
+    selfLines.some((l) => l.includes("asking on the engine's context")), JSON.stringify(selfLines));
+  check("the shader self-test reports each case's verdict",
+    selfLines.includes(
+      "post~original compile=0 log=0:62: S0032: no default precision defined for variable 'vec4[4]'") &&
+    selfLines.includes("post~lifted compile=1 log=-"), JSON.stringify(selfLines));
+  check("the shader self-test summarises what this device takes, and the app is told",
+    selfLines.includes("2 cases, 1 compile, refused=post~original") &&
+    selfTest.selfTestDone[0] === "2 cases, 1 compile, refused=post~original",
+    JSON.stringify([selfLines, selfTest.selfTestDone]));
 
   /* The facts carry the resolution the engine renders at — the Resolution option times SCREEN
    * (640x360). It is the number behind "the game is too slow" and behind how large the dither's dots

@@ -86,6 +86,14 @@ object ShaderArrays {
     /** Whether [rel] is a shader the port lifts (whatever this device answered). */
     fun lifts(rel: String): Boolean = EDITS.containsKey(rel)
 
+    /**
+     * The port's own edits for [rel] — the table this file owns, for the shader self-test
+     * ([ShaderVariants]) and the case generator (`tools/mali-probe/`), so none of them can drift from
+     * what the port serves.
+     */
+    internal fun edits(rel: String): List<Pair<String, String>> =
+        EDITS[rel].orEmpty().map { it.find to it.replace }
+
     /** Whether [rel] is one of the shaders the port lifts on a device that needs it — so worth caching. */
     fun rewrites(rel: String): Boolean = rewriting() && lifts(rel)
 

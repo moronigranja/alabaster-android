@@ -83,9 +83,23 @@ class GameAssetHandler(
             return ok("application/javascript", "utf-8", shim)
         }
 
+        /* The shader self-test's cases (FINDINGS §22.11): the same file in every spelling the port
+         * could serve, built from the game's own bytes on this device and served to the page, which
+         * compiles each one on the WebView's own context and reports what this device's front end
+         * takes. A reserved path — no game file lives at `ada-variants` — and deliberately not cached:
+         * the page asks once, when the panel's button is tapped. */
+        if (rel == ShaderVariants.INDEX) {
+            val names = ShaderVariants.names().joinToString("\n", postfix = "\n")
+            return ok("text/plain", "utf-8", names.toByteArray(Charsets.UTF_8))
+        }
+        if (rel.startsWith("${ShaderVariants.INDEX}/")) {
+            val name = rel.removePrefix("${ShaderVariants.INDEX}/")
+            val text = ShaderVariants.text(name, ::gameShader) ?: return miss(rel)
+            return ok("text/plain", "utf-8", text.toByteArray(Charsets.UTF_8))
+        }
+
         val entry = index.find(rel) ?: return miss(rel)
         if (entry.isDir) return miss(rel)
-
         /* A rewritten asset served before: the bytes are the same for the process lifetime, so this
          * skips both the 12.7 MB read and the rewrite. ok() builds a fresh stream per call. */
         rewrite.get(rel)?.let { cached ->
@@ -306,6 +320,18 @@ class GameAssetHandler(
     } catch (e: Exception) {
         Log.e(TAG, "cannot read game document ${entry.docId}", e)
         null
+    }
+
+    /**
+     * A shader file's **own** bytes from the game tree, by its path below `terra/data/shader/` — what
+     * [ShaderVariants] expands and edits for the self-test. The port's own rewrites are deliberately
+     * not in play here: the cases are about the spellings the port *could* serve, so they are built
+     * from the game's text every time.
+     */
+    private fun gameShader(rel: String): String? {
+        val entry = index.find("terra/data/shader/$rel") ?: return null
+        if (entry.isDir) return null
+        return read(entry)?.toString(Charsets.UTF_8)
     }
 
     private fun documentUri(docId: String): Uri = DocumentsContract.buildDocumentUriUsingTree(treeUri, docId)

@@ -33,6 +33,14 @@ class DiagnosticsDialog(
      * drive the game is too slow to reach those; the dialog is the port's own and is always usable.
      */
     private val onResetResolution: () -> Unit,
+    /**
+     * Called on "Test shader spellings": the owner asks the page to compile every spelling of the
+     * game's array declarations on this device's own GL front end and report which it takes
+     * (FINDINGS §22.11). The point is that the port stops guessing: the phone answers.
+     */
+    private val onShaderSelfTest: () -> Unit,
+    /** Called on "OpenGL driver": the owner opens whatever screen sets it (ANGLE Preferences). */
+    private val onDriverSettings: () -> Unit,
 ) : Dialog(context) {
 
     private val status = TextView(context)
@@ -76,6 +84,19 @@ class DiagnosticsDialog(
         root.addView(status)
 
         root.addView(
+            TextView(context).apply {
+                /* The one instruction that has fixed a Mali phone so far, and the one thing an app
+                 * cannot do for itself: the driver choice is a privileged `Settings.Global` entry. */
+                text = "Does the game stop on its loading bar? On a Mali device that is the OpenGL " +
+                    "driver: open \"OpenGL driver\" below and set this app to ANGLE. If it starts, " +
+                    "the panel's spelling test says which shaders still disagree."
+                textSize = 12f
+                setTextColor(COLOR_DIM)
+                setPadding(0, dp(8), 0, 0)
+            }
+        )
+
+        root.addView(
             LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 addView(Button(context).apply {
@@ -92,6 +113,23 @@ class DiagnosticsDialog(
                 addView(Button(context).apply {
                     this.text = "Close"
                     setOnClickListener { dismiss() }
+                })
+            }
+        )
+
+        root.addView(
+            LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                addView(Button(context).apply {
+                    this.text = "Test shader spellings"
+                    setOnClickListener {
+                        onShaderSelfTest()
+                        dismiss()
+                    }
+                })
+                addView(Button(context).apply {
+                    this.text = "OpenGL driver"
+                    setOnClickListener { onDriverSettings() }
                 })
             }
         )

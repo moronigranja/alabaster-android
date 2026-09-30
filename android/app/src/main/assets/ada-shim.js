@@ -342,6 +342,99 @@
     })();
     call(function (bridge) { return bridge.setShaderArrays(!shaderArrays.needed, shaderArrays.detail); });
 
+    /* The shader self-test: what *this* device's front end does with the game's declarations, asked
+     * from the page instead of guessed from another device (FINDINGS §22.10). The app serves the same
+     * file in every spelling it could serve (`ShaderVariants`, over a reserved path), each one is
+     * compiled here, and the verdicts go into the record - one tap, and the phone says which spelling
+     * it takes. On the reporting Mali driver that is the difference between guessing at candidate
+     * edits and reading the answer off the device.
+     *
+     * It compiles on the engine's own context when there is one (the exact stack the engine's shaders
+     * are compiled on) and on a throwaway context otherwise. Nothing is asserted: it is an instrument,
+     * and a device that refuses everything still reports. */
+    var SELF_TEST_INDEX = "ada-variants";
+    var selfTestRunning = false;
+
+    function shaderSelfTest() {
+        if (selfTestRunning) return "running";
+        if (!HAS_BRIDGE) return "no bridge";
+        selfTestRunning = true;
+        reportDiag("shader self-test", "asking on " +
+            (window.g && window.g.gl ? "the engine's context" : "a throwaway context"));
+        fetch("/game/" + SELF_TEST_INDEX)
+            .then(function (response) { return response.text(); })
+            .then(function (body) { return runSelfTest(selfTestNames(body)); })
+            .then(function (summary) {
+                reportDiag("shader self-test", summary);
+                call(function (bridge) { return bridge.shaderSelfTestDone(summary); });
+            })
+            .catch(function (e) {
+                var message = "failed: " + String(e);
+                report("shader self-test", e);
+                reportDiag("shader self-test", message);
+                call(function (bridge) { return bridge.shaderSelfTestDone(message); });
+            })
+            .then(function () { selfTestRunning = false; });
+        return "started";
+    }
+
+    function selfTestNames(body) {
+        return String(body).split("\n")
+            .map(function (line) { return line.replace(/^\s+|\s+$/g, ""); })
+            .filter(function (line) { return line.length > 0; });
+    }
+
+    function runSelfTest(names) {
+        var engine = window.g && window.g.gl;
+        var gl = engine || document.createElement("canvas").getContext("webgl2",
+            { antialias: false, powerPreference: "high-performance" });
+        if (!gl) return Promise.resolve("no webgl2 context to ask");
+        var refused = [];
+        var sequence = Promise.resolve();
+        names.forEach(function (name) {
+            sequence = sequence.then(function () {
+                return fetch("/game/" + SELF_TEST_INDEX + "/" + encodeURIComponent(name))
+                    .then(function (response) { return response.text(); })
+                    .then(function (text) {
+                        var result = compileOnce(gl, text);
+                        if (!result.ok) refused.push(name);
+                        reportDiag("shader self-test", name + " compile=" + (result.ok ? 1 : 0) +
+                            " log=" + (result.log || "-"));
+                    });
+            });
+        });
+        return sequence.then(function () {
+            if (!engine) {
+                var lose = gl.getExtension("WEBGL_lose_context");
+                if (lose) lose.loseContext();
+            }
+            return names.length + " cases, " + (names.length - refused.length) + " compile" +
+                (refused.length ? ", refused=" + refused.join(",") : "");
+        });
+    }
+
+    function compileOnce(gl, source) {
+        var shader = gl.createShader(gl.FRAGMENT_SHADER);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        var ok = gl.getShaderParameter(shader, gl.COMPILE_STATUS) === true;
+        var log = ok ? "" : firstLineOf(gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return { ok: ok, log: log };
+    }
+
+    /* The first non-empty line of a driver's log, bounded: a record line, not a transcript. */
+    function firstLineOf(log) {
+        var lines = String(log || "").split("\n");
+        for (var i = 0; i < lines.length; i++) {
+            if (lines[i].replace(/^\s+|\s+$/g, "").length > 0) return lines[i].slice(0, 140);
+        }
+        return "";
+    }
+
+    /* The app asks the page to run it when the Troubleshoot panel's own button is tapped. */
+    window.adaShaderSelfTest = shaderSelfTest;
+
     /* The engine reports its real trouble through the console - a shader that will not compile, a
      * resource that will not load, an atlas that ran out of slots - and on a release build none of
      * that reaches a log anyone can read. Forward the first line of each (bounded, and the app
@@ -1093,7 +1186,13 @@
     }
 
     function sendFacts(gl) {
-        var parts = ["webgl2=" + !!window.WebGL2RenderingContext, "gl=" + glDescription(gl),
+        var glText = glDescription(gl);
+        var parts = ["webgl2=" + !!window.WebGL2RenderingContext, "gl=" + glText,
+            /* Which GL driver this page got is the whole story of the Mali reports: the native driver
+             * refuses the game's array declarations, ANGLE's own front end never sees them. An app
+             * cannot set that choice (it is a privileged `Settings.Global` entry), so the record must
+             * at least say which one it got. */
+            "driver=" + (/angle/i.test(glText) ? "ANGLE" : "native"),
             "uniforms=" + glLimits.vertexUniforms + "/" + glLimits.fragmentUniforms,
             "varyings=" + glLimits.varyingVectors,
             "resolution=" + resolutionText(),
