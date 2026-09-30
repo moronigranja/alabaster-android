@@ -16,9 +16,10 @@ import org.junit.Test
  * S0032: no default precision defined for variable 'vec3[5]'
  * ```
  *
- * for the `type[size] name` and `type[size](…)` spellings, and freezes the boot with those three
- * shaders pending. The port serves them lifted into the `type name[size]` spelling the same device is
- * known to accept, and only to a device whose own compiler refused them.
+ * for the `type[size] name` spelling and for an array **temporary** (`type[size](…)`, or unsized) — a
+ * temporary inherits no element precision in any spelling, so it is named instead. The port serves the
+ * lifted declaration spelling to a device whose own compiler refused the game's, and only to such a
+ * device.
  */
 class ShaderArraysTest {
 
@@ -103,7 +104,7 @@ class ShaderArraysTest {
     }
 
     @Test
-    fun `the fragment declarations and the ramp constructor are lifted too`() {
+    fun `the fragment declarations and the ramp are lifted too`() {
         ShaderArrays.report(true)
 
         val varying = "flat in vec2[4] v_flowDirs;"
@@ -133,8 +134,17 @@ class ShaderArraysTest {
             ),
         )
         assertEquals(1, ramp.applied)
-        assertTrue("only the size goes", ramp.text.contains("colorRamp(noise.r, vec3[]("))
-        assertTrue("the elements are untouched", ramp.text.contains("    midColor, //rgb(122., 101., 78.),"))
+        assertTrue("the ramp is named", ramp.text.contains("    vec3 adaRamp[5];"))
+        assertTrue(
+            "and filled with the game's own five values, in its order",
+            ramp.text.contains("    adaRamp[2] = midColor;") &&
+                ramp.text.contains("    adaRamp[3] = rgb(184., 170., 132.);"),
+        )
+        assertTrue("the call passes the name", ramp.text.contains("    vec3 color = colorRamp(noise.r, adaRamp);"))
+        assertFalse(
+            "no array temporary is left, sized or not",
+            ramp.text.contains("vec3[5](") || ramp.text.contains("vec3[]("),
+        )
 
         val colorUtils = ShaderArrays.rewrite(
             "terra/data/shader/lib/color-utils.glsl",

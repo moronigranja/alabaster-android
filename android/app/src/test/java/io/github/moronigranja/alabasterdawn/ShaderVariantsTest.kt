@@ -7,12 +7,13 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The shader self-test's cases (FINDINGS §22.11): the game's own fragment shaders, expanded the engine's
- * way, each in a spelling the port could serve — so a device can say which one *its* front end takes.
+ * The shader self-test's cases (FINDINGS §22.11): each shader the port lifts, **expanded the engine's
+ * way**, twice — the game's own bytes and the bytes the port would serve — so a device can say which
+ * spelling *its* front end accepts.
  *
- * The fixture carries the post pass's own call and parameter verbatim (they are what the cases edit) and
- * builds the water files out of the port's own edit table: what these tests check is the pipeline
- * (expansion, edits, `#define`s), while the game's real bytes are verified by `glslang`, the boot A/B
+ * The fixture carries the post pass's own call and parameter verbatim (they are what the lift rewrites)
+ * and builds the water files out of the port's own edit table: what these tests check is the pipeline
+ * (expansion, the lift, `#define`s), while the game's real bytes are verified by `glslang`, the boot A/B
  * through the shim (§22.6) and the device probe (§22.10).
  */
 class ShaderVariantsTest {
@@ -63,18 +64,12 @@ class ShaderVariantsTest {
     }
 
     @Test
-    fun `the cases are the shaders the lift touches, each spelling of the post pass`() {
+    fun `the cases are every lifted shader, the game's bytes and the port's`() {
         val names = ShaderVariants.names()
         assertEquals(names.size, names.toSet().size)
         for (expected in listOf(
             "analog-filter~original",
             "analog-filter~lifted",
-            "analog-filter~lifted-ctor-only",
-            "analog-filter~lifted-param-only",
-            "analog-filter~local-ramp",
-            "analog-filter~global-ramp",
-            "analog-filter~mediump-param",
-            "analog-filter~highp-param",
             "water-plane~original",
             "water-plane~lifted",
             "water-fx-wall~original",
@@ -99,51 +94,14 @@ class ShaderVariantsTest {
     fun `the lifted case is the port's own lift, both halves`() {
         fixture()
         val text = ShaderVariants.text("analog-filter~lifted", read)!!
-        assertTrue(text.contains("colorRamp(noise.r, vec3[]("))
-        assertTrue(text.contains("vec3 colorRamp(float t, vec3 colors[COLOR_RAMP_COUNT]) {"))
-        assertFalse("the sized spelling is gone", text.contains("vec3[5]("))
-    }
-
-    @Test
-    fun `each half of the lift is its own case`() {
-        fixture()
-        val constructor = ShaderVariants.text("analog-filter~lifted-ctor-only", read)!!
-        assertTrue(constructor.contains("colorRamp(noise.r, vec3[]("))
-        assertTrue("the parameter is left as the game writes it", constructor.contains("vec3[COLOR_RAMP_COUNT] colors"))
-
-        val parameter = ShaderVariants.text("analog-filter~lifted-param-only", read)!!
-        assertTrue(parameter.contains("vec3 colorRamp(float t, vec3 colors[COLOR_RAMP_COUNT]) {"))
-        assertTrue("the call is left as the game writes it", parameter.contains("colorRamp(noise.r, vec3[5]("))
-    }
-
-    @Test
-    fun `the candidate repairs replace the whole call`() {
-        fixture()
-        val local = ShaderVariants.text("analog-filter~local-ramp", read)!!
-        assertTrue(local.contains("vec3 adaRamp[5];"))
-        assertTrue(local.contains("colorRamp(noise.r, adaRamp)"))
-        assertFalse(local.contains("vec3[5]("))
-
-        val global = ShaderVariants.text("analog-filter~global-ramp", read)!!
-        assertTrue(global.contains("const vec3 adaRamp[5] = vec3[]("))
-        assertTrue(global.contains("colorRamp(noise.r, adaRamp)"))
+        assertTrue("the ramp is named", text.contains("vec3 adaRamp[5];"))
+        assertTrue("and filled with the game's own five values", text.contains("adaRamp[3] = rgb(184., 170., 132.);"))
+        assertTrue(text.contains("colorRamp(noise.r, adaRamp)"))
         assertTrue(
-            "the const follows the precision it needs",
-            global.indexOf("const vec3 adaRamp") > global.indexOf("precision mediump float;"),
+            "the parameter's brackets move to the name",
+            text.contains("vec3 colorRamp(float t, vec3 colors[COLOR_RAMP_COUNT]) {"),
         )
-    }
-
-    @Test
-    fun `the precision qualifier cases keep the sized spelling`() {
-        fixture()
-        for ((name, qualifier) in listOf(
-            "analog-filter~mediump-param" to "mediump",
-            "analog-filter~highp-param" to "highp",
-        )) {
-            val text = ShaderVariants.text(name, read)!!
-            assertTrue(text.contains("vec3 colorRamp(float t, $qualifier vec3[COLOR_RAMP_COUNT] colors) {"))
-            assertTrue("the call is untouched", text.contains("colorRamp(noise.r, vec3[5]("))
-        }
+        assertFalse("no array temporary is left, sized or not", Regex("""vec3\[\d*\]\(""").containsMatchIn(text))
     }
 
     @Test
@@ -171,7 +129,7 @@ class ShaderVariantsTest {
         fixture()
         assertNull(ShaderVariants.text("analog-filter~no-such-variant", read))
         assertNull(ShaderVariants.text("analog-filter~lifted", { null }))
-        assertNull(ShaderVariants.text("analog-filter~lifted-ctor-only", { null }))
+        assertNull(ShaderVariants.text("analog-filter~original", { null }))
     }
 
     @Test
@@ -181,7 +139,7 @@ class ShaderVariantsTest {
          * so must the self-test, which otherwise serves half a shader (or the word `null`). */
         fixture()
         for ((rel, text) in files) files[rel] = text.replace("\n", "\r\n")
-        val text = ShaderVariants.text("analog-filter~local-ramp", read)!!
+        val text = ShaderVariants.text("analog-filter~lifted", read)!!
         assertTrue(text.contains("vec3 adaRamp[5];"))
         assertTrue(text.contains("colorRamp(noise.r, adaRamp)"))
         assertFalse("no CR is left in a case", text.contains("\r"))

@@ -321,7 +321,7 @@ into the record (§22.11). The facts line carries `driver=native|ANGLE` too — 
 the difference between the game starting and the boot freezing — and **Troubleshoot → "OpenGL driver"**
 opens the screen where that choice is made, since an app can neither read nor write it.
 
-The lift's bytes are verified by unit tests, `glslangValidator`, the shim harness (58 checks) and a boot
+The lift's bytes are verified by unit tests, `glslangValidator`, the shim harness (60 checks) and a boot
 A/B through the port's own shim in Chromium (identical active uniforms and attributes); this project has no
 Mali hardware, so that phone's own reports remain the test. See `FINDINGS.md` §21-§22.
 

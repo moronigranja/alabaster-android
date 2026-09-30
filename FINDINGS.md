@@ -2579,3 +2579,67 @@ lines were added for.
 
 The one step still never exercised: the panel button on a phone whose game copy is *not* CRLF and whose
 driver is *Mali* — i.e. the reporter's, which is where the answer now goes.
+
+## 22.12 The reporter's device answers: the array *temporary* (2026-09-30, v0.7.5)
+
+The Mali phone from issue #4 sent its record (§22.11's self-test, run on *it*) and its own hand patch.
+What came back closes the question §22.10 left open: which construct driver r49 refuses, and which
+spelling it takes.
+
+**The device**: Xiaomi 2412DPC0AG, Android 16 (SDK 36, arm64-v8a), WebView beta 155.0.8059.16,
+`gl=Mali-G720 MC7 (0xC8700010), Mali-G720 MC7-49.1.0` — so the revision the gate keys on is **49.1.0**,
+and it is the refusing one.
+
+**On the native driver** the gate fires, the lift is applied to four files (`plane-depth.frag`,
+`water-plane.frag`, `post/analog-filter.frag`, `lib/color-utils.glsl`), and then exactly one shader still
+refuses:
+
+```
+ENGINE console.groupCollapsed: Shader Errors: data/shader/fragment/post/analog-filter.frag
+0:62: S0032: no default precision defined for variable 'vec3[5]'
+boot stall: no progress for 8000ms at 94.1% of 1765 resources; pending 105 (shader=1 data=7 effect=88 …)
+  first pending: SHADER: texturedpost/analog-filter, data/shader/fragment/post/analog-filter.frag
+```
+
+— one shader, one boot stall, and the whole game behind it.
+
+**The self-test's A/B on that device is the answer** (all eight `analog-filter~*` cases):
+
+| case | the text it compiles | verdict |
+|---|---|---|
+| `~original` | the game's own | refused, `0:62 … 'vec3[5]'` |
+| `~lifted` | the port's then-edit (`vec3[5](` → `vec3[](`) | refused, same |
+| `~lifted-ctor-only` | the same edit alone | refused, same |
+| `~lifted-param-only` | the parameter's brackets moved | refused, same |
+| `~local-ramp` | the ramp named, assigned element by element | **compiles** |
+| `~global-ramp` | a global `const` ramp, named | **compiles** |
+| `~mediump-param`, `~highp-param` | the parameter qualified | refused, same |
+
+So the refused construct is the array **temporary**: `colorRamp(noise.r, vec3[5](…))` passes a constructor
+as an argument, and a temporary inherits no element precision in *any* spelling of its brackets — not with
+the size, not without it, and not with the callee's parameter qualified instead. What works is removing the
+temporary: name the ramp and fill it by assignment (`vec3 adaRamp[5];` … `colorRamp(noise.r, adaRamp)`),
+keeping the game's own five values in its own order. That is what the port now serves.
+
+Two things that same A/B settles besides: the **water family is already fixed** on this driver
+(`water-plane~lifted` and `water-fx-wall~lifted` compile — the invisibility reported earlier was those two
+files being refused before the lift covered them), and the parameter move the port makes in
+`lib/color-utils.glsl` is needed by nothing measured (`~local-ramp` compiles with the game's own parameter
+spelling).
+
+**Under ANGLE** on the same device: the gate answers `all 9 shapes compile and link -> the game's bytes`,
+`driver=ANGLE` reaches the facts, the self-test reports `14 cases, 14 compile` and the boot completes in
+9.73 s — the port touches nothing there and the game runs. The reporter's own patch (`fixmali.zip`,
+`logs/mali/`) is the same repair arrived at independently — it names the ramp — plus two edits the device
+does not need (raising `water-plane.frag` to `highp`, and one ramp entry's blue typed `152.` where the game
+has `132.`).
+
+**What changed in the port**: the lift's edit for `post/analog-filter.frag` is now the named ramp — the one
+spelling this device measured as accepted — and the self-test's exploratory cases went with the question
+they answered: it now asks **8 cases** (each lifted file, the game's bytes and the port's) rather than 14.
+
+Measured locally: `ShaderArraysTest` and `ShaderVariantsTest` (the named ramp, both halves, the game's own
+values, CRLF copies, a nested failure); the shim harness at **60 checks**; and `glslangValidator` on the
+*real* `analog-filter.frag` with its imports expanded, before and after the edit — the find-string matches
+the game's bytes exactly once, and both texts compile with no output. The device proof is the reporter's
+next record: `analog-filter~lifted` should read `compile=1` there, and the boot should get past 94 %.

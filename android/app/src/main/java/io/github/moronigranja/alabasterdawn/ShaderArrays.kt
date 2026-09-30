@@ -35,7 +35,7 @@ import java.util.concurrent.atomic.AtomicReference
  * declaration with the array on the name. Nothing else about a shader changes: the base type, the
  * qualifiers, the precision and the values are the game's.
  *
- * Three declarations cannot simply move their brackets:
+ * Four constructs cannot simply move their brackets:
  *
  * * `vec4[4] computeWaveFactors(…)` is a **return type**, and ES 3.0 requires the size on a return
  *   type (there is no `vec4 f()[4]`), so it becomes an `out vec4 waves[4]` parameter and the caller
@@ -44,6 +44,11 @@ import java.util.concurrent.atomic.AtomicReference
  *   so it becomes four assignments to that parameter.
  * * the two `float[](…)` argument lists are constants, so they are hoisted to global `const float
  *   x[4] = float[](…)` declarations — the exact shape the device is known to compile.
+ * * the post pass's `colorRamp(noise.r, vec3[5](…))` **argument** is an array *temporary*, and a
+ *   temporary has no element precision to inherit in any spelling of its brackets — the device refused
+ *   `vec3[5](`, `vec3[](` and every qualifier on the parameter alike — so the ramp is named
+ *   (`vec3 adaRamp[5];`) and filled by assignment, which is the one repair measured to compile there
+ *   (§22.12).
  *
  * Only the served bytes are rewritten, and only when the page's own GL stack rejects the constructs
  * ([report]): a device that compiles the game's declarations is served them, byte for byte.
@@ -136,11 +141,33 @@ object ShaderArrays {
      */
     private val EDITS: Map<String, List<Edit>> = mapOf(
 
-        /* The ramp the analogue film pass builds as a constructor argument. Only its size goes: an
-         * array constructor whose size is written out is the `vec3[5]` the driver names, and the size
-         * is inferred from the parameter it is passed to, so the argument is unchanged. */
+        /* The ramp the analogue film pass builds as a constructor argument. An array *temporary* has no
+         * element precision to inherit, so this driver refuses it whatever the brackets say: on the
+         * reporting device (Mali-G720, driver 49.1.0) `vec3[5](` and the unsized `vec3[](` both came
+         * back `0:62: S0032: no default precision defined for variable 'vec3[5]'`, and so did moving
+         * the parameter's brackets (FINDINGS §22.12). The one repair measured to compile there is to
+         * name the array and assign it element by element — the game's own five values, in its order. */
         "terra/data/shader/fragment/post/analog-filter.frag" to listOf(
-            Edit("colorRamp(noise.r, vec3[5](", "colorRamp(noise.r, vec3[]("),
+            Edit(
+                find = lines(
+                    "    vec3 color = colorRamp(noise.r, vec3[5](",
+                    "    rgb(0.0, 0.0, 20.),",
+                    "    rgb(37., 40., 50.),",
+                    "    midColor, //rgb(122., 101., 78.),",
+                    "    rgb(184., 170., 132.),",
+                    "    rgb(255., 255., 255.)",
+                    "    ));",
+                ),
+                replace = lines(
+                    "    vec3 adaRamp[5];",
+                    "    adaRamp[0] = rgb(0.0, 0.0, 20.);",
+                    "    adaRamp[1] = rgb(37., 40., 50.);",
+                    "    adaRamp[2] = midColor;",
+                    "    adaRamp[3] = rgb(184., 170., 132.);",
+                    "    adaRamp[4] = rgb(255., 255., 255.);",
+                    "    vec3 color = colorRamp(noise.r, adaRamp);",
+                ),
+            ),
         ),
 
         /* The varying's fragment declaration, written in the spelling its own vertex shader uses. */
