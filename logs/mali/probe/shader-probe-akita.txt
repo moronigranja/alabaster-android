@@ -1,0 +1,32 @@
+gl vendor=ARM
+gl renderer=Mali-G715
+gl version=OpenGL ES 3.2 v1.r44p0-01eac0.d0969c01d66270848df0f1eaaba55820
+gl glsl=OpenGL ES GLSL ES 3.20
+cases=26
+PROBE control/ok.frag compile=1 link=- log=-
+PROBE files/analog-filter/lifted.frag compile=1 link=- log=-
+PROBE files/analog-filter/original.frag compile=1 link=- log=-
+PROBE files/plane-depth/lifted.frag compile=1 link=- log=-
+PROBE files/plane-depth/original.frag compile=1 link=- log=-
+PROBE files/water-fx-wall/lifted.frag compile=1 link=- log=-
+PROBE files/water-fx-wall/original.frag compile=1 link=- log=-
+PROBE files/water-plane/lifted.frag compile=1 link=- log=-
+PROBE files/water-plane/original.frag compile=1 link=- log=-
+PROBE shapes/const-global.frag compile=1 link=1 log=-
+PROBE shapes/ctor-arg.frag compile=1 link=1 log=-
+PROBE shapes/in-out.frag compile=1 link=1 log=-
+PROBE shapes/local.frag compile=1 link=1 log=-
+PROBE shapes/macro-size.frag compile=1 link=1 log=-
+PROBE shapes/param.frag compile=1 link=1 log=-
+PROBE shapes/params.frag compile=1 link=1 log=-
+PROBE shapes/ramp-call.frag compile=1 link=1 log=-
+PROBE shapes/return.frag compile=1 link=1 log=-
+PROBE variants/analog-filter/global-ramp.frag compile=1 link=- log=-
+PROBE variants/analog-filter/highp-param.frag compile=1 link=- log=-
+PROBE variants/analog-filter/lifted-both.frag compile=1 link=- log=-
+PROBE variants/analog-filter/lifted-ctor-only.frag compile=1 link=- log=-
+PROBE variants/analog-filter/lifted-param-only.frag compile=1 link=- log=-
+PROBE variants/analog-filter/local-ramp.frag compile=1 link=- log=-
+PROBE variants/analog-filter/mediump-param.frag compile=1 link=- log=-
+PROBE variants/analog-filter/reporters-fix.frag compile=1 link=- log=-
+SUMMARY cases=26 compiled=26 refused=0 unlinked=0

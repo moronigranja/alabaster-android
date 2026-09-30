@@ -2472,3 +2472,48 @@ shader failure in the record. Its candidates are the reporter's own patched wate
 water's alpha floor, its two border `discard`s and a wave amplitude (§22.8) — still being in the game
 folder, or an ANGLE-on-Mali rendering difference in the water pass itself. A run with the game's original
 files, plus a screenshot, is what separates them.
+
+---
+
+## 22.10 Measured on four Mali generations: none of them refuse it (2026-09-30)
+
+`tools/mali-probe/` compiles the game's own shader text on a device's **native** GL front end — the gate
+§22.8 asks from inside a WebView, asked from a plain app instead, so a device farm can answer for hardware
+this project does not own. Four Firebase Test Lab devices, one instrumentation run (logs kept in
+`logs/mali/probe/`):
+
+| device | front end | driver | cases | refused |
+|---|---|---|---|---|
+| Pixel 8a (Tensor G3) | **Mali-G715** | `v1.r44p0-01eac0.d0969c01…` | 26 | **0** |
+| Pixel 7 (Tensor G2) | **Mali-G710** | `v1.r38p1-01eac0.55eb2d40…` | 28 | **0** |
+| Pixel 6 (Tensor) | **Mali-G78** | `v1.r38p1-01eac0.1a610aad…` | 28 | **0** |
+| Galaxy A35 5G (Exynos 1380) | **Mali-G68** | `v1.r38p1-01eac0-mbs2v41_0…` | 28 | **0** |
+
+(The first run was taken before the last two shapes were added, hence 26 there.) Every case compiled on
+every one of them, and every `shapes/` case compiled **and linked**: the game's own bytes (the `vec4[4]`
+return type, the `vec3[5](…)` constructor, `flat in vec2[4] v_flowDirs;`, the `const vec2[12]` globals),
+the port's lifted bytes, and the seven post-pass variants — each half of that declaration changed alone,
+and each candidate repair (`local-ramp` and the reporter's own file among them). The two shapes **other
+projects report** this front end refusing — `vec4 m_pixels[1] = vec4[1](u_pixel);` from Godot #99821 and
+`const float w[9] = float[9](…)` from r/opengl — also passed on all four.
+
+That is a result about the **bug**, not about the fix:
+
+* **The refusal is not a property of the Mali generations this project can reach.** The reporter's phone
+  is a **Mali-G720 (Immortalis, 5th gen)** on driver **r49** (`Mali-G720 MC7-49.1.0`); these four run
+  **r38/r44** and take the same bytes. So the trigger is far more likely the **driver revision** than the
+  GPU generation — which is also what the Godot report implies, being a *Pixel 8a* (G715) whose driver has
+  moved on since it was filed. [INFERENCE: the revisions are the only difference visible here, and a
+  newer front end refusing an older declaration is a shape this family has produced before — the report
+  itself is on the older generation, not a newer one.]
+* **It is the strongest argument for the gate's design.** Driver revisions arrive with system updates —
+  and on Android 15+ through the graphics-driver updates the Play Store can now deliver — so this
+  property can change on a device already in someone's hand. Deciding per device, from that device's own
+  compiler, keeps the port right either way: a G715 that refuses tomorrow is served the lift, and one
+  that accepts keeps the game's bytes.
+* **What is still unmeasured is the fix against a refusing device**, and Test Lab cannot supply one: its
+  catalogue has no Immortalis-G720 phone (its newest Mali devices are the Pixel 8a and the Exynos/Helio
+  A-series). The reporter's phone stays the only refusing front end reachable from here, and v0.7.3's
+  per-file record is the measurement: `array declarations lifted in … (9/9)` beside the next `S0032` says
+  whether that spelling is enough for r49 — and if it is not, the probe's `variants/` set is the list of
+  spellings still to try, on the device itself.

@@ -136,6 +136,16 @@ SHAPES = {
         "void main() { o = vec4(colorRamp(0.5,"
         " vec3[5](vec3(0.0), vec3(1.0), vec3(2.0), vec3(3.0), vec3(4.0))), 1.0); }",
     ],
+    # the two shapes other projects report this driver refusing (FINDINGS §22.3), so a run says
+    # whether this bug is the same one
+    "godot-sized-ctor": [
+        "uniform vec4 u_pixel;",
+        "void main() { vec4 m_pixels[1] = vec4[1](u_pixel); o = m_pixels[0]; }",
+    ],
+    "const-sized-ctor": [
+        "const float w[9] = float[9](1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);",
+        "void main() { o = vec4(w[0]); }",
+    ],
 }
 
 # --- the post pass's own call, as the file writes it, and the edits still in question ---
