@@ -390,13 +390,28 @@
             { antialias: false, powerPreference: "high-performance" });
         if (!gl) return Promise.resolve("no webgl2 context to ask");
         var refused = [];
+        var unavailable = [];
         var sequence = Promise.resolve();
         names.forEach(function (name) {
             sequence = sequence.then(function () {
+                /* A case the app cannot build is served as nothing (its bytes did not match), and the
+                 * record already carries the app's own line saying so: it must not be reported as a
+                 * driver refusal of an empty shader. A missing response must not stop the rest. */
                 return fetch("/game/" + SELF_TEST_INDEX + "/" + encodeURIComponent(name))
-                    .then(function (response) { return response.text(); })
-                    .then(function (text) {
-                        var result = compileOnce(gl, text);
+                    .then(function (response) {
+                        return response.text().then(function (text) {
+                            return { ok: response.ok !== false, text: text };
+                        });
+                    })
+                    .catch(function () { return { ok: false, text: "" }; })
+                    .then(function (served) {
+                        if (!served.ok || served.text.length === 0) {
+                            unavailable.push(name);
+                            reportDiag("shader self-test",
+                                name + " unavailable (the app serves no text for it)");
+                            return;
+                        }
+                        var result = compileOnce(gl, served.text);
                         if (!result.ok) refused.push(name);
                         reportDiag("shader self-test", name + " compile=" + (result.ok ? 1 : 0) +
                             " log=" + (result.log || "-"));
@@ -408,8 +423,10 @@
                 var lose = gl.getExtension("WEBGL_lose_context");
                 if (lose) lose.loseContext();
             }
-            return names.length + " cases, " + (names.length - refused.length) + " compile" +
-                (refused.length ? ", refused=" + refused.join(",") : "");
+            return names.length + " cases, " + (names.length - refused.length - unavailable.length) +
+                " compile" +
+                (refused.length ? ", refused=" + refused.join(",") : "") +
+                (unavailable.length ? ", unavailable=" + unavailable.join(",") : "");
         });
     }
 

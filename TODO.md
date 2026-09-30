@@ -16,12 +16,12 @@
   hand-patched water files — a different alpha floor, two border `discard`s commented out, a wave amplitude
   — still being in his game folder, or an ANGLE-on-Mali rendering difference in the water pass. A run with
   the original files, plus a screenshot, separates them. Not reproducible here.
-* **The panel button's on-device click-through** (§22.11): the only phone in reach was behind a secure lock
+* **The spelling test on a Mali phone whose driver refuses** (§22.11): verified end to end on the S22 Ultra (`14 cases, 14 compile`), which also caught two defects (CRLF copies, a `null` spliced into a failed case) - fixed in v0.7.5. Still unexercised: the reporter’s Mali device, which is where the answer goes.
   screen, where Android returns black frames from `screencap`, so the UI could not be driven over adb.
   Everything behind the button is covered by tests (cases, the page half, the summary) — worth a tap next
   time a phone is unlocked.
 
-Nothing else outstanding. **v0.7.4** carries the shader self-test, the `driver=` field and the OpenGL-driver
+Nothing else outstanding. **v0.7.5** fixes the spelling test’s line-ending and `null` defects, both found on a phone (**v0.7.4** carries the shader self-test, the `driver=` field and the OpenGL-driver
 button (§22.11). **v0.7.3** made the lift report itself per file and added the post pass's own declaration
 pair to the gate (§22.9). **v0.7.2** replaced the Mali gate with the evidence-based one, and the device-farm
 shader probe measured four Mali generations (§22.8, §22.10). **v0.7.1** carried the frame-rate slider

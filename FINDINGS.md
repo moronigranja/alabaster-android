@@ -2552,10 +2552,29 @@ the right stack, and puts the answer in the record he already knows how to send:
   with its own GL stack, and the platform's ANGLE is the system apk plus that per-package opt-in.
 
 Measured: `ShaderVariantsTest` (the expansion, every case, the `#define` placement, an unreadable file);
-the shim harness at **58 checks**, three of them the self-test's own (the engine-context path, a
-per-case verdict line, and the summary reaching the app); and the real shim in Chromium against the
-fourteen generated cases — all fourteen compiled, one line each, summary delivered. The one step not
-exercised: the panel button's **on-device** click-through. The only phone in reach was behind a secure
-lock screen, and Android returns black frames from `screencap` for one, so the UI cannot be driven over
-adb. Everything behind the button is covered by the tests above; the button itself is three lines of
-`evaluateJavascript`.
+the shim harness at **59 checks**, four of them the self-test's own (the engine-context path, a
+per-case verdict line, the summary reaching the app, and a case the app cannot build being reported as
+*unavailable* rather than as a refusal); and the real shim in Chromium against the fourteen generated
+cases — all fourteen compiled, one line each, summary delivered.
+
+**Then on hardware** (the maintainer's S22 Ultra, 0.7.4 installed over the existing build, Back → the side
+menu's Troubleshoot → the new button): the chain ran end to end on the engine's own context and reported,
+and it caught two defects a browser could not:
+
+1. **That phone's game copy has CRLF line endings.** The single-line edits matched and the multi-line ones
+   did not, so two cases came back *unavailable* and the water ones produced invalid text. The port's own
+   rewrite has normalised CRLF since §22 (`ShaderArrays.rewrite`); the self-test now does too.
+2. **A failed nested expansion put the word `null` into the shader text** — Kotlin's
+   `StringBuilder.append(String?)` appending `"null"` for a null child. That was the
+   `0:610: 'null' : syntax error` in the water cases above. A case that cannot be built now fails as a
+   whole, is served as nothing, and says why in the record
+   (`shader self-test case …: the game's bytes carry none of its text`), while the page reports it as
+   *unavailable* instead of pretending the driver refused an empty source.
+
+With those fixed, the same tap reports **`14 cases, 14 compile`** on that phone (`0.7.5`) — and note what
+that datum is worth: a game copy whose line endings differ from the reference's would have made the port's
+own lift report `NOT lifted (0/n)` on that device (§22.9), which is exactly the kind of thing the per-file
+lines were added for.
+
+The one step still never exercised: the panel button on a phone whose game copy is *not* CRLF and whose
+driver is *Mali* — i.e. the reporter's, which is where the answer now goes.

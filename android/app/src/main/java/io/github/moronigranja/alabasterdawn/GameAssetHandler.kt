@@ -94,7 +94,15 @@ class GameAssetHandler(
         }
         if (rel.startsWith("${ShaderVariants.INDEX}/")) {
             val name = rel.removePrefix("${ShaderVariants.INDEX}/")
-            val text = ShaderVariants.text(name, ::gameShader) ?: return miss(rel)
+            val text = ShaderVariants.text(name, ::gameShader)
+            if (text == null) {
+                /* Half a shader is worse than none: the page is told nothing is served, and the record
+                 * says why - the game's bytes on this device do not carry what that case edits, which is
+                 * itself worth knowing (a different build, a file a player edited, a copy that moved
+                 * through a line-ending change). */
+                diag.line("shader self-test case $name: the game's bytes carry none of its text")
+                return miss(rel)
+            }
             return ok("text/plain", "utf-8", text.toByteArray(Charsets.UTF_8))
         }
 

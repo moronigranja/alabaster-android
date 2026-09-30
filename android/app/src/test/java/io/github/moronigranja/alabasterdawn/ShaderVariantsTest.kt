@@ -174,6 +174,31 @@ class ShaderVariantsTest {
         assertNull(ShaderVariants.text("analog-filter~lifted-ctor-only", { null }))
     }
 
+    @Test
+    fun `a game copy with CRLF endings is expanded the same way`() {
+        /* A run on the maintainer's phone found this: the single-line edits matched and the multi-line
+         * ones did not, because that copy's shaders are CRLF. The port's own rewrite normalises them;
+         * so must the self-test, which otherwise serves half a shader (or the word `null`). */
+        fixture()
+        for ((rel, text) in files) files[rel] = text.replace("\n", "\r\n")
+        val text = ShaderVariants.text("analog-filter~local-ramp", read)!!
+        assertTrue(text.contains("vec3 adaRamp[5];"))
+        assertTrue(text.contains("colorRamp(noise.r, adaRamp)"))
+        assertFalse("no CR is left in a case", text.contains("\r"))
+        assertFalse("and no `null` from a failed nested expansion", text.contains("null"))
+    }
+
+    @Test
+    fun `a nested file whose bytes do not match fails the case, rather than half a shader`() {
+        /* The lift edits the imported `lib/water.glsl`; if a copy of the game does not carry one of its
+         * texts, nothing is served for that case — never a shader with `null` spliced into it. */
+        fixture()
+        val find = ShaderArrays.edits(WATER_LIB).first().first
+        files["lib/water.glsl"] = files["lib/water.glsl"]!!.replace(find, "// a copy of the game without it")
+        assertNull(ShaderVariants.text("water-plane~lifted", read))
+        assertTrue("the original still serves", ShaderVariants.text("water-plane~original", read) != null)
+    }
+
     private companion object {
         const val WATER_LIB = "terra/data/shader/lib/water.glsl"
     }

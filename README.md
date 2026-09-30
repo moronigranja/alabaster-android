@@ -291,7 +291,7 @@ no reload, setting kept), kept the app in the task list across an Exit (`dumpsys
 still listed the task, and tapping the card started a new pid on the setup screen), and booted clean
 (`ENGINE boot: complete in 3013ms, 1757 resources`) with no console lines in the record. The shader
 work has unit tests behind it (`ShaderPrecisionTest`, `ShaderSlotsTest`, `ShaderDitherTest`) and the
-harness has 58 checks; the dither change was measured in a harness that renders the engine's own
+harness has 59 checks; the dither change was measured in a harness that renders the engine's own
 dither lines verbatim. See `FINDINGS.md` §16-§20.
 
 The **Mali shader report** (2026-09-30) was read back from the same device (a Poco X7 Pro, Mali-G720), and
@@ -335,7 +335,7 @@ certificate** — `CN=Alabaster Dawn Android port, O=moronigranja, C=BR`, SHA-25
 install:
 
 ```bash
-apksigner verify --print-certs AlabasterDawn-Android-0.7.4.apk   # no SDK? keytool -printcert -jarfile …
+apksigner verify --print-certs AlabasterDawn-Android-0.7.5.apk   # no SDK? keytool -printcert -jarfile …
 ```
 
 The APK carries `assets/LICENSE` + `assets/NOTICE.md` inside, so the binary ships the notices it is
@@ -414,7 +414,7 @@ keytool -genkeypair -keystore ~/.android/alabasterdawn-release.jks -alias alabas
 # then android/keystore.properties: storeFile / storePassword / keyAlias / keyPassword (chmod 600)
 
 android/tools/release.sh                       # signed build + digest + signature check
-android/tools/release.sh --upload --publish --notes docs/release-0.7.4.md
+android/tools/release.sh --upload --publish --notes docs/release-0.7.5.md
 ```
 
 `--notes` takes the **release body**: since v0.5 that is a terse changelog plus links to the full

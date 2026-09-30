@@ -133,7 +133,11 @@ object ShaderVariants {
         seen: MutableSet<String>,
         depth: Int = 0,
     ): String? {
-        var body = read(rel) ?: return null
+        /* The game's files can be CRLF (a copy made on Windows, or moved through one): the port's own
+         * rewrite normalises them the same way, and the self-test's edits have to match, not the line
+         * endings. A run on the maintainer's phone found this: the single-line edits matched and the
+         * multi-line ones did not, and a nested failure then put the word `null` in the shader. */
+        var body = read(rel)?.replace("\r\n", "\n") ?: return null
         if (case.lift) {
             /* The lift's table is keyed by the **served** path, which carries the tree's own prefix. */
             for ((find, replace) in ShaderArrays.edits(SERVED_PREFIX + rel)) {
@@ -149,7 +153,10 @@ object ShaderVariants {
                 if (imported == null) {
                     out.append("// missing import ").append(match.groupValues[1]).append('\n')
                 } else if (seen.add(imported)) {
-                    out.append(expand(imported, case, read, seen, depth + 1)).append('\n')
+                    /* A nested file that cannot be read or lifted fails **this case**: the caller
+                     * serves nothing rather than half a shader, and says why. */
+                    val nested = expand(imported, case, read, seen, depth + 1) ?: return null
+                    out.append(nested).append('\n')
                 }
             } else {
                 out.append(line).append('\n')

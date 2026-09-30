@@ -376,9 +376,11 @@ async function main() {
   const selfTest = bootShim({
     arraysCompile: false,
     variants: {
-      "/game/ada-variants": "post~original\npost~lifted\n",
+      "/game/ada-variants": "post~original\npost~lifted\npost~missing\n",
       "/game/ada-variants/post~original": "vec3[5](",
       "/game/ada-variants/post~lifted": "vec3[](",
+      /* `post~missing` is deliberately absent: the app serves nothing for a case whose bytes do not
+       * match, and the page must say so instead of compiling an empty shader. */
     },
   });
   window.adaShaderSelfTest();
@@ -390,9 +392,12 @@ async function main() {
     selfLines.includes(
       "post~original compile=0 log=0:62: S0032: no default precision defined for variable 'vec4[4]'") &&
     selfLines.includes("post~lifted compile=1 log=-"), JSON.stringify(selfLines));
+  check("a case the app cannot build is reported as unavailable, not as a refusal",
+    selfLines.includes("post~missing unavailable (the app serves no text for it)") &&
+    !selfLines.some((l) => l.startsWith("post~missing compile=")), JSON.stringify(selfLines));
   check("the shader self-test summarises what this device takes, and the app is told",
-    selfLines.includes("2 cases, 1 compile, refused=post~original") &&
-    selfTest.selfTestDone[0] === "2 cases, 1 compile, refused=post~original",
+    selfLines.includes("3 cases, 1 compile, refused=post~original, unavailable=post~missing") &&
+    selfTest.selfTestDone[0] === "3 cases, 1 compile, refused=post~original, unavailable=post~missing",
     JSON.stringify([selfLines, selfTest.selfTestDone]));
 
   /* The facts carry the resolution the engine renders at — the Resolution option times SCREEN
