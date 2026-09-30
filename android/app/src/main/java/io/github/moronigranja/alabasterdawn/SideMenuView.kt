@@ -2,36 +2,40 @@ package io.github.moronigranja.alabasterdawn
 
 import android.content.Context
 import android.content.res.ColorStateList
+import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
 import android.text.TextUtils
 import android.view.Gravity
 import android.view.View
+import android.view.View.MeasureSpec
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RadioButton
 import android.widget.ScrollView
+import android.widget.SeekBar
 import android.widget.Switch
 import android.widget.TextView
 
 /**
  * The port's side panel, opened by Back: a scrim over the whole window plus a panel pinned to the
- * right edge carrying the overlay switch, the frame-readout switch, the 30 fps switch, the
- * keep-a-log-file switch, the picture position, three read-only status lines and Exit. Every entry is
- * the same full-width, icon-led row, after the Eden / Sudachi / Azahar side menus: an icon in a fixed
- * left gutter, the label beside it on a single line, the control at the right edge, and the whole row
- * is the target.
+ * right edge carrying the overlay switch, the frame-readout switch, the frame-rate switch (with the
+ * rate slider it reveals underneath), the keep-a-log-file switch, the picture position, three
+ * read-only status lines and Exit. Every entry is the same full-width, icon-led row, after the Eden /
+ * Sudachi / Azahar side menus: an icon in a fixed left gutter, the label beside it on a single line,
+ * the control at the right edge, and the whole row is the target.
  *
- * Two things decide the details. The switches and the position are stored and owned by the
+ * Two things decide the details. The switches, the rate and the position are stored and owned by the
  * Activity, so this view is only told what to show ([setHideWithExternalInput], [setStatsEnabled],
- * [setLimitFps], [setLogToSaves], [setAlign]) and reports taps through callbacks. And nothing inside
- * it may take view focus: the engine stops its loop and suspends audio on the page's `blur` (see
- * PortActivity.setPageFocus), so the descendants are made unfocusable and the WebView keeps focus
- * while the panel is open.
+ * [setLimitFps], [setFpsLimit], [setLogToSaves], [setAlign]) and reports taps through callbacks. And
+ * nothing inside it may take view focus: the engine stops its loop and suspends audio on the page's
+ * `blur` (see PortActivity.setPageFocus), so the descendants are made unfocusable and the WebView
+ * keeps focus while the panel is open — including the slider, which is dragged, not focused.
  */
 class SideMenuView(context: Context) : FrameLayout(context) {
 
@@ -41,8 +45,11 @@ class SideMenuView(context: Context) : FrameLayout(context) {
     /** A tap on the frame-readout switch. */
     var onStatsEnabled: ((Boolean) -> Unit)? = null
 
-    /** A tap on the 30 fps switch. */
+    /** A tap on the frame-rate switch. */
     var onLimitFps: ((Boolean) -> Unit)? = null
+
+    /** A move of the rate slider the switch reveals, in frames per second (see [FpsLimit]). */
+    var onFpsLimit: ((Int) -> Unit)? = null
 
     /** A tap on the keep-a-log-file switch. */
     var onLogToSaves: ((Boolean) -> Unit)? = null
@@ -65,6 +72,13 @@ class SideMenuView(context: Context) : FrameLayout(context) {
     private val logToggle = Switch(context)
     private val radios = LinkedHashMap<ViewAlign, RadioButton>()
 
+    private val fpsSlider = SeekBar(context)
+    private val fpsValue = TextView(context)
+    private val fpsTicks = FpsTicks(context)
+
+    /** The slider and its tick labels: under the switch row, visible only while the switch is on. */
+    private val fpsSliderGroup = LinearLayout(context)
+
     /**
      * The row that owns each radio. A `RadioGroup` cannot host a child that has another parent (the
      * row owns the button), so mutual exclusion is done explicitly instead of by a group.
@@ -85,6 +99,7 @@ class SideMenuView(context: Context) : FrameLayout(context) {
     private var hideWithExternalInput = true
     private var statsEnabled = false
     private var limitFps = false
+    private var fpsLimit = FpsLimit.DEFAULT
     private var logToSaves = true
     private var align = ViewAlign.DEFAULT
 
@@ -110,6 +125,12 @@ class SideMenuView(context: Context) : FrameLayout(context) {
 
     fun setLimitFps(value: Boolean) {
         limitFps = value
+        sync()
+    }
+
+    /** The rate the switch caps at, one of [FpsLimit.CHOICES]. */
+    fun setFpsLimit(value: Int) {
+        fpsLimit = value
         sync()
     }
 
@@ -206,9 +227,12 @@ class SideMenuView(context: Context) : FrameLayout(context) {
         fpsToggle.setOnCheckedChangeListener { _, checked ->
             if (!syncing) onLimitFps?.invoke(checked)
         }
-        addRow(panel, R.drawable.ic_menu_fps, "Limit to 30 FPS (battery)", fpsToggle) {
+        addRow(panel, R.drawable.ic_menu_fps, "Limit the frame rate (battery)", fpsToggle) {
             fpsToggle.isChecked = !fpsToggle.isChecked
         }
+        /* The rate lives under the switch, and only while it is on: the cap is the switch's job, the
+         * slider only says how much. */
+        buildFpsSlider(panel)
 
         logToggle.setOnCheckedChangeListener { _, checked ->
             if (!syncing) onLogToSaves?.invoke(checked)
@@ -265,6 +289,102 @@ class SideMenuView(context: Context) : FrameLayout(context) {
         }
 
         return panel
+    }
+
+    /**
+     * The rate slider, under the frame-rate switch: four positions ([FpsLimit.CHOICES]), their labels
+     * on the ticks below, and the chosen rate as a readout beside the bar so the value is readable
+     * while the thumb is dragged.
+     *
+     * The labels are aligned to the thumb's own travel, not to fractions of the bar's width: a
+     * `SeekBar`'s thumb centre runs from its left padding to its right padding, and the tick strip is
+     * given those same two insets - plus the readout's width on the right, because the readout is the
+     * bar's neighbour in the row. The bar's padding is set to half a thumb so the first and last
+     * positions sit inside the panel instead of half off its edge; both use the same number, so they
+     * cannot drift apart.
+     */
+    private fun buildFpsSlider(panel: LinearLayout) {
+        val halfThumb = (fpsSlider.thumb?.intrinsicWidth ?: 0) / 2
+        val readout = dp(56)
+        fpsSlider.max = FpsLimit.CHOICES.size - 1
+        fpsSlider.isFocusable = false
+        fpsSlider.setPadding(halfThumb, 0, halfThumb, 0)
+        fpsSlider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(bar: SeekBar, progress: Int, fromUser: Boolean) {
+                val fps = FpsLimit.at(progress)
+                fpsValue.text = "$fps fps"
+                if (fromUser && !syncing) onFpsLimit?.invoke(fps)
+            }
+
+            override fun onStartTrackingTouch(bar: SeekBar) = Unit
+            override fun onStopTrackingTouch(bar: SeekBar) = Unit
+        })
+        fpsValue.apply {
+            textSize = 13f
+            setTextColor(COLOR_TEXT)
+            gravity = Gravity.END or Gravity.CENTER_VERTICAL
+        }
+        val line = LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(
+                fpsSlider,
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            )
+            addView(
+                fpsValue,
+                LinearLayout.LayoutParams(readout, ViewGroup.LayoutParams.WRAP_CONTENT)
+            )
+        }
+        fpsTicks.setPadding(halfThumb, 0, halfThumb + readout, 0)
+        fpsSliderGroup.apply {
+            orientation = LinearLayout.VERTICAL
+            /* Under the switch row's label: that row's own 12 dp padding, the 24 dp icon and its
+             * 16 dp gutter, so the bar starts where every other row's content does. */
+            setPadding(dp(52), 0, dp(12), dp(6))
+            visibility = GONE
+            addView(line, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            addView(fpsTicks, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        }
+        panel.addView(
+            fpsSliderGroup,
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        )
+        panel.addView(
+            View(context).apply { setBackgroundColor(COLOR_DIVIDER) },
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1))
+        )
+    }
+
+    /**
+     * The rate labels under the slider: one per choice, centred on the position the thumb reaches with
+     * that choice selected. The strip is given the bar's two insets (see [buildFpsSlider]), so the same
+     * arithmetic in both places is what keeps a label over its thumb.
+     */
+    private inner class FpsTicks(context: Context) : View(context) {
+
+        private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = COLOR_DIM
+            textSize = dp(11).toFloat()
+            textAlign = Paint.Align.CENTER
+        }
+
+        override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+            val metrics = paint.fontMetrics
+            setMeasuredDimension(
+                MeasureSpec.getSize(widthMeasureSpec),
+                (metrics.descent - metrics.ascent).toInt() + dp(6),
+            )
+        }
+
+        override fun onDraw(canvas: Canvas) {
+            val last = FpsLimit.CHOICES.size - 1
+            val travel = (width - paddingLeft - paddingRight).toFloat()
+            val baseline = -paint.fontMetrics.ascent
+            for ((index, fps) in FpsLimit.CHOICES.withIndex()) {
+                canvas.drawText(fps.toString(), paddingLeft + travel * index / last, baseline, paint)
+            }
+        }
     }
 
     /**
@@ -377,6 +497,9 @@ class SideMenuView(context: Context) : FrameLayout(context) {
         hideToggle.isChecked = hideWithExternalInput
         statsToggle.isChecked = statsEnabled
         fpsToggle.isChecked = limitFps
+        fpsSlider.progress = FpsLimit.indexOf(fpsLimit)
+        fpsValue.text = "$fpsLimit fps"
+        fpsSliderGroup.visibility = if (limitFps) VISIBLE else GONE
         logToggle.isChecked = logToSaves
         for ((value, radio) in radios) radio.isChecked = value == align
         for ((value, row) in radioRows) row.background = rowBackground(value == align)

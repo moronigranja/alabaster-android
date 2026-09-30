@@ -1,0 +1,79 @@
+app 0.6.1 (10) on Xiaomi 2412DPC0AG, Android 16 (SDK 36, arm64-v8a)
+game 0.1.0-7 Early Access
+webView com.google.android.webview.beta 155.0.8059.16 document-start scripts=true
+game files: Alabaster Dawn (3120 entries)
+saves: Alabaster Dawn
+engine: silent for 11ms, last bridge call: -
+assets served=935 missed=0 inFlight=0 slowest=250ms terra/dist/bundle.js; rewrite cached=40 hits=0 12817999/33554432 bytes
+
+--- log (70 lines, oldest first) ---
++0ms port 0.6.1 (10) on Xiaomi 2412DPC0AG, Android 16 (SDK 36, arm64-v8a)
++3455ms indexing content://com.android.externalstorage.documents/tree/primary%3AWinlator%2FAlabaster%20Dawn
++14445ms indexed 3120 entries in 10990ms
++14691ms webView com.google.android.webview.beta 155.0.8059.16 document-start scripts=true ua=Mozilla/5.0 (Linux; Android 16; 2412DPC0AG Build/BP2A.250605.031.A3; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/155.0.8059.16 Mobile Safari/537.36
++14840ms loading https://appassets.androidplatform.net/game/terra/index.html
++15012ms gl limits: vertex uniforms 4096 -> TEX_SLOT_COUNT 256
++15015ms JS ERROR shim: loaded
++15825ms JS ERROR webgl: OES_draw_buffers_indexed missing; installed index-0 fallback
++17422ms ENGINE facts: webgl2=true; gl=Mali-G720 MC7; uniforms=4096/4096; varyings=31; audio=running
++20297ms ENGINE console.error: 1: #version 300 es
++20301ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:34343 Uncaught Error: An error occurred compiling the shader "data/shader/fragment/post/analog-filter.frag
++20479ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20480ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++20741ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20742ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++20812ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20813ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++20846ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20847ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++20868ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20870ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++20874ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20877ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++20884ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20888ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++20893ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20894ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++20896ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20897ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++20900ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20901ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++20902ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20904ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++20908ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20910ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++20912ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20912ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++20916ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20917ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++20934ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20936ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++20948ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20950ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++20955ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20956ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++20965ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20975ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++20983ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++20988ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++21255ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++21256ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++21272ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++21274ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++21360ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++21360ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++21398ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++21399ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++21507ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++21508ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++21624ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++21625ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++21685ms ENGINE console.error: 1: #version 300 es
++21687ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:34343 Uncaught Error: An error occurred compiling the shader "data/shader/fragment/water-fx-wall.frag
++21688ms ENGINE console.error: Unwrapped loadTrackers [object Object],[object Object] 1
++21690ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:147738 Uncaught Error: There are unwrapped loadTrackers 
++21740ms ENGINE console.error: 1: #version 300 es
++21743ms JS ERROR window.onerror: https://appassets.androidplatform.net/game/terra/dist/bundle.js:34343 Uncaught Error: An error occurred compiling the shader "data/shader/fragment/water-plane.frag
++30022ms ENGINE boot stall: no progress for 8006ms at 90.8% of 1906 resources; pending 176 (shader=3 data=89 effect=52 figure=3 audio=25 spritesheet=4); audio ctx=running; decodes started=551 done=551 failed=0; first pending: SHADER: water-plane, data/shader/fragment/water-plane.frag, SHADER: water-fx-wall#define WATERFALL_SHADER, data/shader/fragment/water-fx-wall.frag, SHADER: texturedpost/analog-filter, data/shader/fragment/post/analog-filter.frag, Effect[ FX:combat.defeat#fade ], Character[ CHA:main#Juno ], Effect[ FX:player.projectile#arrowHitN ], Effect[ FX:player.projectile#arrowWallN ], Effect[ FX:player.projecti
++35370ms back: dispatcher (game)
++36758ms diagnostics opened

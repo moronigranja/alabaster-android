@@ -18,12 +18,17 @@
  * `?adaResetVideo=1` (FINDINGS §19). The engine's option blob is a stub here, so what the shim does
  * to it — one key removed, a malformed blob reported rather than thrown — is asserted directly.
  *
- * The 30 fps switch wraps `requestAnimationFrame` (the engine's whole loop is a chain of those), so
+ * The frame-rate switch wraps `requestAnimationFrame` (the engine's whole loop is a chain of those), so
  * the vsync queue is a drivable stub here and the served frames are counted against it.
  *
  * The console forwarding is what a device-only failure is read from: the engine logs a shader it
  * cannot compile as console groups (the file's path and the driver's message are the group titles),
  * so those titles are asserted here along with the rule that `console.log` stays unforwarded.
+ *
+ * The two document-start probes are asserted too, because each decides what the app serves: the slot
+ * table's link (FINDINGS §17) and, for the array declarations a Mali front end refuses, whether the
+ * page's own compiler accepts them (FINDINGS §22). The stubbed compiler answers each probe separately,
+ * so a device that refuses the arrays is exercised as a device.
  *
  *   node android/tools/test-shim-diagnostics.mjs
  */
@@ -35,11 +40,12 @@ const shimPath = join(dirname(fileURLToPath(import.meta.url)), "..", "app", "src
 const source = readFileSync(shimPath, "utf8");
 
 /** Installs the globals the shim expects and returns the recorder of what it reported. */
-function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = null, viewAlign = "center", tablesLink = true, search = "", store = {}, limitFps = false } = {}) {
+function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = null, viewAlign = "center", tablesLink = true, arraysCompile = true, search = "", store = {}, fpsLimit = 0 } = {}) {
   const reports = [];
   const errors = [];
   const vertexUniforms = [];
   const shaderTables = [];
+  const shaderArrays = [];
   const shaderSources = [];
   const resource = (name) => ({ identification: () => name });
 
@@ -79,7 +85,11 @@ function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = nul
                       shaderSources.push(source);
                     },
                     compileShader: () => {},
-                    getShaderParameter: () => tablesLink,
+                    /* Two probes ask two different questions, and which one is being answered is read
+                     * off the source the shim just compiled: the link probe carries the slot table,
+                     * the array probe the declarations the Mali report named. */
+                    getShaderParameter: (shader) =>
+                      (shader.source.includes("vec3[5] colors") ? arraysCompile : tablesLink),
                     createProgram: () => ({}),
                     attachShader: () => {},
                     linkProgram: () => {},
@@ -115,16 +125,17 @@ function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = nul
     setItem: (key, value) => { store[key] = String(value); },
     removeItem: (key) => { delete store[key]; },
   });
-  const limitFlag = { value: limitFps };
+  const limitFlag = { value: fpsLimit };
   window.AdaBridge = {
     reportDiag: (kind, payload) => reports.push({ kind, payload }),
     reportJsError: (message) => errors.push(message),
     setVertexUniformVectors: (vectors) => vertexUniforms.push(vectors),
     setShaderTables: (oneTable, twoTables) => shaderTables.push({ oneTable, twoTables }),
+    setShaderArrays: (compiled) => shaderArrays.push(compiled),
     getGamepadJson: () => "",
     getViewAlign: () => viewAlign,
     getStatsEnabled: () => false,
-    getLimitFps: () => limitFlag.value,
+    getFpsLimit: () => limitFlag.value,
     getTelemetry: () => "",
     fsExists: () => false,
     fsMkdir: () => false,
@@ -159,7 +170,7 @@ function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = nul
   };
   /* eslint-disable-next-line no-eval */
   (0, eval)(source);
-  return { reports, errors, vertexUniforms, shaderTables, shaderSources, tracker: window.g.resource.bootTracker, canvas, store, pump, limitFlag };
+  return { reports, errors, vertexUniforms, shaderTables, shaderArrays, shaderSources, tracker: window.g.resource.bootTracker, canvas, store, pump, limitFlag };
 }
 
 const results = [];
@@ -169,7 +180,7 @@ function check(name, condition, detail = "") {
 }
 
 async function main() {
-  const { reports, errors, vertexUniforms, shaderTables, shaderSources, tracker } = bootShim();
+  const { reports, errors, vertexUniforms, shaderTables, shaderArrays, shaderSources, tracker } = bootShim();
 
   // The shim loads without an engine; facts go out once the engine has a GL context.
   await new Promise((r) => setTimeout(r, 40));
@@ -195,6 +206,16 @@ async function main() {
   check("the probe compiles gui.vert's shape: two tables, 32-vector reserve",
     probe.some((s) => s.includes("u_font[256]") && s.includes("u_reserve[32]")),
     JSON.stringify(probe.map((s) => s.length)));
+  /* The second document-start question, for the driver quirk a Mali-G720 report named (FINDINGS §22):
+   * an ES 3.0 front end that does not carry a shader's declared default precision onto an array type
+   * written `type[size] name` / `type[size](…)`. The probe has to speak the game's own spellings. */
+  const arrayProbe = shaderSources.find((s) => s.includes("vec3[5] colors")) || "";
+  check("the page reports what its compiler did with the game's array declarations",
+    shaderArrays.length === 1 && shaderArrays[0] === true, JSON.stringify(shaderArrays));
+  check("the array probe compiles every declaration the Mali report named",
+    ["flat in vec2[4] v_flowDirs;", "vec3 ramp(float t, vec3[5] colors)", "vec4[4] waves()",
+      "vec4[4] w = waves();", "vec3[5](vec3(0.0)"].every((f) => arrayProbe.includes(f)),
+    arrayProbe.slice(0, 240));
 
   // Progress frozen past the threshold: exactly one stall report, naming what is pending by kind.
   await new Promise((r) => setTimeout(r, 120));
@@ -302,6 +323,11 @@ async function main() {
   check("a device whose table does not link reports that",
     noTables.shaderTables.length === 1 && noTables.shaderTables[0].oneTable === false &&
     noTables.shaderTables[0].twoTables === false, JSON.stringify(noTables.shaderTables));
+  /* A compiler that refuses the array declarations (the reporting Mali device) must be reported as
+   * such: that answer is what makes the app serve the lifted spelling. */
+  const noArrays = bootShim({ arraysCompile: false });
+  check("a compiler that refuses the game's array declarations reports that",
+    noArrays.shaderArrays.length === 1 && noArrays.shaderArrays[0] === false, JSON.stringify(noArrays.shaderArrays));
 
   /* The facts carry the resolution the engine renders at — the Resolution option times SCREEN
    * (640x360). It is the number behind "the game is too slow" and behind how large the dither's dots
@@ -348,10 +374,11 @@ async function main() {
     !empty.errors.some((e) => /reset/.test(e)) && !("xg_local_options" in empty.store),
     JSON.stringify([empty.reports, empty.errors]));
 
-  /* The 30 fps switch. The engine drives its loop from `requestAnimationFrame`, re-requesting at the
-   * end of every frame (System.run), so a chain of self-re-requesting callbacks is exactly the shape
-   * the gate sees. Unlimited serves every vsync; limited serves one frame per interval - 4 vsyncs
-   * apart on a 120 Hz display - and rides the callbacks that arrived in between on that one frame. */
+  /* The frame-rate switch and its slider. The engine drives its loop from `requestAnimationFrame`,
+   * re-requesting at the end of every frame (System.run), so a chain of self-re-requesting callbacks
+   * is exactly the shape the gate sees. Unlimited serves every vsync; a rate serves one frame on the
+   * first vsync at least one (shortened) interval after the last, and rides the callbacks that arrived
+   * in between on that one frame. */
   const unlimited = bootShim();
   let unlimitedFrames = 0;
   const unlimitedLoop = () => { unlimitedFrames++; window.requestAnimationFrame(unlimitedLoop); };
@@ -360,7 +387,7 @@ async function main() {
   check("with the limit off every display vsync is served",
     unlimitedFrames === 120, String(unlimitedFrames));
 
-  const limited = bootShim({ limitFps: true });
+  const limited = bootShim({ fpsLimit: 30 });
   /* The engine polls the app once per frame; that poll is what carries the switch to the gate. */
   navigator.getGamepads();
   let limitedFrames = 0;
@@ -376,7 +403,7 @@ async function main() {
   /* A 60 Hz device is the case the tolerance exists for: every second vsync is one frame, and
    * without it the 33.3 ms deadline lands just after that vsync and every frame slips to the third
    * one (20 fps). */
-  const hz60 = bootShim({ limitFps: true });
+  const hz60 = bootShim({ fpsLimit: 30 });
   navigator.getGamepads();
   let frames60 = 0;
   const loop60 = () => { frames60++; window.requestAnimationFrame(loop60); };
@@ -386,12 +413,54 @@ async function main() {
     frames60 >= 29 && frames60 <= 30, String(frames60));
 
   /* The switch is live: the same shim follows the app's answer without a reload. */
-  hz60.limitFlag.value = false;
+  hz60.limitFlag.value = 0;
   navigator.getGamepads();
   const before = frames60;
   for (let i = 0; i < 60; i++) hz60.pump(1000 + i * 16.67);
   check("turning the limit off restores every vsync, live",
     frames60 - before === 60, String(frames60 - before));
+
+  /* Every rate the slider offers, against a 120 Hz panel: 20 fps is one frame per 50 ms (a whole
+   * sixth of the vsyncs), 45 is 40 - the interval is 22.2 ms and shortened to 20, and the next vsync
+   * up is 25 ms - and 60 is every second vsync. */
+  for (const [fps, expected] of [[20, 20], [45, 40], [60, 60]]) {
+    const rate = bootShim({ fpsLimit: fps });
+    navigator.getGamepads();
+    let frames = 0;
+    const loop = () => { frames++; window.requestAnimationFrame(loop); };
+    window.requestAnimationFrame(loop);
+    for (let i = 0; i < 120; i++) rate.pump(i * 8.33); // 1 s of a 120 Hz display
+    check(`${fps} fps serves about ${expected} frames in that second`,
+      frames >= expected - 1 && frames <= expected + 1, `${fps}: ${frames}`);
+  }
+
+  /* A 60 Hz panel cannot present 45: the next vsync up from a 22.2 ms interval is 33.3 ms, which is
+   * 30 fps. The gate says so by counting, not by pretending. */
+  const at45 = bootShim({ fpsLimit: 45 });
+  navigator.getGamepads();
+  let frames45 = 0;
+  const loop45 = () => { frames45++; window.requestAnimationFrame(loop45); };
+  window.requestAnimationFrame(loop45);
+  for (let i = 0; i < 60; i++) at45.pump(i * 16.67); // 1 s of a 60 Hz display
+  check("45 fps on a 60 Hz panel is 30, the next vsync up",
+    frames45 >= 29 && frames45 <= 30, String(frames45));
+
+  /* The rate is live, exactly as the switch is: the same shim follows the slider without a reload. */
+  const live = bootShim({ fpsLimit: 0 });
+  navigator.getGamepads();
+  let liveFrames = 0;
+  const liveLoop = () => { liveFrames++; window.requestAnimationFrame(liveLoop); };
+  window.requestAnimationFrame(liveLoop);
+  for (let i = 0; i < 60; i++) live.pump(i * 16.67);
+  const beforeLive = liveFrames;
+  live.limitFlag.value = 20;
+  navigator.getGamepads();
+  for (let i = 0; i < 60; i++) live.pump(1000 + i * 16.67);
+  check("turning the cap on mid-run follows the slider's rate",
+    liveFrames - beforeLive >= 19 && liveFrames - beforeLive <= 21, String(liveFrames - beforeLive));
+  check("...and the record names the rate",
+    live.reports.some((r) => r.kind === "fps" && /limited to 20/.test(r.payload)),
+    JSON.stringify(live.reports.filter((r) => r.kind === "fps").map((r) => r.payload)));
 
   /* A shader that will not compile reaches the console as groups: the file's path, then one group per
    * driver message, with only the offending source lines under them as console.error (bundle,

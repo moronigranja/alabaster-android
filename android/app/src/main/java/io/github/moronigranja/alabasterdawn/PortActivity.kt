@@ -67,8 +67,11 @@ class PortActivity : Activity() {
     private var hideWithExternalInput = true
     private var viewAlign = ViewAlign.DEFAULT
     private var statsEnabled = false
-    /** Whether the shim caps the page's frame rate at 30 fps (the side menu's battery switch). */
+    /** Whether the shim caps the page's frame rate (the side menu's battery switch). */
     private var limitFps = false
+
+    /** The rate that switch stands for, from [FpsLimit]; the slider under it changes this. */
+    private var fpsLimit = FpsLimit.DEFAULT
     private var shimSource: String = ""
 
     /** Whether the record is also kept as [LogFile.FILE] in the saves folder. */
@@ -139,6 +142,7 @@ class PortActivity : Activity() {
         viewAlign = ViewAlign.fromWire(prefs.getString(KEY_VIEW_ALIGN, null))
         statsEnabled = prefs.getBoolean(KEY_STATS, false)
         limitFps = prefs.getBoolean(KEY_LIMIT_FPS, false)
+        fpsLimit = FpsLimit.normalize(prefs.getInt(KEY_FPS_LIMIT, FpsLimit.DEFAULT))
         logToSaves = prefs.getBoolean(LogFile.PREF_KEY, true)
         /* The store is opened here and not at START, and the previous session's record is read back
          * into the ring: a user who freezes and restarts expects the panel (and the file) to still
@@ -448,7 +452,7 @@ class PortActivity : Activity() {
                 bridge,
                 viewAlign = { viewAlign },
                 statsEnabled = { statsEnabled },
-                limitFps = { limitFps },
+                fpsLimit = { if (limitFps) fpsLimit else FpsLimit.OFF },
                 telemetry = telemetry,
                 diag = diag,
                 onQuit = { runOnUiThread { exitGame() } },
@@ -498,6 +502,7 @@ class PortActivity : Activity() {
             setHideWithExternalInput(this@PortActivity.hideWithExternalInput)
             setStatsEnabled(statsEnabled)
             setLimitFps(limitFps)
+            setFpsLimit(fpsLimit)
             setLogToSaves(logToSaves)
             setAlign(viewAlign)
             onHideWithExternalInput = {
@@ -509,11 +514,22 @@ class PortActivity : Activity() {
                 this@PortActivity.statsEnabled = it
                 prefs.edit().putBoolean(KEY_STATS, it).apply()
             }
-            /* The shim reads this on its once-per-frame poll, so the cap lands on the next frame. */
+            /* The shim reads this on its once-per-frame poll, so the cap lands on the next frame.
+             * The menu is told too: the rate slider under the switch is shown only while the cap is
+             * on, and that is this view's own state to keep. */
             onLimitFps = {
                 this@PortActivity.limitFps = it
                 prefs.edit().putBoolean(KEY_LIMIT_FPS, it).apply()
-                diag.line("frame limit " + (if (it) "on: 30 fps" else "off"))
+                menuView?.setLimitFps(it)
+                diag.line("frame limit " + (if (it) "on: $fpsLimit fps" else "off"))
+            }
+            /* The slider's rate; the switch keeps its own state, so a rate can be chosen while the
+             * cap is off and is what the cap uses the moment it goes on. */
+            onFpsLimit = {
+                this@PortActivity.fpsLimit = it
+                prefs.edit().putInt(KEY_FPS_LIMIT, it).apply()
+                menuView?.setFpsLimit(it)
+                diag.line("frame limit: $it fps" + (if (this@PortActivity.limitFps) "" else " (off)"))
             }
             /* An explicit tap ends the auto-off for good, whichever way it went. */
             onLogToSaves = {
@@ -1088,8 +1104,9 @@ class PortActivity : Activity() {
         private const val RESET_VIDEO_PARAM = "adaResetVideo"
         /* Whether the shim draws its frame-rate/resolution/battery/thermal readout. */
         private const val KEY_STATS = "stats_overlay"
-        /* Whether the shim caps the page's frame rate at 30 fps, for battery. */
+        /* Whether the shim caps the page's frame rate, for battery, and at what (see [FpsLimit]). */
         private const val KEY_LIMIT_FPS = "limit_fps"
+        private const val KEY_FPS_LIMIT = "fps_limit"
         private const val REQ_GAME = 101
         private const val REQ_SAVES = 102
         private const val BRIDGE_NAME = "AdaBridge"

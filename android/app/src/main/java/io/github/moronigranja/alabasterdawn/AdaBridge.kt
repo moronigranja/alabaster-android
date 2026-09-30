@@ -14,8 +14,8 @@ class AdaBridge(
     /** Read once per engine frame by the shim, which polls like it polls `getGamepadJson`. */
     private val viewAlign: () -> ViewAlign,
     private val statsEnabled: () -> Boolean,
-    /** Whether the shim caps the page's frame rate at 30 (the side menu's battery switch). */
-    private val limitFps: () -> Boolean,
+    /** Whether the shim caps the page's frame rate, and at what — read once per engine frame. */
+    private val fpsLimit: () -> Int,
     /** Battery/thermal numbers, asked for only when the shim repaints the readout. */
     private val telemetry: Telemetry,
     /** The app's own log, so a device-only failure is reportable without adb. */
@@ -45,9 +45,12 @@ class AdaBridge(
     @JavascriptInterface
     fun getStatsEnabled(): Boolean = statsEnabled()
 
-    /** Whether the shim caps the page's frame rate at 30 fps (battery, not pacing). */
+    /**
+     * The frame-rate cap the shim enforces, in frames per second, or [FpsLimit.OFF] for none. Read on
+     * the same once-per-frame poll as the overlays, so a change lands on the next frame.
+     */
     @JavascriptInterface
-    fun getLimitFps(): Boolean = limitFps()
+    fun getFpsLimit(): Int = fpsLimit()
 
     /** `{"level":65,"temp":388,"thermal":"critical"}`; a field is null when it is unavailable. */
     @JavascriptInterface
@@ -121,6 +124,22 @@ class AdaBridge(
                 ", gui two-table " + (if (twoTables) "links" else "does not link") +
                 " -> TEX_SLOT_COUNT ${ShaderSlots.slots()}" +
                 (if (ShaderSlots.packs()) " packed" else ""),
+        )
+    }
+
+    /**
+     * Whether the page's compiler accepted the array declarations the game's fragment shaders are
+     * written with, sent once from the shim before the engine compiles anything. Some mobile front
+     * ends refuse them with `S0032: no default precision defined for variable 'vec4[4]'` (see
+     * [ShaderArrays]); the shaders are fetched after this lands, so a late answer only ever means the
+     * game's own bytes.
+     */
+    @JavascriptInterface
+    fun setShaderArrays(compiled: Boolean) {
+        ShaderArrays.report(!compiled)
+        diag.line(
+            "shader arrays: the page's compiler " +
+                (if (compiled) "accepts the game's declarations" else "rejects them -> lifting them"),
         )
     }
 

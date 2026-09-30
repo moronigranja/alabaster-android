@@ -102,6 +102,10 @@ class GameAssetHandler(
             ShaderSlots.awaitReport(WAIT_FOR_REPORT_MS)
             ShaderSlots.lock()
         }
+        /* Whether this file is lifted into the array spelling some fragment front ends accept depends
+         * on the page's own compiler (see [ShaderArrays]), and that answer is taken at document start,
+         * before the engine asks for anything. A page that never answers keeps the game's bytes. */
+        if (ShaderArrays.lifts(rel) && !ShaderArrays.decided()) ShaderArrays.awaitReport(WAIT_FOR_REPORT_MS)
         /* Only the assets that are actually rewritten are cached: everything else (images, audio,
          * JSON) is served verbatim and read once per boot, and caching all 2 652 of them
          * would cost tens of megabytes for nothing. The `.vert` shaders only join in when the device
@@ -110,12 +114,14 @@ class GameAssetHandler(
         val cacheable = rel == BUNDLE_JS || rel == OPTIONS_DB ||
             (ShaderPrecision.rewrites(rel) || rel.endsWith(".frag")) ||
             (injectShim && rel == INDEX_HTML) ||
+            ShaderArrays.rewrites(rel) ||
             (vertexShaders && rel.endsWith(".vert"))
         if (injectShim && rel == INDEX_HTML) body = injectShimTag(body)
         if (rel.endsWith(".frag")) body = keepBarycentricAlive(rel, body)
         if (rel.endsWith(".vert")) body = vertexShader(rel, body)
         if (rel.endsWith(".frag") || rel.endsWith(".vert")) body = ShaderPrecision.rewrite(rel, body)
         if (rel.endsWith(".frag")) body = ditherGrid(rel, body)
+        if (ShaderArrays.rewrites(rel)) body = arrayTypes(rel, body)
         if (rel == BUNDLE_JS) body = phoneResolutionLadder(rel, body)
         if (rel == OPTIONS_DB) body = relabelResolutions(rel, body)
         if (cacheable && !rewrite.put(rel, body) && cacheWarned.add(rel)) {
@@ -190,6 +196,22 @@ class GameAssetHandler(
         if (served == text) return source
         Log.i(TAG, "dither at the render grid in $rel")
         return served.toByteArray(Charsets.UTF_8)
+    }
+
+    /**
+     * The array declarations some drivers' ES 3.0 fragment front ends refuse with
+     * `S0032: no default precision defined for variable 'vec4[4]'` (see [ShaderArrays]): lifted into
+     * the declarator spelling the reporting device is known to accept. Only a device whose page
+     * rejected the game's own declarations gets this, and only the served bytes change.
+     */
+    private fun arrayTypes(rel: String, source: ByteArray): ByteArray {
+        val served = ShaderArrays.rewrite(rel, String(source, Charsets.UTF_8))
+        if (served.applied == 0) {
+            Log.w(TAG, "$rel carries none of the array declarations the port lifts; serving it as it came")
+            return source
+        }
+        Log.i(TAG, "array declarations lifted in $rel (${served.applied}/${served.expected})")
+        return served.text.toByteArray(Charsets.UTF_8)
     }
 
     /** Matches the resolution labels in the option database and gives them the phone ladder's text. */

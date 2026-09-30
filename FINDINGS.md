@@ -1981,11 +1981,11 @@ reset restored, not the reset failing.
   confirmed on the Fold 7 that Back still opens the side menu. Either way the setup screen's
   Troubleshoot panel is the door that never depends on the page.
 
-## 20. The recents entry, and a 30 fps cap (2026-09-30)
+## 20. The recents entry, and a frame-rate cap (2026-09-30)
 
 Two requests from the maintainer, both about the way the game *ends* rather than how it runs: the app
 disappeared from the launcher's task list after an Exit, and playing on the go burns battery that a
-30 fps cap would halve.
+frame-rate cap would halve. The cap is a switch with a rate slider under it (§20.2).
 
 ### 20.1 Why the app left the task list
 
@@ -2006,7 +2006,7 @@ one): Exit printed `exit requested`, `pidof` was empty, `dumpsys activity recent
 `Recent #1: Task{… A=10655:io.github.moronigranja.alabasterdawn}`, and tapping that card in the
 overview brought up the setup screen in a new pid.
 
-### 20.2 The 30 fps cap, and why it is a `requestAnimationFrame` gate
+### 20.2 The frame-rate cap, and why it is a `requestAnimationFrame` gate
 
 The engine has a `force30fps` debug option that does exactly this — `runInner` returns before any
 update or draw when `this.clock.previewTick() < 1/30` (bundle 34851) — but it is unreachable: every
@@ -2015,28 +2015,42 @@ update or draw when `this.clock.previewTick() < 1/30` (bundle 34851) — but it 
 option would change the game.
 
 The engine's *only* frame driver is `requestAnimationFrame`, though: `fps` is `SYSTEM_CONF.FPS = 60`
-(34459), and both `startBooting` (34795) and the end of every `run()` (34833) re-arm
+(34459), and both `startBooting` (34795) and the end of every `run()` (34833) re-request
 `window.requestAnimationFrame(this.runCallback)` when `fps >= 60`. So the shim wraps rAF and serves one
 frame on the first vsync at least one frame interval after the last one served, batching every callback
 that arrived in between (the engine re-requests inside its own callback, so a batch is normally one).
 No game file is touched, and no clock is fooled: `Timer.step` reads `performance.now()` itself
 (51937), so the game logic keeps its 60 Hz fixed step and only the presents drop.
 
-The tolerance is the one subtlety. A 60 Hz vsync is 16.7 ms and 30 fps is 33.3 ms; if the gate waited
-for `t - last >= 33.33` exactly, the deadline would fall a fraction after the second vsync and every
-frame would slip to the *third* one — 20 fps, not 30. The interval is therefore shortened by a tenth of
-itself (30 ms), which is one vsync at 60 Hz and four at 120 Hz — 30 fps on both.
+The tolerance is the one subtlety, and it is why the interval is shortened by a tenth of itself rather
+than compared exactly. A 60 Hz vsync is 16.7 ms and 30 fps is 33.3 ms; waiting for `t - last >= 33.33`
+would put the deadline a fraction *after* the second vsync, so every frame would slip to the third one
+— 20 fps, not 30. Shortened to 30 ms, that deadline is one vsync away at 60 Hz and four at 120 Hz: 30
+fps on both. The same tenth is what makes the other rates land: 20 fps is a 50 ms interval against
+60 Hz vsyncs at 50 ms, and 60 fps is 16.7 ms against 15 ms.
 
-The Kotlin side is a switch and a preference (`KEY_LIMIT_FPS`) exactly like the readout and the log
-switches; the shim reads it on the same once-per-frame gamepad poll that already carries the picture
-alignment and the readout, so the change lands on the next frame with no reload.
+A display can only present on a vsync, so the rates the menu offers are not all reachable on every
+panel, and the gate takes **the next vsync up** — the largest achievable rate that does not exceed the
+chosen one. On a 60 Hz panel `20` and `30` and `60` are exact and `45` is 30 (22.2 ms shortened to 20,
+and the next vsync after that is 33.3 ms); on a 120 Hz panel `45` is 40 (25 ms). That is a property of
+the display, not of the cap: the engine's own fixed step is untouched either way.
 
-Verified: `node android/tools/test-shim-diagnostics.mjs` grew four checks (41/41) driving the vsync
-queue directly — every vsync served with the limit off, ~30 per second of 120 Hz vsyncs with it on,
-30 (not 20) per second of 60 Hz vsyncs, and the same shim following the switch back off live. On the
-Fold 7 the running game's own readout went `30 fps · 960x540` → `60 fps · 960x540` → `30 fps · 960x540`
-as the row was toggled, with `frame limit on: 30 fps` / `ENGINE fps: limited to 30 fps` in the record
-and no reload or restart.
+The Kotlin side is a switch, a rate and two preferences (`KEY_LIMIT_FPS`, `KEY_FPS_LIMIT`) exactly like
+the readout and the log switches, and `FpsLimit` owns the four rates, the slider position of a stored
+one (nearest choice; a tie goes to the lower rate, and `OFF` reads as unchosen) and the bridge's value
+(`0` = no cap). The rate is the slider the switch reveals under its row — a `SeekBar` with the four
+labels on a strip beneath it, each centred on the position its thumb reaches (the strip is given the
+bar's own paddings, plus the readout's width, so the arithmetic is the same in both places) — and the
+shim reads the number on the same once-per-frame gamepad poll that already carries the picture
+alignment and the readout, so a change lands on the next frame with no reload.
+
+Verified: `node android/tools/test-shim-diagnostics.mjs` drives the vsync queue directly at every rate
+(53/53, six of them for the cap) — every vsync served with it off, ~30 per second of 120 Hz vsyncs at
+30, 20 and 60 at their own rates, 40 at 45, 30 for 45 on a 60 Hz panel, and the same shim following
+both a rate change and a switch-off live. On the S22 Ultra's own 60 Hz panel the running game's readout
+followed the slider: `20` → `20 fps`, `30` → `30 fps`, `45` → `30 fps`, `60` → `60 fps`, switch off →
+`60 fps`, with `frame limit: 45 fps` / `ENGINE fps: limited to 45 fps` in the record and no reload; the
+row appears and disappears with the switch, and the rate survives a relaunch.
 
 ## 21. The Mali report (2026-09-30) — the compiler's own words, now in the record
 
@@ -2135,3 +2149,193 @@ stage and the line:
   driver-defined, and a black or dark film pass on Mali is a *behaviour* difference, not a compile
   error, which would fit "post-processing issues" being fixed by a passthrough;
 * a link failure, which the engine throws with both paths and the program log.
+
+---
+
+## 22. The three shaders Mali's front end refuses (2026-09-30)
+
+§21's follow-up, tracked as issue #4: the record it built was read back from the same device, and it names
+both the file and the compiler's own message.
+
+### 22.1 The message
+
+From the reporter's Poco X7 Pro (Mali-G720 MC7, Android 16, WebView 155 beta), app 0.6.1 and 0.7.0,
+game `0.1.0-7`, with the error-group forwarding of §21.4 in place:
+
+```
++39219ms ENGINE console.groupCollapsed: Shader Errors: data/shader/fragment/post/analog-filter.frag
++39219ms ENGINE console.groupCollapsed: 0:62: S0032: no default precision defined for variable 'vec3[5]'
++39223ms JS ERROR window.onerror: … An error occurred compiling the shader "data/shader/fragment/post/analog-filter.frag
++40571ms ENGINE console.groupCollapsed: Shader Errors: data/shader/fragment/water-plane.frag
++40573ms ENGINE console.groupCollapsed: 0:275: S0032: no default precision defined for variable 'vec4[4]'
++40641ms ENGINE console.groupCollapsed: Shader Errors: data/shader/fragment/water-fx-wall.frag
++40644ms ENGINE console.groupCollapsed: 0:308: S0032: no default precision defined for variable 'vec4[4]'
++49381ms ENGINE boot stall: no progress for 8496ms at 98.7% of 1704 resources; pending 23 (shader=3 …)
+```
+
+So §21.5's third candidate (a link failure) is out, and its first is the one: **the driver names a type,
+not a variable, and the type is an array type.** The record's own line numbers are not the engine's —
+the constructor sits at line 148 of the engine's expansion (232 lines, the port's model of which
+reproduces the 1 309/1 310 of §21.3 within three lines) while the driver says 62: ANGLE re-emits the
+source before the driver sees it, so "the message names the stage and the line" was half right. The
+*type* is what identifies the construct, and it does.
+
+### 22.2 The constructs
+
+Every array type specifier in the fragment stage of build `0.1.0-10` (the same bytes as the full game on
+Steam; the demo differs only inside `lib/water.glsl` bodies), from the maintainer's own tree:
+
+| file | line | the game's bytes | named by the driver |
+|---|---|---|---|
+| `fragment/post/analog-filter.frag` | 42 | `colorRamp(noise.r, vec3[5](` | **`vec3[5]`** |
+| `lib/water.glsl` | 182 | `vec4[4] computeWaveFactors(out vec2 globalFlow, vec2 flowDir)` | **`vec4[4]`** |
+| `lib/water.glsl` | 187 | `return vec4[](` | — |
+| `lib/water.glsl` | 195 | `vec3 computeGerstnerOffset(… vec4[4] waves, … float[4] amps, float[4] phases)` | **`vec4[4]`** |
+| `lib/water.glsl` | 342 | `vec4[4] waves = computeWaveFactors(globalFlow, flowDir);` | **`vec4[4]`** |
+| `lib/water.glsl` | 135 | `vec2 bilinear(vec2[4] v, float t0, float t1)` | — |
+| `lib/water.glsl` | 78, 97 | `const vec2[12] DIRECTIONS = vec2[](` | — |
+| `lib/water.glsl` | 346, 350 | `float[](1.0, 0.3, 0.1, 0.0) …` (arguments) | — |
+| `lib/color-utils.glsl` | 17 | `vec3 colorRamp(float t, vec3[COLOR_RAMP_COUNT] colors)` | — |
+| `fragment/water-plane.frag` | 27 | `flat in vec2[4] v_flowDirs;` | — |
+| `fragment/plane-depth.frag` | 13 | `flat in vec2[4] v_flowDirs;` | — |
+
+`lib/water.glsl` is imported by `water-plane.frag` and `water-fx-wall.frag` only — the two water
+fragment shaders whose whole wave path is that file. The third failure, `analog-filter.frag`, is the
+post pass's ramp: the only `vec3[5]` in it is the constructor in the table's first row.
+
+### 22.3 What it is not
+
+* **Not invalid ES 3.0.** `glslangValidator` accepts the expanded originals and ANGLE compiles them
+  (§21.2), and the driver's own complaint is impossible by the book: every one of these shaders declares
+  `precision mediump float;`, and the construct the driver names is the one a default precision is
+  *supposed* to cover.
+* **Not the port's rewrites.** `analog-filter.frag` is served byte-for-byte (it is deliberately not in
+  `ShaderPrecision`'s GUI set, and `ShaderPrecisionTest` asserts it is untouched); the construct in
+  `lib/water.glsl` is reached by no rewrite at all (no slot table, no dither divisor, no `v_barycentric`
+  in that file); and the two water fragments' rewrites (the dither divisor, the keep-alive) are other
+  lines entirely.
+* **Not a ceiling.** The same record reports `uniforms=4096/4096; varyings=31`, and the failing three
+  are not the interface-heavy shaders.
+* **Not the `v_barycentric` keep-alive's `vec3(-1e30)` literal** (§21.5's first candidate, which also
+  guessed `flat in vec2[4] v_flowDirs`): the driver's message is about array types, and
+  `analog-filter.frag`, which carries neither, fails the same way.
+
+### 22.4 The rule
+
+The same driver compiles, in the same boot, on the same device:
+
+* `lib/blur.glsl`: `const float[] BLUR10KERNEL = float[](` (reached by `gui-blur.frag`)
+* `fragment/combine.frag` / `shadow.frag` / `lib/shadow.glsl`: `vec2 poissonDisk[] = vec2[](` and
+  `float factors[] = float[](…)` (reached by `combine`, `shadow`, `fog-plane`, `fog-plane-pre`)
+
+The engine's boot set is 45 shaders; the failing record lists **exactly three pending**, so every one of
+those compiled. The port's own harness can be asked what each of them contains:
+
+| shader (in the boot set) | unsized array constructor | sized array specifier |
+|---|---|---|
+| `gui-blur`, `combine`, `shadow`, `fog-plane`, `fog-plane-pre` | yes | **no** |
+| `water-plane`, `water-fx-wall` | yes | **yes** |
+
+So the front end's rule is: an array written with its size in the *type* — `type[size] name`,
+`type[size](…)`, `type[size] f(…)` — loses the declared default precision (the driver's S0032), while the
+**declarator** spelling `type name[size]` and the **unsized** constructor `type[]` are fine. That is one
+rule for all three failures and for the reports below.
+
+The same bug, elsewhere (found with the web-search tool, 2026-09-30):
+
+| report | device / GPU | construct | works on |
+|---|---|---|---|
+| [Godot #99821](https://github.com/godotengine/godot/issues/99821) (open, `confirmed`) | Pixel 8a **Mali-G715**, Amazon Fire HD 10 (Mali), a Samsung phone | `vec4 m_pixels[1] = vec4[1](m_pixel);` → `S0032 … 'vec4[1]'` | Adreno 740, iPhone 13, desktop |
+| [r/opengl zs60wi](https://www.reddit.com/r/opengl/comments/zs60wi/) | Pixel 6 **Mali-G78** | a `const` array, `precision mediump float;` on line 3 → `S0032 … 'float[9]'` | Linux/Mac/Windows Chrome, Firefox, Safari |
+| [SO 72479232](https://stackoverflow.com/questions/72479232/shader-fails-on-mobile) | Android 12 phone | `float w[4] = float[4](…)` → `S0032 … 'float[4]'` | desktop |
+
+Godot's reporter reaches the same conclusion ("completely valid in OpenGL ES 3 … driver bug on certain
+devices"), and the accepted answer on Stack Overflow is the declarator spelling — `float w[4];` with
+element-wise assignment — which is what the lift below moves declarations to. Two further consequences
+from the same sources:
+
+* the construct cannot be repaired by *adding* a precision qualifier: ESSL 3.0's own errata list says
+  "precision qualifiers are not allowed on constructors", and `precision mediump vec3;` is invalid (the
+  WebGL conformance test `invalid-default-precision.html` is that rule) — the spelling has to change,
+  not the qualifier;
+* ARM does not document it: its workarounds/errata list (rev 2.0, GX920) has no entry for S0032 or for a
+  default-precision-array, though neighbouring array errata exist — `668069` (GLES2: a `varying vec2`
+  array loses every odd element; workaround: separate variables or a `vec4` array) and `602375`
+  (function overloads differing *only* in array sizes are one signature). `602375` is not in play here:
+  `colorRamp`, `bilinear` and `computeGerstnerOffset` are each defined once, and the lift keeps every
+  size in the declarator.
+
+### 22.5 The lift
+
+`ShaderArrays` serves the five files with the declarations in the spelling the same device is known to
+accept. Nothing else in a shader changes — the base types, the qualifiers, the sizes, the values and the
+evaluation order are the game's:
+
+| file | edits | what happens |
+|---|---|---|
+| `fragment/post/analog-filter.frag` | 1 | `colorRamp(noise.r, vec3[5](` → `… vec3[](`; the size is inferred from the parameter |
+| `fragment/water-plane.frag`, `fragment/plane-depth.frag` | 1 each | `flat in vec2[4] v_flowDirs;` → `flat in vec2 v_flowDirs[4];` — the spelling their own `.vert` already uses |
+| `lib/color-utils.glsl` | 1 | `vec3[COLOR_RAMP_COUNT] colors` → `vec3 colors[COLOR_RAMP_COUNT]` |
+| `lib/water.glsl` | 9 | `vec2[4] v` → `vec2 v[4]`; `const vec2[12] DIRECTIONS` → `const vec2 DIRECTIONS[12]` (twice); the two `float[](…)` argument lists hoisted to global `const float x[4] = float[](…)`; `vec4[4] waves` / `float[4] amps` / `float[4] phases` parameters → declarators; the one array **return type** becomes `void computeWaveFactors(…, out vec4 waves[4])` with four assignments, and its single caller declares `vec4 waves[4];` |
+
+Only the fragment stage is lifted: all twelve `.vert` shaders compile on the reporting device (the
+record's pending list names three fragment shaders), and their sized declarations (`float[4]
+flowStrengths = float[4](…)` in `water-plane.vert`) are a spelling this driver accepts in the vertex
+stage — so they are left alone deliberately rather than by oversight. What the lift does *not* touch
+anywhere is the global `type[] name = type[](…)` form, which that device compiles.
+
+The gate is a document-start probe in the shim, in the shape of the slot probe (§17): one fragment
+shader built from the game's own spellings (a sized varying, a sized array parameter, an array return
+type, a sized local and a sized constructor), compiled on a throwaway context before the engine asks for
+anything, reported through `AdaBridge.setShaderArrays`. Only a page whose compiler *refuses* them gets
+the lift, and the record says which way it went:
+
+```
++24ms ENGINE shader arrays: the page's compiler rejects them -> lifting them
++25ms ENGINE array declarations lifted in terra/data/shader/lib/water.glsl (9/9)
+```
+
+A file whose bytes do not match (another build) is served as it came with a `Log.w` naming it — a
+partial lift would be worse than none. The files on the user's disk are never touched, and each rewritten
+body is cached like the others.
+
+### 22.6 Measured
+
+* Unit tests: `ShaderArraysTest` (the lift per file, line endings preserved, idempotent, the device gate,
+  a foreign build's bytes served as they came). A throwaway check (not committed — see §22.7) matched
+  every literal against a real installation, full game **and** demo: 1/1, 1/1, 1/1, 1/1, 9/9.
+* `glslangValidator` on the expanded originals and on the expanded lifted shaders (eight fragment
+  shaders, including the two water ones): **0 failures either way**.
+* The engine itself, booted in Chromium (ANGLE + SwiftShader) through the port's own `ada-shim.js` and a
+  recording bridge, with the game tree over HTTP: the original bytes boot as before, and the lifted bytes
+  boot **complete — 1 757 resources, 154 shader compiles, 0 failures, 0 link failures**. The engine's own
+  shader objects show the lift arrived (`adaAmpsWave` in `water-plane`, `out vec4 waves[4]`, no `vec4[4]`
+  anywhere, `colorRamp(noise.r, vec3[](` in the post pass).
+* Interface equivalence, which is what the engine's uniform wiring depends on: for `water-plane`,
+  `water-fx-wall`, `analog-filter` and `gui-blur`, the lifted and original boots enumerate **identical**
+  active-uniform and active-attribute sets (41/41, 48/48, 15/15, 11/11 uniforms; 4/4, 4/4, 2/2, 13/13
+  attributes), all linked.
+* The shim harness grew three checks (44 → 47): the array probe carries every spelling the report named,
+  the answer reaches the bridge, and a compiler that refuses them reports `false`.
+
+One warning from doing that verification: an earlier, larger version of the `analog-filter` lift — the
+Stack Overflow remedy, hoisting the ramp into a local `vec3 adaFilmRamp[5]` filled element-wise — made
+the boot fail *after* that shader compiled: SwiftShader's compiler then refused the next 23 compiles with
+an empty info log (87 ok, 23 fail, boot stall), on shaders whose bytes are identical in both runs. The
+minimal edit (drop the constructor's size) boots clean. A lift of this kind changes what a *driver* must
+translate, and the reporting class of driver is exactly the fragile kind; the smallest change that
+satisfies the rule is the one to serve.
+
+### 22.7 What the next Mali record decides
+
+* Whether the lift is enough: the record now carries `shader arrays: …` and one `array declarations
+  lifted in …` line per file, so a run either boots or names the next type.
+* The reporter's own ZIP also stubbed `weather-drops.frag`, which carries **no** array type specifier at
+  all — under this rule it should compile, and the current record does not list it among the three
+  pending. If it fails on his build it fails for a second reason, and that reason is not in a record yet.
+* The driver named the `lib/water.glsl` `vec4[4]` in `water-plane.frag`, not that file's own
+  `flat in vec2[4] v_flowDirs;` — either the driver reports one error per shader, or it resolves an
+  interface array's precision from the vertex shader. The lift rewrites both spellings, so it does not
+  depend on which.
+* Nothing here was measured on Mali hardware: the port has none. The fix is the spelling the driver's own
+  rule calls for, verified end to end everywhere else it can be.

@@ -153,6 +153,51 @@
     call(function (bridge) { return bridge.setVertexUniformVectors(glLimits.vertexUniforms); });
     call(function (bridge) { return bridge.setShaderTables(glLimits.oneTableLinks, glLimits.twoTablesLinks); });
 
+    /* A second document-start question, for a different quirk of the same front end: some ES 3.0
+     * compilers do not carry a shader's declared *default* precision onto an array type written as
+     * `type[size] name`, and refuse the shader with
+     * `S0032: no default precision defined for variable 'vec4[4]'` - though the shader does declare
+     * one (`precision mediump float;`). That is what froze the boot on a Mali-G720 device with three
+     * fragment shaders pending and nothing readable in the record (FINDINGS 22). The shapes the game
+     * writes are compiled here, one fragment shader, before the engine asks for anything; the app
+     * serves those declarations lifted into the declarator spelling (`type name[size]`) only when the
+     * page's own compiler refuses them - see ShaderArrays. Every compiler measured so far, ANGLE and
+     * SwiftShader included, accepts them, so those devices keep the game's own bytes. */
+    var shaderArrays = (function () {
+        var source = [
+            "#version 300 es",
+            "precision mediump float;",
+            "out vec4 o;",
+            "flat in vec2[4] v_flowDirs;",
+            "vec3 ramp(float t, vec3[5] colors) { return colors[1]; }",
+            "vec4[4] waves() { return vec4[](vec4(1.0), vec4(1.0), vec4(1.0), vec4(1.0)); }",
+            "void main() {",
+            "    vec4[4] w = waves();",
+            "    o = w[0] + vec4(ramp(0.5, vec3[5](vec3(0.0), vec3(1.0), vec3(2.0), vec3(3.0), vec3(4.0))), 0.0)" +
+                " + vec4(v_flowDirs[0], 0.0, 1.0);",
+            "}"
+        ].join("\n");
+        try {
+            var canvas = document.createElement("canvas");
+            var gl = canvas.getContext("webgl2");
+            if (!gl) return false;
+            var pixel = gl.createShader(gl.FRAGMENT_SHADER);
+            gl.shaderSource(pixel, source);
+            gl.compileShader(pixel);
+            var ok = gl.getShaderParameter(pixel, gl.COMPILE_STATUS) === true;
+            gl.deleteShader(pixel);
+            var lose = gl.getExtension("WEBGL_lose_context");
+            if (lose) lose.loseContext();
+            return ok;
+        } catch (e) {
+            report("shader arrays", e);
+            /* Nothing could be measured: answer "not accepted", because lifting is the side that
+             * compiles everywhere and the game's own spelling is exactly what this probe doubts. */
+            return false;
+        }
+    })();
+    call(function (bridge) { return bridge.setShaderArrays(shaderArrays); });
+
     /* The engine reports its real trouble through the console - a shader that will not compile, a
      * resource that will not load, an atlas that ran out of slots - and on a release build none of
      * that reaches a log anyone can read. Forward the first line of each (bounded, and the app
@@ -577,22 +622,26 @@
     })();
 
     /* ---- frame-rate limit -------------------------------------------------
-     * The side menu's 30 fps switch. The engine drives *everything* it draws from
-     * `requestAnimationFrame` - `System.run` re-arms itself at the end of every frame, and the GUI's
-     * own canvases do the same - so gating rAF gates the frames, and half the frames is half the
-     * GPU time (the port is GPU-bound, see README "Performance"). Nothing in the game's files is
-     * touched and the engine's clock is not fooled: `Timer.step` reads `performance.now()` itself,
-     * so the game logic keeps advancing by the real elapsed time and still runs at its 60 Hz fixed
-     * step; only the presents drop.
+     * The side menu's frame-rate switch and the rate slider it reveals (20/30/45/60, see FpsLimit).
+     * The engine drives *everything* it draws from `requestAnimationFrame` - `System.run` re-arms
+     * itself at the end of every frame, and the GUI's own canvases do the same - so gating rAF gates
+     * the frames, and half the frames is half the GPU time (the port is GPU-bound, see README
+     * "Performance"). Nothing in the game's files is touched and the engine's clock is not fooled:
+     * `Timer.step` reads `performance.now()` itself, so the game logic keeps advancing by the real
+     * elapsed time and still runs at its 60 Hz fixed step; only the presents drop.
      *
      * The display can only present on a vsync, so the gate serves one frame on the first vsync at
      * least one frame interval after the last one served, and every callback that arrived in the
      * meantime rides that frame (the engine re-requests inside its own callback, so a batch is
-     * normally one). The interval is shortened by a tenth of itself because a 60 Hz vsync is
-     * 16.7 ms and 30 fps is 33.3 ms: without the tolerance the deadline falls 0.3 ms after the
-     * second vsync and every frame slips to the third, i.e. 20 fps instead of 30. */
-    var FPS_LIMIT = 30;
-    var FPS_FRAME_MS = 1000 / FPS_LIMIT;
+     * normally one). The interval is shortened by a tenth of itself because a 60 Hz vsync is 16.7 ms
+     * and 30 fps is 33.3 ms: without the tolerance the deadline falls 0.3 ms after the second vsync
+     * and every frame slips to the third, i.e. 20 fps instead of 30. The same tenth keeps the other
+     * rates honest - 20 fps is a 50 ms interval against 60 Hz vsyncs at 50 ms, and 60 fps is 16.7 ms
+     * against 15 ms - and it is what a rate that is not a whole division of the panel's refresh
+     * resolves to: 45 fps (22.2 ms, 20 ms shortened) is 40 on a 120 Hz panel and 30 on a 60 Hz one,
+     * because the next vsync up is what is available. */
+    var fpsLimit = 0;
+    var fpsFrameMs = 0;
     var fpsLimited = false;
     var fpsLastFrame = 0;
     var fpsScheduled = false;
@@ -613,7 +662,7 @@
 
         function tick(t) {
             fpsScheduled = false;
-            if (fpsLimited && t - fpsLastFrame < FPS_FRAME_MS - FPS_FRAME_MS / 10) {
+            if (fpsLimited && t - fpsLastFrame < fpsFrameMs - fpsFrameMs / 10) {
                 schedule();
                 return;
             }
@@ -647,11 +696,14 @@
 
     /** Read on the same once-per-frame poll as the overlays; the change lands on the next frame. */
     function applyFpsLimit() {
-        var on = call(function (b) { return b.getLimitFps(); }, false) === true;
-        if (on === fpsLimited) return;
-        fpsLimited = on;
+        var fps = call(function (b) { return b.getFpsLimit(); }, 0) | 0;
+        if (fps < 0) fps = 0;
+        if (fps === fpsLimit) return;
+        fpsLimit = fps;
+        fpsFrameMs = fps > 0 ? 1000 / fps : 0;
+        fpsLimited = fps > 0;
         fpsLastFrame = 0;
-        reportDiag("fps", on ? "limited to " + FPS_LIMIT + " fps" : "unlimited");
+        reportDiag("fps", fpsLimited ? "limited to " + fps + " fps" : "unlimited");
     }
 
     /* ---- port overlays ---------------------------------------------------

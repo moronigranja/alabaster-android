@@ -16,7 +16,7 @@ Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`)
 |---|---|---|---|
 | ![Game files and saves pickers](docs/setup.png) | ![Title screen](docs/title-screen.png) | ![On-screen pad over the title screen](docs/on-screen-pad.png) | ![Moving and resizing a pad control](docs/pad-editor.png) |
 
-![The side menu, opened with Back: one uniform icon-led list — the switches, the picture position, the status block with the port version, Troubleshoot and Exit — with the FPS/battery/temperature readout on](docs/side-menu.png)
+![The side menu, opened with Back: one uniform icon-led list — the switches, the battery one with its rate slider under it, the picture position, the status block with the port version, Troubleshoot and Exit — with the FPS/battery/temperature readout on](docs/side-menu.png)
 
 ![The diagnostics record while the engine's boot was stuck: the port's and the game's versions, the device, WebView, GL backend, asset counters, and the log naming the resources still pending](docs/diagnostics.png)
 
@@ -66,9 +66,10 @@ Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`)
   ("Hide pad with external input" — a controller, a mouse or a keyboard),
   a **Game position** choice (Top / Center / Bottom) for where the picture sits inside the black
   letterbox bands (the current choice is a filled pill), a switch for an **FPS / battery /
-  temperature** readout, a switch to **limit the frame rate to 30 fps** (for battery: the port is
-  GPU-bound, and half the frames is half the GPU time — the game logic keeps its 60 Hz fixed step,
-  because the engine's clock reads `performance.now()` itself), a switch to **keep a log file with
+  temperature** readout, a switch to **limit the frame rate** with the rate slider it reveals
+  underneath (**20 / 30 / 45 / 60 fps**, for battery: the port is GPU-bound, and half the frames is
+  half the GPU time — the game logic keeps its 60 Hz fixed step, because the engine's clock reads
+  `performance.now()` itself), a switch to **keep a log file with
   the saves**, the port version, three
   status lines (external input active/idle, where saves go, the last thing the engine reported) and
   **Exit**. Back again, a tap on the dimmed area or Exit closes it (from Android 13 the registered
@@ -229,6 +230,18 @@ other switches. The side menu's **Exit** then printed `exit requested`, left `pi
 that card in the overview started a **new** pid on the setup screen, so the app is reopenable from
 the task list while the next launch is still a fresh process with a fresh WebView renderer.
 
+The **frame-rate slider** (2026-09-30) was verified on the maintainer's S22 Ultra (SM-S908U1, Android
+16) with the signed release build, installed over an older one so both folder grants stayed. The side
+menu shows the switch, and the slider under it only while the switch is on: the bar, its thumb and the
+`20 30 45 60` labels — each label centred under the position its thumb reaches — with the chosen rate
+as a readout beside it. Moving it changed the running game, live, in one process with no reload:
+`20` → the readout and the shim's own count both `20 fps`, `30` → `30 fps`, `45` → `30 fps` (a 60 Hz
+panel cannot present 45; the next vsync up from 22.2 ms is 33.3 ms), `60` → `60 fps`, switch off →
+`60 fps`. The row appears and disappears with the switch, and the rate survives a switch off/on cycle
+and a relaunch (`frame limit on: 20 fps`, `ENGINE fps: limited to 20 fps` from the new pid). Behind
+it: `FpsLimitTest`, the shim harness at 53/53 (which drives the gate at every rate, including 45 on a
+60 Hz panel), and the `20 30 45 60` assertions in `FINDINGS.md` §20.2.
+
 The **Steam demo** was run through the port on the same emulator (`terra/` 226 MB / 2 327 files):
 `ENGINE boot: complete in 6655ms, 1641 resources`, 0 failed decodes, its own title screen and intro
 drawing, and the record naming it `game 0.0.5-3 Alpha`. It exposed two defects, both since fixed and
@@ -281,15 +294,18 @@ work has unit tests behind it (`ShaderPrecisionTest`, `ShaderSlotsTest`, `Shader
 harness has 44 checks; the dither change was measured in a harness that renders the engine's own
 dither lines verbatim. See `FINDINGS.md` §16-§20.
 
-The **Mali shader report** (2026-09-30, v0.7.0) has no fix and no reproduction on Mali hardware. The
-shaders the reporter replaced were checked against a strict ES 3.0 front end (`glslangValidator`) and
-ANGLE — the four, expanded the engine's way, and **all 39 served fragment shaders** with the port's own
-rewrites applied — and nothing in them is invalid, so the driver's message is what decides. What the
-port could do, it does now: the engine's own shader-error console groups (the file's path and the
-compiler's message) are in the record, verified end to end by serving a deliberately broken
-`water-plane.frag` to the real engine in Chromium through the port's own shim — the boot freezes at
-99.9 % with `pending 2 (shader=1 data=1)`, and the record names the file and the message. See
-`FINDINGS.md` §21.
+The **Mali shader report** (2026-09-30) was read back from the same device (a Poco X7 Pro), and the
+driver's own message names the construct: `S0032: no default precision defined for variable 'vec3[5]'`
+and `'vec4[4]'` — this front end does not carry a shader's declared default precision onto an array
+written `type[size] name`. The port's bytes are valid ES 3.0 (a strict front end and ANGLE accept them;
+the same bug is reported for other Mali generations, in Godot and elsewhere). Since v0.7.0 the record
+carries the file, the message and the pending resources; now the port also serves those declarations in
+the spelling the same driver is known to accept — the declarator form `type name[size]`, and one
+constructor without its size — to a device whose own compiler refuses them, decided by a document-start
+probe. Verified by unit tests, `glslangValidator` and a boot A/B through the port's own shim in Chromium
+(0 compile and 0 link failures, identical active uniforms and attributes), but **not on Mali hardware**,
+which this project has none of: the next record from that device is what confirms it. See `FINDINGS.md`
+§21-§22.
 
 ### Download
 
@@ -301,7 +317,7 @@ certificate** — `CN=Alabaster Dawn Android port, O=moronigranja, C=BR`, SHA-25
 install:
 
 ```bash
-apksigner verify --print-certs AlabasterDawn-Android-0.7.0.apk   # no SDK? keytool -printcert -jarfile …
+apksigner verify --print-certs AlabasterDawn-Android-0.7.1.apk   # no SDK? keytool -printcert -jarfile …
 ```
 
 The APK carries `assets/LICENSE` + `assets/NOTICE.md` inside, so the binary ships the notices it is
@@ -320,12 +336,15 @@ say) needs an uninstall first.
   code, and the port's own conversion is exactly what handles a missing one. A keyboard's keys carry
   their scan code and take the WebView's path untouched, which is the pre-0.6 behaviour for every key.
 * Performance is GPU-bound; see the ledger below before expecting 1080p.
-* **A shader some mobile GPUs reject is not worked around.** Reported on **Mali** (a Poco X7 Pro): the
-  device's own compiler refuses a shader the port serves, the engine's loading bar then freezes with
-  that shader still pending, and the game never starts. The port's bytes are valid ES 3.0 as far as a
-  strict front end and ANGLE can tell, so the driver's message is what decides, and there is no Mali
-  device here to get it from — the record now names the file and the compiler's message (see
-  `FINDINGS.md` §21), and a report with that record is what a fix needs.
+* **A shader some Mali drivers reject is served a spelling they accept, but not yet confirmed on one.**
+  Reported on **Mali** (a Poco X7 Pro, Mali-G720): the device's own compiler refuses a shader the port
+  serves with `S0032: no default precision defined for variable 'vec3[5]'` / `'vec4[4]'` — an array
+  written `type[size] name`, which is valid ES 3.0 and works on Adreno, SwiftShader and desktop (the same
+  driver bug is reported for Mali-G78/G715 in Godot and elsewhere). The port now serves those five
+  fragment-stage files in the declarator spelling for a device whose compiler refuses them, decided by a
+  document-start probe; the record says which way it went. No Mali device is available here, so the fix
+  is verified everywhere else and the confirmation is the next record from that device —
+  `FINDINGS.md` §22.
 * **The emulator's software GL stack draws the in-game map wrong.** SwiftShader
   (`-gpu swiftshader_indirect`) renders black tiles with purple/pink fragments where the *same build*
   is correct on real hardware and on the same emulator with the host GPU (`-gpu host`). The port
@@ -375,7 +394,7 @@ keytool -genkeypair -keystore ~/.android/alabasterdawn-release.jks -alias alabas
 # then android/keystore.properties: storeFile / storePassword / keyAlias / keyPassword (chmod 600)
 
 android/tools/release.sh                       # signed build + digest + signature check
-android/tools/release.sh --upload --publish --notes docs/release-0.7.0.md
+android/tools/release.sh --upload --publish --notes docs/release-0.7.1.md
 ```
 
 `--notes` takes the **release body**: since v0.5 that is a terse changelog plus links to the full
@@ -466,11 +485,14 @@ Thermals, not CPU, are the limit: the same 720p scene measured 42 fps cool and 1
 `Thermal Status: 3` / 45 °C skin. Don't charge while playing; `640×360` is the safe default,
 `960×540` the sharpest resolution that still holds 60.
 
-The renderer is the GPU cost, so the side menu's **Limit to 30 FPS** switch is the battery lever
-that costs nothing in game speed: the shim gates the page's `requestAnimationFrame` (the engine's
-only loop) to one frame per frame interval, which on the S22 Ultra's measurements is roughly half
-the GPU time of the rung in use — measured on the Fold 7 below, the readout went `60 fps → 30 fps`
-and back with the switch, in the same session, without a reload.
+The renderer is the GPU cost, so the side menu's **Limit the frame rate** switch — and the rate
+slider under it (`20 / 30 / 45 / 60 fps`) — is the battery lever that costs nothing in game speed:
+the shim gates the page's `requestAnimationFrame` (the engine's only loop) to one frame per frame
+interval, which on the S22 Ultra's measurements is roughly half the GPU time of the rung in use —
+measured on the Fold 7 below, the readout went `60 fps → 30 fps` and back with the switch, in the
+same session, without a reload. A display presents only on a vsync, so a rate that is not a whole
+division of the panel's refresh lands on the next one up: on a 60 Hz panel `45` is 30, on a 120 Hz
+one it is 40.
 
 ### How it works (short)
 
