@@ -2551,11 +2551,12 @@ the right stack, and puts the answer in the record he already knows how to send:
   privileged `Settings.Global` entry), and **bundling ANGLE would change nothing**: the WebView renders
   with its own GL stack, and the platform's ANGLE is the system apk plus that per-package opt-in.
 
-Measured: `ShaderVariantsTest` (the expansion, every case, the `#define` placement, an unreadable file);
-the shim harness at **60 checks**, four of them the self-test's own (plus the 'driver=…' field) (the engine-context path, a
-per-case verdict line, the summary reaching the app, and a case the app cannot build being reported as
-*unavailable* rather than as a refusal); and the real shim in Chromium against the fourteen generated
-cases — all fourteen compiled, one line each, summary delivered.
+Measured: `ShaderVariantsTest` (the expansion, every case, the `#define` placement, an unreadable file, a
+CRLF copy, a nested failure); the shim harness at **60 checks** — four of them the self-test's own (the
+engine-context path, a per-case verdict line, the summary reaching the app, and a case the app cannot
+build being reported as *unavailable* rather than as a refusal), one the new `driver=` field, and the rest
+as before; and the real shim in Chromium against the fourteen generated cases — all fourteen compiled, one
+line each, summary delivered.
 
 **Then on hardware** (the maintainer's S22 Ultra, 0.7.4 installed over the existing build, Back → the side
 menu's Troubleshoot → the new button): the chain ran end to end on the engine's own context and reported,
