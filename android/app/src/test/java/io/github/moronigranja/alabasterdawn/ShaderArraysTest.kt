@@ -155,6 +155,29 @@ class ShaderArraysTest {
     }
 
     @Test
+    fun `the water fragments' default precision is raised to the vertex stage's`() {
+        /* The link failure, not a compile one: `u_waveHeight` and `u_cameraProjM` come from
+         * `lib/water.glsl` with no precision of their own, so a fragment that says `mediump` makes them
+         * mediump there and highp in the vertex language — and the program fails to initialize
+         * (FINDINGS §22.13). */
+        ShaderArrays.report(true)
+        for (rel in listOf(
+            "terra/data/shader/fragment/water-plane.frag",
+            "terra/data/shader/fragment/water-fx-wall.frag",
+        )) {
+            val served = ShaderArrays.rewrite(rel, "precision mediump float;\nvoid main() { }\n")
+            assertEquals("$rel: the one edit", 1, served.applied)
+            assertTrue("$rel: raised", served.text.startsWith("precision highp float;"))
+            assertFalse("$rel: nothing mediump left for float", served.text.contains("precision mediump float;"))
+        }
+
+        val other = "terra/data/shader/fragment/plane-depth.frag"
+        val untouched = ShaderArrays.rewrite(other, "precision mediump float;\n")
+        assertEquals("a fragment that is not half of a mismatching program keeps its precision", 0, untouched.applied)
+        assertEquals("precision mediump float;\n", untouched.text)
+    }
+
+    @Test
     fun `line endings are the file's own, and a second pass changes nothing`() {
         ShaderArrays.report(true)
         val lf = ShaderArrays.rewrite(waterRel, water)

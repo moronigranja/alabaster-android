@@ -170,12 +170,26 @@ object ShaderArrays {
             ),
         ),
 
-        /* The varying's fragment declaration, written in the spelling its own vertex shader uses. */
+        /* The varying's fragment declaration, written in the spelling its own vertex shader uses, and the
+         * default precision raised to the vertex stage's. The two water programs failed to *link* on the
+         * reporting device once these fragments compiled:
+         *
+         *   Unable to initialize the shader program vertex/water-plane.vert + fragment/water-plane.frag:
+         *   Uniforms with the same name but different type/precision: u_waveHeight
+         *
+         * `u_waveHeight` and `u_cameraProjM` are declared in `lib/water.glsl` with no precision of their
+         * own, so they take the default: highp in the vertex language (ES 3.0 predeclares it there), and
+         * mediump in a fragment that says `precision mediump float;`. The same phone's owner had fixed the
+         * water by raising exactly this line, which is the one repair measured to work (§22.13). */
         "terra/data/shader/fragment/water-plane.frag" to listOf(
             Edit("flat in vec2[4] v_flowDirs;", "flat in vec2 v_flowDirs[4];"),
+            Edit("precision mediump float;", "precision highp float;"),
         ),
         "terra/data/shader/fragment/plane-depth.frag" to listOf(
             Edit("flat in vec2[4] v_flowDirs;", "flat in vec2 v_flowDirs[4];"),
+        ),
+        "terra/data/shader/fragment/water-fx-wall.frag" to listOf(
+            Edit("precision mediump float;", "precision highp float;"),
         ),
 
         /* `colorRamp`'s parameter carries a macro size; the array moves to the name. Reached by every

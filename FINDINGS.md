@@ -2643,3 +2643,49 @@ values, CRLF copies, a nested failure); the shim harness at **60 checks**; and `
 *real* `analog-filter.frag` with its imports expanded, before and after the edit — the find-string matches
 the game's bytes exactly once, and both texts compile with no output. The device proof is the reporter's
 next record: `analog-filter~lifted` should read `compile=1` there, and the boot should get past 94 %.
+
+## 22.13 The water was not drawn: a program that failed to *link* (2026-09-30)
+
+With §22.12's named ramp, the reporting phone's native run boots and plays — and the water is still not
+drawn. The cause is in its own records, one line above where a compile error would be:
+
+```
+JS ERROR window.onerror: … Uncaught Error: Unable to initialize the shader program
+  data/shader/vertex/water-plane.vert +data/shader/fragment/water-plane.frag:
+  Uniforms with the same name but different type/precision: u_waveHeight
+… data/shader/vertex/water-fx-wall.vert +data/shader/fragment/water-fx-wall.frag:
+  Uniforms with the same name but different type/precision: u_cameraProjM
+```
+
+(`logs/mali/ada-diagnostics2.log`, and the same pair again in `ada-diagnostics3.log`.) Both names are
+declared in `lib/water.glsl` with no precision of their own — `uniform float u_waveHeight;` (line 23) and
+the `u_cameraProjM` the screen-space foam multiplies through — so in each stage they take that stage's
+**default**. The ES 3.0 vertex language predeclares `highp` for float; the two water *fragment* shaders
+declare `precision mediump float;`. The two stages therefore disagree on the uniform, the program fails to
+initialize, and the water plane is simply never drawn — while everything else in the scene is. (A compiler
+that honours the vertex file's own `precision mediump float;` would call both mediump and link happily, so
+this is a driver difference; what is *measured* is the link error and the repair below.)
+
+**The repair was measured on that device before it was written here**: the phone's owner had fixed the water
+with his own patch (`logs/mali/fixmali.zip`), and the line that does it is
+`precision mediump float;` → `precision highp float;` in `fragment/water-plane.frag` — the fragment side of
+both mismatches raised to the vertex stage's default. His patch also raised `water-plane.frag`'s precision
+*and* named the post pass's ramp; only those two halves were needed, which is what §22.12 and this section
+serve.
+
+**What changed**: the lift now raises the default float precision in `fragment/water-plane.frag` and
+`fragment/water-fx-wall.frag`, on a device whose own compiler refused the game's declarations and nowhere
+else. `fragment/plane-depth.frag` is left as the game wrote it: no program it takes part in reports a
+mismatch. Nothing else about the shaders changes.
+
+Note for the next report: the self-test *cannot* see this class of failure — it compiles one shader at a
+time, and this is a link-time disagreement between two. The record shows it as `Unable to initialize the
+shader program <vertex> + <fragment>: Uniforms with the same name but different type/precision: <name>`,
+which is where a future case would come from if the device ever needs one again.
+
+Measured: `ShaderArraysTest` (the raise, the one edit per file, `plane-depth.frag` untouched);
+`ShaderVariantsTest` (the served water case carries it); the shim harness at **60 checks**; and
+`glslangValidator` on the game's **real** `fragment/water-plane.frag` and `water-fx-wall.frag` with their
+imports expanded — the find-string `precision mediump float;` occurs exactly once in each, and both served
+texts compile with no output. Not verified here: the link itself, which a conformant compiler accepts either
+way — the proof is that phone's next run, where the river should be drawn.

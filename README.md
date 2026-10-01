@@ -299,7 +299,12 @@ the driver's own message names the construct: `S0032: no default precision defin
 / `'vec4[4]'` — that front end does not carry a shader's declared default precision onto an array written
 `type[size] name`, though the bytes are valid ES 3.0 (a strict front end and ANGLE accept them; the same
 bug is reported for other Mali generations). The port serves those declarations in the declarator spelling
-that driver accepts, and only to a device whose own compiler refuses them.
+that driver accepts, and only to a device whose own compiler refuses them. Two constructs cannot move their
+brackets and are served differently (§22.12, §22.13): the post pass's colour ramp, written as an array
+*constructor* passed as an argument, is **named** instead — a temporary inherits no element precision in any
+spelling — and the two water fragment shaders get the vertex stage's default float precision, because their
+programs otherwise fail to **link** on that driver (`Uniforms with the same name but different
+type/precision: u_waveHeight`).
 
 **Confirmed on that device, in two steps.** v0.7.1's gate answered "accepts" wrongly, so the lift never ran
 (`logs/mali/log alabaster 0.7.1.txt`); v0.7.2's gate compiles the game's own declarations — one program per
@@ -358,10 +363,11 @@ say) needs an uninstall first.
   on **Mali** (a Poco X7 Pro, Mali-G720): the device's compiler refuses a shader the port serves with
   `S0032: no default precision defined for variable 'vec3[5]'` / `'vec4[4]'` — an array written
   `type[size] name`, which is valid ES 3.0 and works on Adreno, SwiftShader, desktop, and on four other
-  Mali generations measured through a device farm (§22.10). The port serves those five fragment-stage files
-  in the declarator spelling for a device whose compiler refuses them, and **Troubleshoot → "Test shader
-  spellings"** compiles every spelling it could serve on the device's own driver, one verdict line each,
-  so a phone that still refuses can say which spelling it wants (§22.11). With the WebView's **ANGLE**
+  Mali generations measured through a device farm (§22.10). The port serves six shader files — the five
+  fragment-stage ones and their shared library — as the declarator spelling, a named ramp and the water
+  fragments' default precision, for a device whose compiler refuses the game's own; and **Troubleshoot →
+  "Test shader spellings"** compiles every spelling it could serve on the device's own driver, one verdict
+  line each, so a phone that still refuses can say which spelling it wants (§22.11). With the WebView's **ANGLE**
   driver the refusal does not happen at all — and the record now says which driver the page got
   (`driver=native|ANGLE`), with a button that opens the screen where that choice is made. No Mali device is
   available here beyond a reporter's, so that phone's reports are the test — `FINDINGS.md` §22.

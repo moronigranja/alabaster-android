@@ -122,6 +122,7 @@ class ShaderVariantsTest {
         }
         assertTrue("the varying moves to the name", lifted.contains("flat in vec2 v_flowDirs[4];"))
         assertFalse(lifted.contains("flat in vec2[4] v_flowDirs;"))
+        assertTrue("and its default precision matches the vertex stage", lifted.contains("precision highp float;"))
     }
 
     @Test
