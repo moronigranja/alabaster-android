@@ -5,43 +5,17 @@
 Nothing ships per change (README, "Publishing a signed release"): these items accumulate and go out
 together, when the queue is worth asking somebody to download.
 
-* **The water — fixed and verified, unreleased** (§22.13, §22.16). Two faults on every device: the two
-  water programs **fail to link** on the strict Mali driver (the fragment's default precision raised — and
-  that repair must stay *gated*, since serving it to a device that never needed it breaks Adreno's link),
-  and the port's own barycentric keep-alive **returned from `main()`** in those fragments, because its
-  `-1e30` sentinel cannot exist in `mediump`. The repair: the water shaders are served at **highp in both
-  stages, on every device**. Verified on the S22 Ultra (water draws, boot 7.3 s, no link error) and by
-  `BarycentricKeepAliveTest`, which fails on the old combination.
-* **"45 fps runs at 30" on that phone** (§20.2, and the shim's own frame-limit comment). Expected, not a
-  driver bug: the gate only serves a frame on a vsync, so a rate that is not a whole division of the
-  surface's refresh resolves upwards — `45 fps (22.2 ms, 20 ms shortened) is 40 on a 120 Hz panel and 30 on
-  a 60 Hz one`. So that run's WebView surface refreshes at 60 Hz. Under **ANGLE** the swapchain may run at
-  the panel's full 120 Hz, in which case 45 reads 40 there — which would explain why it looked
-  driver-dependent. If exact 45 ever matters, a 4-vsync/3-frame pattern would give it on 60 Hz, at the cost
-  of uneven frame times.
-* **A dither experiment is out with the maintainer's phone, awaiting its screenshot** (branch
-  `dither-experiment`, commit `5ef27ff`, not pushed, no release). It serves the five world shaders' ordered
-  dither off the pixel lattice — the golden ratio instead of the integer divisor — because issue #3's grid
-  is the 4x4 table's *period* (four render pixels, about twelve device pixels at 640x360 on a 1080p panel),
-  not the cell size v0.7.0 already fixed. The build keeps versionCode 17 / 0.7.6, so its facts line carries
-  `dither=off-lattice` to tell its records from the shipped build's. What the answer decides: gone → the
-  period was the cause and the fix becomes principled (blue-noise mask, or keep the off-lattice scale);
-  still there → the cause is the binary discard's contrast, not the period.
-* **Two things the S22 Ultra is needed for**, once it is back on the cable: the five tick labels the 40 fps
-  rung added (the panel layout is the one part no test can see), and the dither A/B — the experiment build
-  is installed there, a `main` build gives the shipped render-grid look for comparison at the same scene.
-  Its display currently renders at 60 Hz (it supports 120), so a 40 fps cap may read 30 there; that is
-  itself the datum that explains the reporter's "45 runs at 30".
-* **The reporter's next record** (issue #4, FINDINGS §22.12). His device answered the spelling question:
-  what driver **49.1.0** refuses is an array *temporary* — `colorRamp(noise.r, vec3[5](…))` — in every
-  spelling of its brackets, and naming the ramp is the one repair it took. v0.7.6 serves that, so his next
-  run should show `analog-filter~lifted compile=1` and the boot past 94 % on the **native** driver (today it
-  stalls there on that one shader). The self-test now asks 8 cases instead of 14 (each lifted file, the
-  game's bytes and the port's).
-* **The water under ANGLE, with the game's original files** (§22.9, §22.12): his screenshot shows the river
-  rendering, but it followed *his hand patch*, so the file set behind it is not settled. One run with the
-  originals plus a screenshot closes it — if the water is there, invisibility was the patched files; if not,
-  it is the ANGLE-on-Mali water pass and worth its own chase.
+* **The reporters' next records** — the only open items.
+  * **Issue #4 (Mali-G720)**: the water should draw now (§22.16). What is wanted back: a screenshot, and the
+    shader self-test's summary (`analog-filter~lifted compile=1`, `8 cases, 8 compile`).
+  * **Issue #5 (Mali-G76, WebView 153)**: the boot stalled with three shaders pending because the probe
+    accepted declarations the engine refused. The lift is served regardless now, and the record pairs a
+    refused shader with what the port served — so the next report says whether his game copy's bytes match
+    the known ones (`NOT lifted (0/1)`) and, with the self-test, which spelling his front end takes.
+  * **Issue #3 (the grid)**: answered — `solid.frag`'s grey-mode halftone, invisible at 1920x1080, plus the
+    water that was missing on those spots. Worth a confirmation from him at his Resolution rung.
+* **Still unverified anywhere**: the gated fragment-precision repair on a Mali device — the S22 cannot show it
+  (Adreno accepts the game's declarations, so the gate stays off there), which is why #4's record closes it.
 
 Nothing else outstanding. **v0.7.6** serves the named ramp — the spelling the reporter's driver measured as
 accepted — and trims the self-test to the cases that still answer something (**v0.7.5** fixed the spelling

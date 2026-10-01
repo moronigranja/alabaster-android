@@ -340,7 +340,7 @@ certificate** — `CN=Alabaster Dawn Android port, O=moronigranja, C=BR`, SHA-25
 install:
 
 ```bash
-apksigner verify --print-certs AlabasterDawn-Android-0.7.5.apk   # no SDK? keytool -printcert -jarfile …
+apksigner verify --print-certs AlabasterDawn-Android-0.7.7.apk   # no SDK? keytool -printcert -jarfile …
 ```
 
 The APK carries `assets/LICENSE` + `assets/NOTICE.md` inside, so the binary ships the notices it is
@@ -365,7 +365,9 @@ say) needs an uninstall first.
   `type[size] name`, which is valid ES 3.0 and works on Adreno, SwiftShader, desktop, and on four other
   Mali generations measured through a device farm (§22.10). The port serves six shader files — the five
   fragment-stage ones and their shared library — as the declarator spelling, a named ramp and the water
-  fragments' default precision, for a device whose compiler refuses the game's own; and **Troubleshoot →
+  fragments' default precision — served, like the lift, on every device now, since the probe that used to
+  decide can accept declarations the engine's own compiles then refuse (that mistake is a frozen boot; the
+  lifted spelling is valid everywhere) — and **Troubleshoot →
   "Test shader spellings"** compiles every spelling it could serve on the device's own driver, one verdict
   line each, so a phone that still refuses can say which spelling it wants (§22.11). With the WebView's **ANGLE**
   driver the refusal does not happen at all — and the record now says which driver the page got
