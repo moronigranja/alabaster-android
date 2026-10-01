@@ -34,6 +34,15 @@ together, when the queue is worth asking somebody to download.
   is installed there, a `main` build gives the shipped render-grid look for comparison at the same scene.
   Its display currently renders at 60 Hz (it supports 120), so a 40 fps cap may read 30 there; that is
   itself the datum that explains the reporter's "45 runs at 30".
+* **Blue-noise dither — implemented and verified, awaiting a ship decision** (branch `dither-experiment`,
+  commit `598ae1e` + the device note). Serving `lib/dithering.glsl` with the ordered 4x4 table lookup
+  replaced by a per-pixel hash (uniform thresholds, no cell, no period) removes issue #3's dot grid without
+  losing the engine's texture: on the S22 Ultra, same save and same place, the game's bytes draw a visible
+  dot grid on the grey-mode rock faces, removing the pattern leaves them smooth, and the hash leaves a fine
+  irregular stipple. It reaches every dither site at once (the grey-mode halftone, the five fades, the
+  water's radial band) and it is the only repair that does not depend on the render buffer's size. Scope
+  question for whoever ships it: serve it unconditionally (subtle on a 1080p panel, and the same technique
+  the engine already uses for light and fog) or gate it to coarse buffers. Not released.
 * **The reporter's next record** (issue #4, FINDINGS §22.12). His device answered the spelling question:
   what driver **49.1.0** refuses is an array *temporary* — `colorRamp(noise.r, vec3[5](…))` — in every
   spelling of its brackets, and naming the ramp is the one repair it took. v0.7.6 serves that, so his next
