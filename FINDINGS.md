@@ -2761,3 +2761,18 @@ cp -r /tmp/phone-saves/Saves/{Default,Backups,Backups2} ~/.config/Alabaster\ Daw
 Verified by copying the maintainer's phone save in: the game's own saves (written 22:29, 36 067 and 5 954
 bytes) were backed up first, and the phone's (38 890 and 5 964) took their place. The **Demo** is a
 different appid (3900710) with its own prefix and no save folder yet.
+
+**The gate is load-bearing, proven the hard way** (2026-09-30, S22 Ultra). Serving that same repair on a
+device whose compiler *accepts* the game's declarations breaks the water instead of fixing it:
+
+```
+Uncaught Error: Unable to initialize the shader program data/shader/vertex/water-plane.vert
+  +data/shader/fragment/water-plane.frag: Uniforms with the same name but different type/precision: u_waveHeight
+boot stall: no progress for 53805ms at 99.9% of 1757 resources; pending 2 (shader=2)
+  first pending: SHADER: water-plane, SHADER: water-fx-wall#define WATERFALL_SHADER
+```
+
+The two drivers are **opposite**: Mali's vertex stage loses the file's `precision mediump float;`, so raising
+the *fragment*'s default repairs the mismatch (§22.13); Adreno honours it, so the same edit *creates* one and
+the water program never initializes. `ShaderArrays.rewriting()` therefore gates the whole lift on the page's
+own probe, and the two water fragments must not be forced on — the branch experiment that did so is reverted.
