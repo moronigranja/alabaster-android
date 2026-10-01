@@ -2689,3 +2689,44 @@ Measured: `ShaderArraysTest` (the raise, the one edit per file, `plane-depth.fra
 imports expanded — the find-string `precision mediump float;` occurs exactly once in each, and both served
 texts compile with no output. Not verified here: the link itself, which a conformant compiler accepts either
 way — the proof is that phone's next run, where the river should be drawn.
+
+## 22.14 Issue #3's grid is `solid.frag`'s grey-mode halftone (2026-09-30)
+
+Four dither experiments later, the shader that matters is the one the port never served. `fragment/solid.frag`
+— the world's solid geometry — dithers, but **only in the grey modes**:
+
+```glsl
+bool gray = u_grayAll || (u_grayFloors && !isWall) || (u_grayWalls && isWall);
+...
+if (gray)          { ... if (layerNum > 1) { if(dither(0.25, screenCoord, 0u) < -1.0/17.0) discard; } }
+else if (u_grayLayer > 0 && u_grayLayer != layerNum) { ... the same discard ... }
+vec2 screenCoord = gl_FragCoord.xy / u_ditherScale;      // the render grid
+```
+
+A **constant** `0.25` with no fade term, so wherever greyed world geometry is drawn it is a fixed dot
+screen — about 11 of the table's 16 thresholds discard there. Its cell is one render pixel and its 4×4
+table therefore repeats every **four render pixels**, which is 12 device pixels at 640x360 and 8 at
+960x540: **the pitch scales with the Resolution option, which is exactly what issue #3's reporter
+observed** ("the pattern does change a bit from each other") and what §18 measured in his screenshots.
+
+That is also why v0.7.0 did not fix his grid: that release moved the *five art-grid* shaders onto the
+render grid — the shaders whose dither fires **during a fade** — and left `solid.frag` alone, on the
+reasoning that a site already on the render grid was fine. On the render grid it is, at 1920x1080; at
+640x360 one render pixel is three device pixels, so the same site reads as a visible dot screen.
+
+**What this costs, and what it does not.** Nothing about the grey-mode look is wrong; it is the engine's
+own texture, and at a resolution where one dither cell is one device pixel it is invisible. The lever for
+a phone is therefore the Resolution option first (1920x1080 makes each cell a screen pixel), and only then
+a shader: removing `solid.frag`'s pattern, or serving it off-lattice, would trade a regular dot screen for
+an irregular stipple at the same cell size — visibly different art, so a port option rather than a default.
+
+**The experiments that did not settle it, and why** (branch `dither-experiment`, commits `5ef27ff`,
+`57d2673`, `4180a68`): step 1 served the five art-grid shaders off-lattice (the golden ratio — no lattice
+to align with the pixel grid); step 2 removed the pattern from those five; step 3 extended that to
+`solid.frag`. On the maintainer's S22 Ultra at 640x360 the first two are **pixel-identical to the shipped
+build** (whole-frame difference `std 0.01`, `max 1` grey level) because the save sits in coloured, lit
+terrain: no grey mode, hence no `solid.frag` dither, and no fade mid-way, hence none of the five either.
+The autocorrelation scans agree with that — the peaks they find (lags 6, 10, 13, 21 device px) are the
+art's own tile grid, identical in every frame of every build. A device A/B of these shaders needs a scene
+where a fade is mid-way, or greyed terrain; neither was reachable on that phone from adb (the game's menus
+do not take injected input).
