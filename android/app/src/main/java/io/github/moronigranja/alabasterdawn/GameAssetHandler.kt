@@ -287,8 +287,22 @@ class GameAssetHandler(
      * never shows up on a PC.
      *
      * The fix is to make the declaration honest: one unreachable, data-dependent use of the varying
-     * inside main(). Barycentric coordinates are never below -1e30, so the branch never runs and
-     * rendering is unchanged. It is a `return` rather than a `discard` on purpose - a `discard`
+     * inside main(). Barycentric coordinates are never below the sentinel, so the branch never runs and
+     * rendering is unchanged — **provided the sentinel is representable in the shader's own precision,
+     * or degenerate in a way the compiler tolerates.**
+     *
+     * `-1e30` is not representable in `mediump` (its range ends at ±65504), and where `v_barycentric` is
+     * garbage — the water fragments, whose program is the one that loses `a_barycentricIdx` — the
+     * comparison fired and `main()` returned before drawing anything: **the water has been invisible on
+     * every device since this keep-alive was added** (found 2026-09-30 on the S22 Ultra, whose water
+     * came back the moment the water shaders were served at highp; the maintainer's own recollection is
+     * that it never drew there).
+     *
+     * Making the sentinel representable on its own is *not* the fix: with `-1e4` and the game's own
+     * `mediump` water shaders the Android driver's compiler stalls — the boot stops at
+     * `99.9%, pending 2 (shader=2)`, both water programs. `ShaderArrays` therefore serves the water
+     * **stages** at highp, where this sentinel is representable and the water draws (verified on that
+     * device), and the value below stays as the engine's own.'  It is a `return` rather than a `discard` on purpose - a `discard`
      * anywhere in a shader typically turns off early-Z on tile-based GPUs, which this game's
      * overdraw-heavy scenes would pay for. Only the served bytes are rewritten; the file on disk is
      * untouched.
@@ -420,6 +434,9 @@ class GameAssetHandler(
             203 to "1920x1080",
             204 to "2560x1440",
         )
+        /** Tests only: the line the handler inserts into a fragment shader (see [KEEP_ALIVE]). */
+        internal fun keepAliveLine(): String = KEEP_ALIVE
+
         private const val BARYCENTRIC = "v_barycentric"
         private const val BARYCENTRIC_DECL = "in vec3 $BARYCENTRIC;"
         private const val OUT_BARYCENTRIC = "out vec3 $BARYCENTRIC;"

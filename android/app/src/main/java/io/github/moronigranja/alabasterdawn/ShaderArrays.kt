@@ -100,19 +100,23 @@ object ShaderArrays {
         EDITS[rel].orEmpty().map { it.find to it.replace }
 
     /**
-     * Branch `dither-experiment` only: serve the water fragments' lift (their varying's declaration and
-     * the default precision the vertex stage uses) on **every** device, so the repair the Mali phone
-     * needed can be looked at on hardware that never refused the game's declarations — the maintainer's
-     * S22 Ultra. On Adreno the program already links, so this is expected to change nothing visible; it
-     * is here to settle that by looking rather than by reasoning.
+     * The water shaders are served at **highp in both stages, on every device**, and this is not a
+     * preference. The engine registers vertex attributes per linked program, and the water programs lose
+     * `a_barycentricIdx` — which is why `GameAssetHandler` keeps `v_barycentric` alive with
+     * `if (any(lessThan(v_barycentric, vec3(-1e30)))) return;`. That sentinel is not representable in
+     * `mediump` (its range ends at ±65504), so with `v_barycentric` garbage the comparison fired and the
+     * fragment returned before drawing anything: **the water was invisible on every device** until the
+     * water stages were served at highp, where the sentinel means what it says. Raising the fragment
+     * alone is not enough — it creates a cross-stage precision mismatch on Adreno, where the strict Mali
+     * driver has the opposite complaint — so both stages move together.
      */
-    private const val FORCE_WATER = true
-
-    private val FORCED = setOf("water-plane.frag", "water-fx-wall.frag")
+    private val WATER_STAGES = setOf(
+        "water-plane.frag", "water-fx-wall.frag", "water-plane.vert", "water-fx-wall.vert",
+    )
 
     /** Whether [rel] is one of the shaders the port lifts on a device that needs it — so worth caching. */
     fun rewrites(rel: String): Boolean =
-        (rewriting() || (FORCE_WATER && rel.substringAfterLast('/') in FORCED)) && lifts(rel)
+        (rewriting() || rel.substringAfterLast('/') in WATER_STAGES) && lifts(rel)
 
     /** Tests only: back to "the page has not answered". */
     internal fun reset() {
@@ -211,6 +215,15 @@ object ShaderArrays {
                 "vec3 colorRamp(float t, vec3[COLOR_RAMP_COUNT] colors) {",
                 "vec3 colorRamp(float t, vec3 colors[COLOR_RAMP_COUNT]) {",
             ),
+        ),
+
+        /* The two water *vertex* shaders: raised together with their fragments so the stages agree and
+         * the keep-alive's sentinel is representable (see WATER_STAGES). */
+        "terra/data/shader/vertex/water-plane.vert" to listOf(
+            Edit("precision mediump float;", "precision highp float;"),
+        ),
+        "terra/data/shader/vertex/water-fx-wall.vert" to listOf(
+            Edit("precision mediump float;", "precision highp float;"),
         ),
 
         /* The two water fragment shaders' whole wave path, imported from `lib/water.glsl`. */
