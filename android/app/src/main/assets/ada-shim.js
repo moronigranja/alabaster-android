@@ -1202,6 +1202,22 @@
         return (canvas && canvas.width) ? canvas.width + "x" + canvas.height : "?";
     }
 
+    /* How big the picture actually is on the screen. The engine owns the canvas layout (`sharp-pixels`
+     * decides between `object-fit: contain` and a CSS size pinned to an integer multiple of the buffer),
+     * so "640x360 does not fill the screen like the other resolutions" is answered by these numbers and
+     * nothing else: the window in CSS pixels, and the canvas box the engine gave it. */
+    function windowText() {
+        var w = window.innerWidth || 0, h = window.innerHeight || 0;
+        return w + "x" + h + "@" + (window.devicePixelRatio || 1);
+    }
+
+    function canvasBoxText() {
+        var canvas = gameCanvas();
+        if (!canvas || !canvas.getBoundingClientRect) return "?";
+        var r = canvas.getBoundingClientRect();
+        return Math.round(r.width) + "x" + Math.round(r.height);
+    }
+
     function sendFacts(gl) {
         var glText = glDescription(gl);
         var parts = ["webgl2=" + !!window.WebGL2RenderingContext, "gl=" + glText,
@@ -1213,6 +1229,8 @@
             "uniforms=" + glLimits.vertexUniforms + "/" + glLimits.fragmentUniforms,
             "varyings=" + glLimits.varyingVectors,
             "resolution=" + resolutionText(),
+            "window=" + windowText(),
+            "canvas=" + canvasBoxText(),
             "audio=" + audioState()];
         reportDiag("facts", parts.join("; "));
     }

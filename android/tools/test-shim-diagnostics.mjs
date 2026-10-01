@@ -205,6 +205,11 @@ async function main() {
   check("the facts name the GL backend and the audio state",
     facts[0]?.payload.includes("gl=test-gl") && facts[0]?.payload.includes("audio=suspended"),
     facts[0]?.payload);
+  /* How big the picture is: the engine owns the canvas box, so a report like "640x360 does not fill the
+   * screen" is answered by the window and the canvas size, not by the buffer's. */
+  check("the facts carry the window and the canvas box",
+    /window=\d+x\d+@[\d.]+/.test(facts[0]?.payload ?? "") && (facts[0]?.payload ?? "").includes("canvas="),
+    facts[0]?.payload);
   /* The driver field (FINDINGS §22.11): on Mali phones `native` vs `ANGLE` is the whole difference
    * between the game starting and the boot freezing, and it is derived from the renderer string — the
    * harness's renderer is not ANGLE, so the field must say `native`. */
