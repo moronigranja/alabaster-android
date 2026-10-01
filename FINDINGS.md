@@ -2730,3 +2730,11 @@ The autocorrelation scans agree with that — the peaks they find (lags 6, 10, 1
 art's own tile grid, identical in every frame of every build. A device A/B of these shaders needs a scene
 where a fade is mid-way, or greyed terrain; neither was reachable on that phone from adb (the game's menus
 do not take injected input).
+
+**Confirmed on the S22 Ultra** (same save, same place, the two builds differing only in whether `solid.frag`
+is served): the frame is **not** globally shifted (`mean -1.45`) — the difference is a scatter of
+high-contrast dot flips over the world surfaces (`max 106` grey levels, the pixels where that dither was
+discarding), while the sky, the overlay and the rest of the frame sit at zero. So `solid.frag`'s grey-mode
+halftone is live on that terrain, it is the only dithered site drawing there, and serving it instead of the
+game's bytes flips real pixels — which is what issue #3's reporter is looking at, and why his pitch tracks
+the Resolution option.
