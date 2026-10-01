@@ -5,15 +5,13 @@
 Nothing ships per change (README, "Publishing a signed release"): these items accumulate and go out
 together, when the queue is worth asking somebody to download.
 
-* **The water on that phone — fixed, unreleased** (§22.13). Its records carry the real cause, which is not a
-  compile failure but a **link** one: `Unable to initialize the shader program water-plane.vert +
-  water-plane.frag: Uniforms with the same name but different type/precision: u_waveHeight` (and
-  `u_cameraProjM` for the other pair). Those uniforms come from `lib/water.glsl` unqualified, so the vertex
-  language's highp default and the fragment's `precision mediump float;` disagree and the program never
-  initializes — the water plane is not drawn while the rest of the scene is. The lift now raises that one
-  line in the two water fragments, which is exactly what the phone's owner's own patch did. On `main`,
-  **deliberately not released**: it goes out with the next batch, and that run is also what confirms it
-  (the river should be drawn).
+* **The water — fixed and verified, unreleased** (§22.13, §22.16). Two faults on every device: the two
+  water programs **fail to link** on the strict Mali driver (the fragment's default precision raised — and
+  that repair must stay *gated*, since serving it to a device that never needed it breaks Adreno's link),
+  and the port's own barycentric keep-alive **returned from `main()`** in those fragments, because its
+  `-1e30` sentinel cannot exist in `mediump`. The repair: the water shaders are served at **highp in both
+  stages, on every device**. Verified on the S22 Ultra (water draws, boot 7.3 s, no link error) and by
+  `BarycentricKeepAliveTest`, which fails on the old combination.
 * **"45 fps runs at 30" on that phone** (§20.2, and the shim's own frame-limit comment). Expected, not a
   driver bug: the gate only serves a frame on a vsync, so a rate that is not a whole division of the
   surface's refresh resolves upwards — `45 fps (22.2 ms, 20 ms shortened) is 40 on a 120 Hz panel and 30 on
@@ -34,15 +32,6 @@ together, when the queue is worth asking somebody to download.
   is installed there, a `main` build gives the shipped render-grid look for comparison at the same scene.
   Its display currently renders at 60 Hz (it supports 120), so a 40 fps cap may read 30 there; that is
   itself the datum that explains the reporter's "45 runs at 30".
-* **Blue-noise dither — implemented and verified, awaiting a ship decision** (branch `dither-experiment`,
-  commit `598ae1e` + the device note). Serving `lib/dithering.glsl` with the ordered 4x4 table lookup
-  replaced by a per-pixel hash (uniform thresholds, no cell, no period) removes issue #3's dot grid without
-  losing the engine's texture: on the S22 Ultra, same save and same place, the game's bytes draw a visible
-  dot grid on the grey-mode rock faces, removing the pattern leaves them smooth, and the hash leaves a fine
-  irregular stipple. It reaches every dither site at once (the grey-mode halftone, the five fades, the
-  water's radial band) and it is the only repair that does not depend on the render buffer's size. Scope
-  question for whoever ships it: serve it unconditionally (subtle on a 1080p panel, and the same technique
-  the engine already uses for light and fog) or gate it to coarse buffers. Not released.
 * **The reporter's next record** (issue #4, FINDINGS §22.12). His device answered the spelling question:
   what driver **49.1.0** refuses is an array *temporary* — `colorRamp(noise.r, vec3[5](…))` — in every
   spelling of its brackets, and naming the ramp is the one repair it took. v0.7.6 serves that, so his next

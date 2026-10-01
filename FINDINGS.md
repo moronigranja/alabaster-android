@@ -2776,3 +2776,48 @@ The two drivers are **opposite**: Mali's vertex stage loses the file's `precisio
 the *fragment*'s default repairs the mismatch (§22.13); Adreno honours it, so the same edit *creates* one and
 the water program never initializes. `ShaderArrays.rewriting()` therefore gates the whole lift on the page's
 own probe, and the two water fragments must not be forced on — the branch experiment that did so is reverted.
+
+**The blue-noise prototype was dropped** (2026-09-30). Serving `lib/dithering.glsl` with a per-pixel hash
+in place of the ordered table does remove the grey-mode *grid* — verified on the S22 Ultra against the
+game's own bytes — but the dots remain, because the dots *are* the discard: a hash threshold changes their
+arrangement, not their existence, and at 640x360 a cell is still three device pixels. The maintainer's call
+after seeing it: not worth shipping. The branch carrying it (`dither-experiment`) was deleted; the two
+things it established are kept above — that issue #3's grid is `solid.frag`'s grey-mode halftone (§22.14),
+and that the grid goes away with the Resolution option, where one cell is one screen pixel.
+
+## 22.16 The water was invisible on every device: a `mediump` sentinel (2026-09-30)
+
+Two independent faults, both present on every device, both hidden behind the same symptom:
+
+1. **The two water programs fail to link on the strict Mali driver.** `u_waveHeight` and `u_cameraProjM`
+   are declared in `lib/water.glsl` with no precision of their own, so they take each stage's default —
+   highp in the language the *vertex* stage carries, mediump in a fragment that says
+   `precision mediump float;`. §22.13's repair raises the *fragment*'s default, and it must stay **gated**:
+   serving it to a device that never needed it *creates* the mismatch on Adreno (link failure, boot stalled
+   at `99.9%, pending 2 (shader=2)` — §22.13's addendum).
+2. **The port's own barycentric keep-alive returned from `main()`.** `GameAssetHandler` inserts
+   `if (any(lessThan(v_barycentric, vec3(-1e30)))) return;` into fragments whose vertex stage declares the
+   varying, so the driver keeps `a_barycentricIdx` alive. Its comment calls the branch unreachable because
+   barycentric coordinates are never below `-1e30` — but the water fragment runs at **mediump**, which
+   cannot represent 1e30 at all (range ±65504), and the water programs are exactly the ones that *lose*
+   that attribute, so `v_barycentric` is garbage and the comparison can hold. The fragment returned before
+   drawing a pixel. The world shaders were never affected: their programs keep the attribute.
+
+Three device experiments separated them on the maintainer's S22 Ultra:
+
+| served | result |
+|---|---|
+| the sentinel changed to `-1e4` alone, game's mediump water shaders | **boot stalls** at 99.9 %, `pending 2 (shader=2)` — the Android driver's compiler never finishes |
+| the *fragment* raised to highp | **link failure**, `Uniforms … u_waveHeight` — the Adreno-side damage |
+| **both water stages raised to highp** | **water draws**, `boot: complete in 7349ms`, no link error |
+
+So the water shaders are served at **highp in both stages, on every device**
+(`ShaderArrays.WATER_STAGES`), where the sentinel means what its comment says and the link holds on both
+driver families. `BarycentricKeepAliveTest` asserts the pair — while the sentinel is outside mediump, the
+four water files must be served raised even on a device that needs no lift — and it fails on the old
+combination, which is the guard that was missing.
+
+**The maintainer's recollection is that the water never drew on the S22, from the beginning**, which fits:
+the keep-alive predates this session, and the Mali link failure predates the port's fragment repair. Note
+for anyone bisecting: the force used to demonstrate (1) sat in two intermediate commits on `main`
+(`e9d35cf`..`733560e`) and was removed by `86a5818`; the tip is clean.
