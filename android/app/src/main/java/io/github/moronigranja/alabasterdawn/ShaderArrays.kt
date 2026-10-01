@@ -99,8 +99,20 @@ object ShaderArrays {
     internal fun edits(rel: String): List<Pair<String, String>> =
         EDITS[rel].orEmpty().map { it.find to it.replace }
 
+    /**
+     * Branch `dither-experiment` only: serve the water fragments' lift (their varying's declaration and
+     * the default precision the vertex stage uses) on **every** device, so the repair the Mali phone
+     * needed can be looked at on hardware that never refused the game's declarations — the maintainer's
+     * S22 Ultra. On Adreno the program already links, so this is expected to change nothing visible; it
+     * is here to settle that by looking rather than by reasoning.
+     */
+    private const val FORCE_WATER = true
+
+    private val FORCED = setOf("water-plane.frag", "water-fx-wall.frag")
+
     /** Whether [rel] is one of the shaders the port lifts on a device that needs it — so worth caching. */
-    fun rewrites(rel: String): Boolean = rewriting() && lifts(rel)
+    fun rewrites(rel: String): Boolean =
+        (rewriting() || (FORCE_WATER && rel.substringAfterLast('/') in FORCED)) && lifts(rel)
 
     /** Tests only: back to "the page has not answered". */
     internal fun reset() {

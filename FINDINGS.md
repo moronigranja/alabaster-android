@@ -2738,3 +2738,26 @@ discarding), while the sky, the overlay and the rest of the frame sit at zero. S
 halftone is live on that terrain, it is the only dithered site drawing there, and serving it instead of the
 game's bytes flips real pixels — which is what issue #3's reporter is looking at, and why his pitch tracks
 the Resolution option.
+
+## 22.15 Where the Steam build keeps its saves (2026-09-30)
+
+The desktop copy is the **native Linux** build, so NW.js resolves `nw.App.dataPath` to the XDG path:
+
+```
+~/.config/Alabaster Dawn/Saves/{Default,Backups,Backups2}/{Save_ID_auto.save, System.save}
+```
+
+— **not** the Windows `%LOCALAPPDATA%` path inside the Proton prefix
+(`steamapps/compatdata/3110760/pfx/drive_c/users/steamuser/AppData/Local/Alabaster Dawn/`), which the game
+never reads. The port's own saves folder mirrors this layout exactly (the same three subfolders, the same
+two file names, and Steam's `steam_autocloud.vdf` at the root), which is what makes a phone save a plain
+copy-in:
+
+```bash
+adb pull /storage/emulated/0/Download/Dsves/Saves /tmp/phone-saves/Saves
+cp -r /tmp/phone-saves/Saves/{Default,Backups,Backups2} ~/.config/Alabaster\ Dawn/Saves/
+```
+
+Verified by copying the maintainer's phone save in: the game's own saves (written 22:29, 36 067 and 5 954
+bytes) were backed up first, and the phone's (38 890 and 5 964) took their place. The **Demo** is a
+different appid (3900710) with its own prefix and no save folder yet.

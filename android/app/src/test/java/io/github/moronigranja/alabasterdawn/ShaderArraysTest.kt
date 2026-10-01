@@ -194,8 +194,12 @@ class ShaderArraysTest {
     fun `a device that compiles the game's declarations keeps them`() {
         ShaderArrays.report(false)
         assertFalse("nothing is lifted for a compiler that accepts them", ShaderArrays.rewriting())
-        assertFalse(ShaderArrays.rewrites(waterRel))
-        assertTrue("but the file is still known", ShaderArrays.lifts(waterRel))
+        /* Branch `dither-experiment`: the two water fragments are forced on so the repair can be seen
+         * on hardware that never refused the declarations (the S22). Everything else stays off. */
+        assertTrue("the water fragment is forced", ShaderArrays.rewrites("terra/data/shader/fragment/water-plane.frag"))
+        assertTrue("and the waterfall one", ShaderArrays.rewrites("terra/data/shader/fragment/water-fx-wall.frag"))
+        assertFalse("but the shared water lib is not", ShaderArrays.rewrites(waterRel))
+        assertTrue("the file is known either way", ShaderArrays.lifts(waterRel))
 
         ShaderArrays.report(true)
         assertTrue(ShaderArrays.rewriting())
