@@ -2821,3 +2821,29 @@ combination, which is the guard that was missing.
 the keep-alive predates this session, and the Mali link failure predates the port's fragment repair. Note
 for anyone bisecting: the force used to demonstrate (1) sat in two intermediate commits on `main`
 (`e9d35cf`..`733560e`) and was removed by `86a5818`; the tip is clean.
+
+## 22.17 Issue #5: the probe accepted, the engine refused — again (2026-09-30)
+
+A second device, a second *kind* of Mali (Galaxy Note 10+, **Mali-G76**, Android 12, WebView **153**) on port
+**0.7.2**, and the same three shaders as every other report of this family: `post/analog-filter.frag`,
+`fragment/water-plane.frag`, `fragment/water-fx-wall.frag`, with the engine's own
+`An error occurred compiling the shader "…"` for each, and the boot stalled at 99.4 %, `pending 11
+(shader=3 …)`.
+
+The reading that matters is what the record does **not** say: there is no `array declarations lifted in …`
+line at all, and 0.7.2's handler logs one for every file it lifts. So the lift never ran — the document-start
+probe answered *accept* while the engine's own compiles refused the same declarations. That is §22.5's
+disagreement on a new driver/WebView combination, and 0.7.2 could not make it readable: a file the port does
+not lift leaves no per-file line (the `NOT lifted (0/n)` reporting arrived in v0.7.3), so the record showed a
+stall with unsatisfied shaders and nothing that connected them to the probe's answer.
+
+**What changed**: the shim now reports one line when the engine's compiler refuses a shader — the file, and
+which side of the decision the port was on ("the game's own bytes (the probe accepted those declarations)"
+or "the lifted bytes (the probe refused those too)"), with the probe's own summary. The harness's `window`
+stub used to drop `addEventListener`, so that path had never been exercised; it now records the handler and
+a synthetic engine error is fired through it (62 checks).
+
+**What actually resolves the report** is the instrument built for exactly this: v0.7.4's **shader self-test**
+(Troubleshoot → *Test shader spellings*) compiles the game's own files, expanded the engine's way, on the
+**engine's** context — the one the probe cannot use at document start. On this device it would name the
+spelling its front end takes, which is the same loop that resolved §22.12 on the G720 phone.
