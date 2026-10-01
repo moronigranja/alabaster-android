@@ -21,6 +21,19 @@ together, when the queue is worth asking somebody to download.
   the panel's full 120 Hz, in which case 45 reads 40 there — which would explain why it looked
   driver-dependent. If exact 45 ever matters, a 4-vsync/3-frame pattern would give it on 60 Hz, at the cost
   of uneven frame times.
+* **A dither experiment is out with the maintainer's phone, awaiting its screenshot** (branch
+  `dither-experiment`, commit `5ef27ff`, not pushed, no release). It serves the five world shaders' ordered
+  dither off the pixel lattice — the golden ratio instead of the integer divisor — because issue #3's grid
+  is the 4x4 table's *period* (four render pixels, about twelve device pixels at 640x360 on a 1080p panel),
+  not the cell size v0.7.0 already fixed. The build keeps versionCode 17 / 0.7.6, so its facts line carries
+  `dither=off-lattice` to tell its records from the shipped build's. What the answer decides: gone → the
+  period was the cause and the fix becomes principled (blue-noise mask, or keep the off-lattice scale);
+  still there → the cause is the binary discard's contrast, not the period.
+* **Two things the S22 Ultra is needed for**, once it is back on the cable: the five tick labels the 40 fps
+  rung added (the panel layout is the one part no test can see), and the dither A/B — the experiment build
+  is installed there, a `main` build gives the shipped render-grid look for comparison at the same scene.
+  Its display currently renders at 60 Hz (it supports 120), so a 40 fps cap may read 30 there; that is
+  itself the datum that explains the reporter's "45 runs at 30".
 * **The reporter's next record** (issue #4, FINDINGS §22.12). His device answered the spelling question:
   what driver **49.1.0** refuses is an array *temporary* — `colorRamp(noise.r, vec3[5](…))` — in every
   spelling of its brackets, and naming the ramp is the one repair it took. v0.7.6 serves that, so his next
