@@ -1291,7 +1291,22 @@
      * logcat (tag AdaPort) through the bridge. */
     window.addEventListener("error", function (e) {
         try {
-            if (e && e.message) report("window.onerror", (e.filename || "?") + ":" + (e.lineno || 0) + " " + e.message);
+            if (e && e.message) {
+                /* A shader the engine's compiler refused, paired with the port's own decision about that
+                 * file. On the 0.7.2 report (issue #5, Mali-G76) the probe accepted the declarations and
+                 * the engine then refused three shaders, and nothing in the record connected the two: the
+                 * per-file lift lines only exist when the lift was attempted at all. This line says which
+                 * side of the decision that file was on, so the next report of this class is readable. */
+                var refused = /compiling the shader "([^"\s]+)/.exec(e.message);
+                if (refused) {
+                    report("shader refused", refused[1] + ": the engine's compiler refused it, and the port served " +
+                        (shaderArrays && shaderArrays.needed
+                            ? "the lifted bytes (the probe refused those declarations too)"
+                            : "the game's own bytes (the probe accepted those declarations)") +
+                        (shaderArrays && shaderArrays.detail ? " [" + shaderArrays.detail + "]" : ""));
+                }
+                report("window.onerror", (e.filename || "?") + ":" + (e.lineno || 0) + " " + e.message);
+            }
         } catch (err) { /* ignore */ }
     }, true);
     window.addEventListener("unhandledrejection", function (e) {

@@ -42,6 +42,7 @@ const source = readFileSync(shimPath, "utf8");
 /** Installs the globals the shim expects and returns the recorder of what it reported. */
 function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = null, viewAlign = "center", tablesLink = true, arraysCompile = true, search = "", store = {}, fpsLimit = 0, variants = {} } = {}) {
   const reports = [];
+  let errorHandler = null;
   const errors = [];
   const vertexUniforms = [];
   const shaderTables = [];
@@ -113,7 +114,7 @@ function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = nul
         : { style: {}, appendChild() {} },
     body: null,
   });
-  define("addEventListener", () => {});
+  define("addEventListener", (type, fn) => { if (type === "error") errorHandler = fn; });
   define("removeEventListener", () => {});
   /* The frame-rate limit gate wraps `requestAnimationFrame`, so it is a real, drivable queue here:
    * `pump(t)` is one display vsync at timestamp `t`, which is exactly the shape the shim sees. */
@@ -186,7 +187,7 @@ function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = nul
   };
   /* eslint-disable-next-line no-eval */
   (0, eval)(source);
-  return { reports, errors, vertexUniforms, shaderTables, shaderArrays, selfTestDone, shaderSources, tracker: window.g.resource.bootTracker, canvas, store, pump, limitFlag };
+  return { reports, errors, vertexUniforms, shaderTables, shaderArrays, selfTestDone, shaderSources, tracker: window.g.resource.bootTracker, canvas, store, pump, limitFlag, fireError: (message) => errorHandler && errorHandler({ message }) };
 }
 
 const results = [];
@@ -196,7 +197,7 @@ function check(name, condition, detail = "") {
 }
 
 async function main() {
-  const { reports, errors, vertexUniforms, shaderTables, shaderArrays, shaderSources, tracker } = bootShim();
+  const { reports, errors, vertexUniforms, shaderTables, shaderArrays, shaderSources, tracker, fireError } = bootShim();
 
   // The shim loads without an engine; facts go out once the engine has a GL context.
   await new Promise((r) => setTimeout(r, 40));
@@ -215,8 +216,19 @@ async function main() {
    * harness's renderer is not ANGLE, so the field must say `native`. */
   check("the facts say which GL driver the page got",
     facts[0]?.payload.includes("driver=native"), facts[0]?.payload);
+  /* A shader the engine's compiler refused must name the port's own decision for that file (issue #5:
+   * the probe accepted, the engine refused, and the record said nothing that connected them). */
   check("reports nothing but the shim's own load line",
     errors.length === 1 && errors[0] === "shim: loaded", JSON.stringify(errors));
+
+  /* A shader the engine's compiler refused must name the port's own decision for that file. Issue #5
+   * (Mali-G76, port 0.7.2) is exactly the unreadable case: the probe accepted the declarations, the
+   * engine then refused three shaders, and nothing in the record connected the two. */
+  fireError('An error occurred compiling the shader "data/shader/fragment/water-plane.frag');
+  check("a refused shader is paired with the port's own decision",
+    errors.some((l) => l.includes("shader refused: data/shader/fragment/water-plane.frag") &&
+      l.includes("the game's own bytes") && l.includes("the probe accepted")),
+    JSON.stringify(errors));
   check("the device's vertex-uniform budget reaches the bridge",
     vertexUniforms.length === 1 && vertexUniforms[0] === 256, JSON.stringify(vertexUniforms));
   check("the page reports whether the game's own table shapes link",
