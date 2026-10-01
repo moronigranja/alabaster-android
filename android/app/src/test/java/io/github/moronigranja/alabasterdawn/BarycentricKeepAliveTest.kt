@@ -43,8 +43,6 @@ class BarycentricKeepAliveTest {
         assertTrue("no sentinel found in: $line", sentinel != null)
         if (abs(sentinel!!) <= mediumpMax) return   // representable everywhere: nothing else to require
 
-        ShaderArrays.reset()
-        ShaderArrays.report(false)                  // a device whose compiler accepts the game's declarations
         for (rel in waterFiles) {
             assertTrue("$rel must be served anyway: the keep-alive's sentinel needs highp", ShaderArrays.rewrites(rel))
             assertTrue(
@@ -52,6 +50,5 @@ class BarycentricKeepAliveTest {
                 ShaderArrays.edits(rel).any { it.first == "precision mediump float;" && it.second == "precision highp float;" },
             )
         }
-        ShaderArrays.reset()
     }
 }

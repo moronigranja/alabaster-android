@@ -124,10 +124,10 @@ class GameAssetHandler(
             ShaderSlots.awaitReport(WAIT_FOR_REPORT_MS)
             ShaderSlots.lock()
         }
-        /* Whether this file is lifted into the array spelling some fragment front ends accept depends
-         * on the page's own compiler (see [ShaderArrays]), and that answer is taken at document start,
-         * before the engine asks for anything. A page that never answers keeps the game's bytes. */
-        if (ShaderArrays.lifts(rel) && !ShaderArrays.decided()) ShaderArrays.awaitReport(WAIT_FOR_REPORT_MS)
+        /* Whether this file is lifted into the array spelling some fragment front ends accept does *not*
+         * depend on the page's own compiler any more: the probe can accept declarations the engine's own
+         * compiles then refuse, and that mistake costs a frozen boot (FINDINGS 22.17), while lifting is
+         * valid ES 3.0 everywhere. The probe's answer is still recorded, by [AdaBridge.setShaderArrays]. */
         /* Only the assets that are actually rewritten are cached: everything else (images, audio,
          * JSON) is served verbatim and read once per boot, and caching all 2 652 of them
          * would cost tens of megabytes for nothing. The `.vert` shaders only join in when the device

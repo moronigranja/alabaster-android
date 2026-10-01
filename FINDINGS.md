@@ -2847,3 +2847,24 @@ a synthetic engine error is fired through it (62 checks).
 (Troubleshoot → *Test shader spellings*) compiles the game's own files, expanded the engine's way, on the
 **engine's** context — the one the probe cannot use at document start. On this device it would name the
 spelling its front end takes, which is the same loop that resolved §22.12 on the G720 phone.
+
+## 22.18 The lift is served on every device now (2026-09-30)
+
+The gate was the port's answer to "which spelling does this device's compiler take", and it is now gone:
+`ShaderArrays.rewrites(rel)` is simply `lifts(rel)`. The reason is that the probe can be wrong in the
+**expensive** direction — §22.5 on a Mali-G720, §22.17 on a Mali-G76 — accepting declarations that the
+engine's own compiles then refuse, and a wrong acceptance costs a frozen boot, while serving the lifted
+bytes costs nothing: they are the same declarations spelled the way the game's *own vertex* shaders already
+spell them, valid ES 3.0 wherever the port runs. Wrong-lift is free; wrong-accept is a stall.
+
+What went with it: `ShaderArrays.needed`/`report`/`decided`/`awaitReport`/`rewriting`, and the boot-time
+wait in `GameAssetHandler` for the probe's answer (`WAIT_FOR_REPORT_MS` before serving a lifted file). The
+probe still runs and its answer still reaches the record through `AdaBridge.setShaderArrays` — it just no
+longer decides anything, and the page no longer has to be waited for.
+
+**Verified on the S22 Ultra** (Adreno 730, a device that *accepts* the game's declarations and never needed
+the lift): every lifted file matched its whole table — `vertex/water-plane.vert (1/1)`,
+`fragment/water-plane.frag (2/2)`, `lib/water.glsl (9/9)`, `post/analog-filter.frag (1/1)`,
+`lib/color-utils.glsl (1/1)`, `fragment/water-fx-wall.frag (1/1)`, `vertex/water-fx-wall.vert (1/1)` — and
+`boot: complete in 7634ms, 1757 resources` with no link failure and no stall, so the lifted spellings are
+accepted where they were never needed before.

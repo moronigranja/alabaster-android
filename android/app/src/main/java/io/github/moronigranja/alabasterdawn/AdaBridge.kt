@@ -147,7 +147,6 @@ class AdaBridge(
      */
     @JavascriptInterface
     fun setShaderArrays(compiled: Boolean, detail: String) {
-        ShaderArrays.report(!compiled)
         diag.line(
             "shader arrays: " + detail.ifBlank {
                 if (compiled) "the page's compiler accepts the game's declarations"

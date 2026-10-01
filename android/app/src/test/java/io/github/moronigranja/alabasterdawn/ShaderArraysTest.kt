@@ -4,7 +4,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Test
 
 /**
@@ -22,12 +21,6 @@ import org.junit.Test
  * device.
  */
 class ShaderArraysTest {
-
-    /** The object holds what the page reported; one test must not see another's device. */
-    @Before
-    fun reset() {
-        ShaderArrays.reset()
-    }
 
     /** The game's `lib/water.glsl` around the wave path, verbatim but for the untouched bodies. */
     private val water = """
@@ -72,7 +65,6 @@ class ShaderArraysTest {
 
     @Test
     fun `every array in the water lib moves its brackets to the name`() {
-        ShaderArrays.report(true)
         val served = ShaderArrays.rewrite(waterRel, water)
 
         assertEquals("all nine edits matched", 9, served.applied)
@@ -105,7 +97,6 @@ class ShaderArraysTest {
 
     @Test
     fun `the fragment declarations and the ramp are lifted too`() {
-        ShaderArrays.report(true)
 
         val varying = "flat in vec2[4] v_flowDirs;"
         for (rel in listOf(
@@ -160,7 +151,6 @@ class ShaderArraysTest {
          * `lib/water.glsl` with no precision of their own, so a fragment that says `mediump` makes them
          * mediump there and highp in the vertex language — and the program fails to initialize
          * (FINDINGS §22.13). */
-        ShaderArrays.report(true)
         for (rel in listOf(
             "terra/data/shader/fragment/water-plane.frag",
             "terra/data/shader/fragment/water-fx-wall.frag",
@@ -179,7 +169,6 @@ class ShaderArraysTest {
 
     @Test
     fun `line endings are the file's own, and a second pass changes nothing`() {
-        ShaderArrays.report(true)
         val lf = ShaderArrays.rewrite(waterRel, water)
         val crlf = ShaderArrays.rewrite(waterRel, water.replace("\n", "\r\n"))
         assertEquals("the file's own endings are kept", lf.text.replace("\n", "\r\n"), crlf.text)
@@ -191,36 +180,7 @@ class ShaderArraysTest {
     }
 
     @Test
-    fun `a device that compiles the game's declarations keeps them`() {
-        ShaderArrays.report(false)
-        assertFalse("nothing is lifted for a compiler that accepts them", ShaderArrays.rewriting())
-        /* Branch `dither-experiment`: the two water fragments are forced on so the repair can be seen
-         * on hardware that never refused the declarations (the S22). Everything else stays off. */
-        assertTrue("the water fragment is forced", ShaderArrays.rewrites("terra/data/shader/fragment/water-plane.frag"))
-        assertTrue("and the waterfall one", ShaderArrays.rewrites("terra/data/shader/fragment/water-fx-wall.frag"))
-        assertFalse("but the shared water lib is not", ShaderArrays.rewrites(waterRel))
-        assertTrue("the file is known either way", ShaderArrays.lifts(waterRel))
-
-        ShaderArrays.report(true)
-        assertTrue(ShaderArrays.rewriting())
-        assertTrue(ShaderArrays.rewrites(waterRel))
-        assertTrue(ShaderArrays.decided())
-    }
-
-    @Test
-    fun `a page that has not answered yet is not rewritten, and can still be waited for`() {
-        assertFalse(ShaderArrays.decided())
-        assertFalse(ShaderArrays.rewriting())
-        assertFalse("the safe default is the game's own bytes", ShaderArrays.rewrites(waterRel))
-        assertFalse("a timeout decides nothing", ShaderArrays.awaitReport(10))
-        ShaderArrays.report(true)
-        assertTrue("the answer releases the wait", ShaderArrays.awaitReport(10))
-        assertTrue(ShaderArrays.rewrites(waterRel))
-    }
-
-    @Test
     fun `another build's bytes, and a non-shader, are served as they came`() {
-        ShaderArrays.report(true)
         val other = "vec4[4] somethingElse(vec2 p) { return vec4[4](vec4(1.0), vec4(1.0), vec4(1.0), vec4(1.0)); }"
         val served = ShaderArrays.rewrite(waterRel, other)
         assertEquals("nothing of this file's table matched", 0, served.applied)

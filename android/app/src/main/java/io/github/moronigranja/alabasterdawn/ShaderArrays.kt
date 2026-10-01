@@ -1,8 +1,5 @@
 package io.github.moronigranja.alabasterdawn
 
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Some mobile drivers' ES 3.0 front ends do not carry a shader's declared default precision onto an
@@ -61,34 +58,7 @@ object ShaderArrays {
     /** The served text of a rewritten shader, and how much of its table actually matched. */
     data class Served(val text: String, val applied: Int, val expected: Int)
 
-    /** What the page's GL stack reported through `AdaBridge.setShaderArrays`; null until it answers. */
-    @Volatile
-    var needed: Boolean? = null
-        private set
-
-    /** Released by [report]: the page has answered (or the wait gave up on it). */
-    private val reported = AtomicReference(CountDownLatch(1))
-
-    /** Records what the page's own compiler did with the game's declarations, and releases [awaitReport]. */
-    fun report(needed: Boolean) {
-        this.needed = needed
-        reported.get().countDown()
-    }
-
-    /** Whether the page has answered yet. A page that never answers keeps the game's own bytes. */
-    fun decided(): Boolean = needed != null
-
-    /**
-     * Waits up to [timeoutMs] for the page's answer, so the first shader is served with it in hand.
-     * The answer comes from the document-start probe (see the shim), which runs before the engine asks
-     * for anything.
-     */
-    fun awaitReport(timeoutMs: Long): Boolean = reported.get().await(timeoutMs, TimeUnit.MILLISECONDS)
-
-    /** Whether this device needs the lift at all. */
-    fun rewriting(): Boolean = needed == true
-
-    /** Whether [rel] is a shader the port lifts (whatever this device answered). */
+    /** Whether [rel] is a shader the port lifts. */
     fun lifts(rel: String): Boolean = EDITS.containsKey(rel)
 
     /**
@@ -100,29 +70,20 @@ object ShaderArrays {
         EDITS[rel].orEmpty().map { it.find to it.replace }
 
     /**
-     * The water shaders are served at **highp in both stages, on every device**, and this is not a
-     * preference. The engine registers vertex attributes per linked program, and the water programs lose
-     * `a_barycentricIdx` — which is why `GameAssetHandler` keeps `v_barycentric` alive with
-     * `if (any(lessThan(v_barycentric, vec3(-1e30)))) return;`. That sentinel is not representable in
-     * `mediump` (its range ends at ±65504), so with `v_barycentric` garbage the comparison fired and the
-     * fragment returned before drawing anything: **the water was invisible on every device** until the
-     * water stages were served at highp, where the sentinel means what it says. Raising the fragment
-     * alone is not enough — it creates a cross-stage precision mismatch on Adreno, where the strict Mali
-     * driver has the opposite complaint — so both stages move together.
+     * The lift is served on **every** device, not only on those whose probe refused the game's
+     * declarations. That was the original design and it is now known to be wrong in the expensive
+     * direction: the probe can *accept* declarations that the engine's own compiles then refuse, and the
+     * price of a wrong acceptance is a frozen boot (FINDINGS §22.5 on a Mali-G720, §22.17 on a Mali-G76
+     * with WebView 153), while the price of lifting wrongly is nothing — the same bytes, spelled the way
+     * the game's own vertex shaders already spell arrays, which is valid ES 3.0 everywhere the port runs.
+     *
+     * The two water *stages* are in the table for a second reason: their programs are the ones whose
+     * `a_barycentricIdx` the driver drops, and the keep-alive's sentinel needs a precision that can hold
+     * `1e30` (see `GameAssetHandler`), so both stages are raised to highp together — raising one side
+     * alone breaks the link on one driver family or the other (§22.13, §22.16).
      */
-    private val WATER_STAGES = setOf(
-        "water-plane.frag", "water-fx-wall.frag", "water-plane.vert", "water-fx-wall.vert",
-    )
-
-    /** Whether [rel] is one of the shaders the port lifts on a device that needs it — so worth caching. */
-    fun rewrites(rel: String): Boolean =
-        (rewriting() || rel.substringAfterLast('/') in WATER_STAGES) && lifts(rel)
-
-    /** Tests only: back to "the page has not answered". */
-    internal fun reset() {
-        needed = null
-        reported.set(CountDownLatch(1))
-    }
+    /** Whether [rel] is one of the shaders the port lifts — so worth caching. */
+    fun rewrites(rel: String): Boolean = lifts(rel)
 
     /**
      * The served text of [rel]: the game's own bytes, or every edit [EDITS] carries for it applied.
@@ -218,7 +179,7 @@ object ShaderArrays {
         ),
 
         /* The two water *vertex* shaders: raised together with their fragments so the stages agree and
-         * the keep-alive's sentinel is representable (see WATER_STAGES). */
+         * the keep-alive's sentinel is representable (see the object's own note). */
         "terra/data/shader/vertex/water-plane.vert" to listOf(
             Edit("precision mediump float;", "precision highp float;"),
         ),
