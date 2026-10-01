@@ -876,7 +876,7 @@
     })();
 
     /* ---- frame-rate limit -------------------------------------------------
-     * The side menu's frame-rate switch and the rate slider it reveals (20/30/45/60, see FpsLimit).
+     * The side menu's frame-rate switch and the rate slider it reveals (20/30/40/45/60, see FpsLimit).
      * The engine drives *everything* it draws from `requestAnimationFrame` - `System.run` re-arms
      * itself at the end of every frame, and the GUI's own canvases do the same - so gating rAF gates
      * the frames, and half the frames is half the GPU time (the port is GPU-bound, see README

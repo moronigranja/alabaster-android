@@ -67,7 +67,7 @@ Plus the research notes (`FINDINGS.md`) and the test harness (`tools/`, `logs/`)
   a **Game position** choice (Top / Center / Bottom) for where the picture sits inside the black
   letterbox bands (the current choice is a filled pill), a switch for an **FPS / battery /
   temperature** readout, a switch to **limit the frame rate** with the rate slider it reveals
-  underneath (**20 / 30 / 45 / 60 fps**, for battery: the port is GPU-bound, and half the frames is
+  underneath (**20 / 30 / 40 / 45 / 60 fps**, for battery: the port is GPU-bound, and half the frames is
   half the GPU time — the game logic keeps its 60 Hz fixed step, because the engine's clock reads
   `performance.now()` itself), a switch to **keep a log file with
   the saves**, the port version, three

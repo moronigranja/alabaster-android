@@ -9,9 +9,10 @@ import kotlin.math.abs
  * draws from `requestAnimationFrame`, so the shim serves one frame per interval and the game logic keeps
  * advancing on its own 60 Hz step — only the presents drop (FINDINGS §20.2). A display can only present
  * on a vsync, so a rate that is not a whole division of the panel's refresh lands on the next vsync up:
- * on a 60 Hz panel 45 fps is 30 and on a 120 Hz one it is 40; 20, 30 and 60 are exact on both.
+ * on a 60 Hz panel **40 and 45 both land on 30**, on a 120 Hz one on 40; 20, 30 and 60 are exact on both.
+ * (40 is the rung a 120 Hz surface can hold exactly, and 45 the one that lands there.)
  *
- * Four rates, in the order the menu shows them, with 30 as the default — the rate the switch stood for
+ * Five rates, in the order the menu shows them, with 30 as the default — the rate the switch stood for
  * before it had a slider, so a stored choice from an older build keeps its meaning.
  */
 object FpsLimit {
@@ -23,7 +24,7 @@ object FpsLimit {
     const val OFF = 0
 
     /** The rates the slider offers, low to high. */
-    val CHOICES = listOf(20, 30, 45, 60)
+    val CHOICES = listOf(20, 30, 40, 45, 60)
 
     /** The rate the switch stands for when nothing has been chosen yet. */
     const val DEFAULT = 30

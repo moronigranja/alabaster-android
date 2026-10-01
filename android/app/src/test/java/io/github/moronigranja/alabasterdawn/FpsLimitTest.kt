@@ -13,8 +13,8 @@ import org.junit.Test
 class FpsLimitTest {
 
     @Test
-    fun `the slider's four positions map to the four rates, in menu order`() {
-        assertEquals(listOf(20, 30, 45, 60), FpsLimit.CHOICES)
+    fun `the slider's five positions map to the five rates, in menu order`() {
+        assertEquals(listOf(20, 30, 40, 45, 60), FpsLimit.CHOICES)
         for (index in FpsLimit.CHOICES.indices) {
             assertEquals(FpsLimit.CHOICES[index], FpsLimit.at(index))
             assertEquals("round trip at $index", index, FpsLimit.indexOf(FpsLimit.at(index)))
@@ -26,8 +26,10 @@ class FpsLimitTest {
         assertEquals(20, FpsLimit.normalize(1))
         assertEquals(20, FpsLimit.normalize(24))
         assertEquals("a tie at 25 goes to the lower rate", 20, FpsLimit.normalize(25))
-        assertEquals("the 30/45 boundary is 37.5", 30, FpsLimit.normalize(37))
-        assertEquals(45, FpsLimit.normalize(38))
+        assertEquals("a tie at 35 goes to the lower rate", 30, FpsLimit.normalize(35))
+        assertEquals("the 30/40 boundary is 35", 40, FpsLimit.normalize(36))
+        assertEquals("a tie at 42.5 goes to the lower rate", 40, FpsLimit.normalize(42))
+        assertEquals("the 40/45 boundary is 42.5", 45, FpsLimit.normalize(43))
         assertEquals(45, FpsLimit.normalize(52))
         assertEquals(60, FpsLimit.normalize(53))
         assertEquals(60, FpsLimit.normalize(240))

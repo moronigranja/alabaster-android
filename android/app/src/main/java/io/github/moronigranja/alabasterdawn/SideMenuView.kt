@@ -292,7 +292,7 @@ class SideMenuView(context: Context) : FrameLayout(context) {
     }
 
     /**
-     * The rate slider, under the frame-rate switch: four positions ([FpsLimit.CHOICES]), their labels
+     * The rate slider, under the frame-rate switch: five positions ([FpsLimit.CHOICES]), their labels
      * on the ticks below, and the chosen rate as a readout beside the bar so the value is readable
      * while the thumb is dragged.
      *
