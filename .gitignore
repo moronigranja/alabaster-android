@@ -42,6 +42,11 @@ terra/
 *.log
 logs/*.jsonl
 gp_out.json
+# The design preview harness (tools/design/) renders throwaway PNGs/HTML/SVGs here.
+tools/design/out/
+# ... and Python bytecode from running it.
+__pycache__/
+*.pyc
 # The Mali reporter's patched shaders and the ZIP they arrived in are game files: kept in the working
 # tree next to his log for reference (FINDINGS §22.8), never committed, like `terra/` above.
 logs/mali/fixmali/
