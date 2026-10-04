@@ -1,15 +1,19 @@
 package io.github.moronigranja.alabasterdawn
 
 import android.app.Activity
+import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Intent
 import android.content.SharedPreferences
-import android.content.res.ColorStateList
 import android.content.pm.ApplicationInfo
+import android.content.pm.ShortcutInfo
+import android.content.pm.ShortcutManager
+import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.drawable.Icon
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -205,9 +209,12 @@ class PortActivity : Activity() {
         /* "Start last game directly" goes straight into the game, so the entry screen is never built
          * and cannot flash. Anything that stops the game actually starting builds it then, with the
          * reason (see [showPreGame]); a stale grant leaves gameUris[last] null and it is built here. */
-        val autoStart = lastGame?.takeIf {
-            prefs.getBoolean(KEY_AUTO_START, false) && gameUris[it] != null
+        /* A shortcut names the game it wants and wins over "start last game directly"; a plain launch
+         * keeps the existing behaviour. */
+        val wanted = gameFromIntent(intent) ?: lastGame?.takeIf {
+            prefs.getBoolean(KEY_AUTO_START, false)
         }
+        val autoStart = wanted?.takeIf { gameUris[it] != null }
         if (autoStart == null) {
             buildPreGameUi()
             /* A folder an earlier version remembered (single-slot, before the port ran two games):
@@ -269,6 +276,31 @@ class PortActivity : Activity() {
     private fun notAGame(): String =
         "That folder is not a game this port runs \u2014 pick the folder holding " +
             GameProfile.entries.joinToString(" or ") { "${it.displayName}'s ${it.pageRoot}/" } + "."
+
+    /** The ⋮ Help: what the computer's copy looks like, and where its saves are. */
+    private fun showHelp(profile: GameProfile) {
+        diag.line("help opened for ${profile.displayName}")
+        AlertDialog.Builder(this)
+            .setTitle(profile.displayName)
+            .setMessage(helpText(profile))
+            .setPositiveButton("OK", null)
+            .show()
+    }
+
+    private fun helpText(profile: GameProfile): String {
+        val saves = profile.pcSaves.joinToString("\n") { "  \u2022 $it" }
+        return "Point the port at your own copy of the game: no game files are bundled and nothing " +
+            "is uploaded.\n\n" +
+            "Game files\n" +
+            "Copy ${profile.pcInstallFolder} from your computer to the phone \u2014 the folder that " +
+            "holds ${profile.pageRoot}/ and the game's package.json. On Steam: right-click " +
+            "${profile.displayName} \u2192 Manage \u2192 Browse local files.\n\n" +
+            "Saves\n" +
+            "On the computer they are in:\n$saves\n" +
+            "Copy them into the saves folder you picked here (this card's \u22ee \u2192 Select save " +
+            "folder) and the game will list Continue.\n" +
+            "Not there? Search your computer for ${profile.pcSaveFiles.joinToString(" or ")}."
+    }
 
     /**
      * Checks, off the main thread, that the remembered folders still resolve. A persisted grant
@@ -505,15 +537,49 @@ class PortActivity : Activity() {
         startGame(profile)
     }
 
+    /** The game a shortcut asks for, or null for a plain launch. */
+    private fun gameFromIntent(intent: Intent?): GameProfile? =
+        intent?.getStringExtra(EXTRA_GAME)
+            ?.let { id -> GameProfile.entries.firstOrNull { it.id == id } }
+
+    /** The intent a shortcut for [profile] carries: this activity, naming that game. */
+    private fun shortcutIntent(profile: GameProfile): Intent =
+        Intent(this, PortActivity::class.java)
+            .setAction(Intent.ACTION_VIEW)
+            .putExtra(EXTRA_GAME, profile.id)
+
+    /** The ⋮ item: ask the launcher to put an icon for [profile] on the home screen. */
+    private fun pinShortcut(profile: GameProfile) {
+        val manager = getSystemService(ShortcutManager::class.java)
+        if (manager == null || !manager.isRequestPinShortcutSupported) {
+            setStatus("This launcher does not allow home-screen shortcuts.")
+            return
+        }
+        val info = ShortcutInfo.Builder(this, "game-" + profile.id)
+            .setShortLabel(profile.displayName)
+            .setLongLabel("Play ${profile.displayName}")
+            .setIcon(Icon.createWithResource(this, R.mipmap.ic_launcher))
+            .setIntent(shortcutIntent(profile))
+            .build()
+        val asked = manager.requestPinShortcut(info, null)
+        diag.line("home-screen link for ${profile.displayName}: " +
+            (if (asked) "asked" else "refused"))
+        if (!asked) setStatus("The home-screen link could not be created.")
+    }
+
     /** A card's menu: point it at that game's install folder, or at that game's saves folder. */
     private fun showGameMenu(anchor: View, profile: GameProfile) {
         val menu = PopupMenu(this, anchor)
         menu.menu.add(0, MENU_SELECT_GAME, 0, "Select game folder")
         menu.menu.add(0, MENU_SELECT_SAVES, 1, "Select save folder")
+        menu.menu.add(0, MENU_HELP, 2, "Help: what to copy")
+        menu.menu.add(0, MENU_LINK, 3, "Create a home-screen link")
         menu.setOnMenuItemClickListener {
             when (it.itemId) {
                 MENU_SELECT_GAME -> pick(REQ_GAME, wantWrite = false)
                 MENU_SELECT_SAVES -> pick(REQ_SAVES, wantWrite = true, forGame = profile)
+                MENU_HELP -> showHelp(profile)
+                MENU_LINK -> pinShortcut(profile)
             }
             true
         }
@@ -715,6 +781,7 @@ class PortActivity : Activity() {
                 }
             }
             val art = if (detected != null) decodeArt(uri, detected.artPath) else null
+            if (built != null && detected != null) GameIndexCache.save(this, uri, release, built)
             runOnUiThread {
                 if (built == null) {
                     status.text = "Could not read that folder."
@@ -768,6 +835,14 @@ class PortActivity : Activity() {
             onFolderRead(selected, tree, learnedIndex, learnedRelease, System.currentTimeMillis())
             return
         }
+        /* No walk yet: the index from the last launch, if it still describes this folder and this
+         * build (see GameIndexCache). The version file is read by name, so this needs no index. */
+        val version = readVersion(tree, selected)
+        val cached = GameIndexCache.load(this, tree, version)
+        if (cached != null) {
+            onFolderRead(selected, tree, cached, version, System.currentTimeMillis())
+            return
+        }
         setStatus("Indexing game files…")
         /* The flush chain starts here rather than in launchWebView, because reading a big game folder
          * can take a while and a failure there has to leave a record on disk, not only on screen.
@@ -789,6 +864,7 @@ class PortActivity : Activity() {
                     GameFiles.readText(contentResolver, tree, raw, it)?.let(GameVersion::fromChangelog)
                 }
             }
+            if (built != null && detected != null) GameIndexCache.save(this, tree, release, built)
             runOnUiThread { onFolderRead(selected, tree, built, release, started) }
         }, "ada-index").start()
     }
@@ -845,6 +921,13 @@ class PortActivity : Activity() {
         fsBridge = FsBridge(contentResolver, tree, bound, saveStore!!)
         setStatus("Loaded ${bound.size} files.")
         launchWebView()
+    }
+
+    /** The game's own version, read by path (no index needed): the index cache's validity check. */
+    private fun readVersion(tree: Uri, profile: GameProfile): String? {
+        val path = profile.versionPath ?: return null
+        val bytes = GameFiles.readByPath(contentResolver, tree, path) ?: return null
+        return GameVersion.fromChangelog(String(bytes, Charsets.UTF_8))
     }
 
     private fun openSaveStore(forGame: GameProfile? = null): SaveStore {
@@ -1595,6 +1678,24 @@ class PortActivity : Activity() {
         engineActive = true
     }
 
+    /** A shortcut tapped while the port is already running: switch to the game it names. */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val wanted = gameFromIntent(intent) ?: return
+        diag.line("shortcut: ${wanted.displayName}")
+        if (webView != null) {
+            if (wanted == profile) return
+            backToSelection()
+        }
+        if (gameUris[wanted] == null) {
+            showPreGame()
+            setStatus("${wanted.displayName}: pick its game folder first.")
+            return
+        }
+        startGame(wanted)
+    }
+
     override fun onPause() {
         engineActive = false
         /* An edit in progress is saved when the app goes to the background, so it is not lost if
@@ -1748,6 +1849,10 @@ class PortActivity : Activity() {
         private const val KEY_AUTO_START = "auto_start_last"
         private const val MENU_SELECT_GAME = 1
         private const val MENU_SELECT_SAVES = 2
+        private const val MENU_HELP = 3
+        /* The extra a shortcut carries: the GameProfile.id of the game it opens. */
+        private const val EXTRA_GAME = "game"
+        private const val MENU_LINK = 4
         /* A card's art tile: a square, so the crop is square too (see decodeArt). */
         private const val TILE_DP = 72
         /* The round play badge on a card, and the tap target of its three-dot folder menu. */

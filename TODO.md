@@ -57,11 +57,9 @@ only two Radical Fish NW.js games — extract a core only if a third appears), a
 
 The entry screen is one row card per game (its own title art in a tile, the game and saves paths, a
 play badge and a **⋮**), each game keeps its own saves folder, and a folder that has been moved or
-deleted is marked rather than silently claimed. Two items queued for the cards' **⋮**:
-
-* **A `Help` item** — what to copy over for the game files (the folder holding Alabaster Dawn's
-  `terra/` or CrossCode's `assets/`, beside the game's own `package.json`) and where the saves live
-  (the picked saves folder, or app storage until one is picked). Today that only exists in the README.
-* **An option to create a link to a game** — a shortcut that opens the port straight into that game,
-  rather than the two-card screen.
+deleted is marked rather than silently claimed. The cards' **⋮** now carries **Help: what to copy**
+(the install folder, the desktop save paths and the save file names) and **Create a home-screen
+link** (a pinned icon opening straight into that game), the launcher lists both games on a
+long-press, and the folder walk is kept between launches (`GameIndexCache`, keyed to the folder and
+the game's version file).
 

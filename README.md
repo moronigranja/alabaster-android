@@ -201,13 +201,22 @@ folders in use — the game folder and that game's saves folder, as paths under 
 on the card starts that game. A game with no folder yet shows an **Add <game>** button in place of
 its card.
 
+The card's **⋮** points it at that game's install folder or saves folder, opens **Help: what to
+copy** (the folder to take from the computer, where the desktop build keeps its saves, and the save
+file names to search for), and can **Create a home-screen link**, which asks the launcher to pin an
+icon that opens the port straight into that game. Holding the app icon on the launcher lists both
+games the same way (the static **Alabaster Dawn** / **CrossCode** shortcuts).
+
 Picking a folder is how the screen learns which game it is — the entry page is the fingerprint — so
 point each game at its folder once and both are one tap away after that. Picking the wrong card's
 folder says which game it actually is and files it under that game's card. Each game keeps **its own
 saves folder** (the log file, the pad layout and the game's own saves all follow the game being
 started). Under the cards, **Start last game directly** skips this screen entirely — it is never
-built, so it cannot flash on the way past — and goes straight into the last game played. Troubleshoot
-and the port version stay on this screen, because it is the screen every report is taken from.
+built, so it cannot flash on the way past — and goes straight into the last game played. The walk of
+a game's folder (a few seconds for the shipped games) is kept between launches, keyed to the folder
+and the game's own version file, so a second start goes in at once; a game update, a moved or
+re-picked folder rebuilds it. Troubleshoot and the port version stay on this screen, because it is
+the screen every report is taken from.
 
 A stored grant outlives the folder it points at, so the port checks on startup that each folder is
 still there. A game whose folder has been moved or deleted is shown **dimmed with `(missing)`** next
@@ -306,6 +315,8 @@ docs/alabaster-dawn-port.md     the Alabaster Dawn port and controller-fix docum
 - [x] Entry screen: a card per game (title art, name, both folder paths, play badge, **⋮**), a saves
       folder each, folders that have been moved or deleted marked, and **Game selection** in the side
       menu to come back to it without ending the process
+- [x] Card **⋮**: **Help: what to copy** and **Create a home-screen link**; the static launcher
+      shortcuts for both games; the folder index kept between launches
 - [ ] CrossCode on a phone: GPU cost at 1136×640, audio, fullscreen/scale, pad mapping
 - [ ] CrossCode save round-trip (save-string export, and the file path list)
 - [ ] CrossCode extensions (`assets/extension`) if mods are wanted

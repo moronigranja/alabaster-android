@@ -66,6 +66,9 @@ class GameIndex(private val entries: Map<String, GameEntry>, val pageRoot: Strin
 
     /** Every index key, sorted: used for diagnostics only. */
     fun paths(): List<String> = entries.keys.sorted()
+
+    /** Every entry as built, for the cache (see [GameIndexCache]). */
+    fun snapshot(): Map<String, GameEntry> = entries
 }
 
 object GameFiles {

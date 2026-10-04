@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">RadicalFish Port</string>
+    <string name="shortcut_ada_short">Alabaster Dawn</string>
+    <string name="shortcut_ada_long">Play Alabaster Dawn</string>
+    <string name="shortcut_cc_short">CrossCode</string>
+    <string name="shortcut_cc_long">Play CrossCode</string>
 </resources>

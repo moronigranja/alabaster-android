@@ -70,6 +70,14 @@ enum class GameProfile(
      * `title-logo.png` are sprite sheets, whose opaque filler draws as black slabs on a panel.
      */
     val artPath: String,
+    /**
+     * What the computer's copy of this game looks like, for the card's "Help: what to copy": the
+     * install folder to take (under `steamapps/common/`), where the desktop build keeps its saves,
+     * and the file names to search for when a path has moved.
+     */
+    val pcInstallFolder: String,
+    val pcSaves: List<String>,
+    val pcSaveFiles: List<String>,
 ) {
     ALABASTER_DAWN(
         id = "ada",
@@ -85,6 +93,12 @@ enum class GameProfile(
         viewAlign = true,
         canvasSelector = ".xgCanvas",
         artPath = "terra/media/gui/title/title-bg-01.png",
+        pcInstallFolder = "steamapps/common/Alabaster Dawn",
+        pcSaves = listOf(
+            "Windows: %LOCALAPPDATA%\\Alabaster Dawn\\Saves",
+            "Linux / Steam Deck: ~/.config/Alabaster Dawn/Saves",
+        ),
+        pcSaveFiles = listOf("Save_ID_auto.save", "System.save"),
     ),
     CROSSCODE(
         id = "cc",
@@ -103,6 +117,12 @@ enum class GameProfile(
         viewAlign = false,
         canvasSelector = "#canvas",
         artPath = "assets/media/gui/title-bg.png",
+        pcInstallFolder = "steamapps/common/CrossCode",
+        pcSaves = listOf(
+            "Windows: %LOCALAPPDATA%\\CrossCode  (the game also looks inside its User Data\\Default)",
+            "Linux / Steam Deck: ~/.config/CrossCode/Default",
+        ),
+        pcSaveFiles = listOf("cc.save"),
     );
 
     /** The entry page's index key (also its path under the picked root). */

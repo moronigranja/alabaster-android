@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="game_ada"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_ada_short"
+        android:shortcutLongLabel="@string/shortcut_ada_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="io.github.moronigranja.alabasterdawn"
+            android:targetClass="io.github.moronigranja.alabasterdawn.PortActivity">
+            <extra android:name="game" android:value="ada" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="game_cc"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_cc_short"
+        android:shortcutLongLabel="@string/shortcut_cc_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="io.github.moronigranja.alabasterdawn"
+            android:targetClass="io.github.moronigranja.alabasterdawn.PortActivity">
+            <extra android:name="game" android:value="cc" />
+        </intent>
+    </shortcut>
+</shortcuts>
