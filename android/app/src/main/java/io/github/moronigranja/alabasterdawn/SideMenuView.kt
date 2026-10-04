@@ -60,6 +60,9 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
     /** A tap on Exit. */
     var onExit: (() -> Unit)? = null
 
+    /** The in-game way back to the entry screen (the port tears the game down, it does not exit). */
+    var onGameSelection: (() -> Unit)? = null
+
     /** A tap on Troubleshoot: the owner shows the record, which it owns. */
     var onDiagnostics: (() -> Unit)? = null
 
@@ -285,6 +288,9 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
         }
         panel.addView(engineStatus)
 
+        addRow(panel, R.drawable.ic_menu_games, "Game selection", null) {
+            onGameSelection?.invoke()
+        }
         addRow(panel, R.drawable.ic_menu_diagnostics, "Troubleshoot", null) {
             onDiagnostics?.invoke()
         }

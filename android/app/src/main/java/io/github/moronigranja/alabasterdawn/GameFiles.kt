@@ -146,7 +146,7 @@ object GameFiles {
 
     /**
      * One file's bytes by its path under the picked root, **without indexing the tree**: one query per
-     * segment. The entry screen draws each game's own logo (see [GameProfile.logoPath]) before any
+     * segment. The entry screen draws each game's own art (see [GameProfile.artPath]) before any
      * game has been started, and walking a three-segment path is far cheaper than the full index.
      *
      * Returns null for a missing file, a directory, an oversized file or a failed read, so a caller
@@ -179,6 +179,40 @@ object GameFiles {
         }
     }
 
+    /**
+     * Whether [path] still exists under the picked root, **without reading it**: the same one-query-
+     * per-segment walk as [readByPath]. The entry screen uses this to tell a folder that is still
+     * there from one that has been moved or deleted — the stored grant survives either way, so a URI
+     * that resolves is not evidence that the folder does.
+     */
+    fun existsByPath(resolver: ContentResolver, treeUri: Uri, path: String): Boolean {
+        val segments = path.trim('/').split('/').filter { it.isNotEmpty() }
+        if (segments.isEmpty()) return false
+        var docId = try {
+            DocumentsContract.getTreeDocumentId(treeUri)
+        } catch (e: Exception) {
+            return false
+        }
+        for (segment in segments) {
+            docId = findChild(resolver, treeUri, docId, segment) ?: return false
+        }
+        return true
+    }
+
+    /**
+     * Whether the picked tree's own root document still exists. A deleted folder can leave its
+     * persisted grant behind, and a [SafStore] on it then fails on every write instead of saying so.
+     */
+    fun treeResolves(resolver: ContentResolver, treeUri: Uri): Boolean = try {
+        val rootId = DocumentsContract.getTreeDocumentId(treeUri)
+        resolver.query(
+            DocumentsContract.buildDocumentUriUsingTree(treeUri, rootId), PROJECTION, null, null, null
+        )?.use { it.count > 0 } ?: false
+    } catch (e: Exception) {
+        Log.w(TAG, "cannot resolve tree $treeUri", e)
+        false
+    }
+
     /** The document id of [name] under [parentDocId], or null when there is no such child. */
     private fun findChild(
         resolver: ContentResolver,
@@ -200,6 +234,24 @@ object GameFiles {
     } catch (e: Exception) {
         Log.w(TAG, "cannot look up $name", e)
         null
+    }
+
+    /**
+     * The picked folder's path under its volume, for the entry screen: the tree URI's document id is
+     * `primary:Download/GameFolder`, so this is `Download/GameFolder`. The leaf alone cannot tell two
+     * folders apart (two saves folders named `Saves`, say), and the path is what the user actually
+     * sees in the picker.
+     */
+    fun pathOf(treeUri: Uri?): String? {
+        if (treeUri == null) return null
+        return try {
+            val id = DocumentsContract.getTreeDocumentId(treeUri)
+            val cut = id.indexOf(':')
+            (if (cut == -1) id else id.substring(cut + 1)).ifEmpty { id }
+        } catch (e: Exception) {
+            Log.w(TAG, "cannot read tree path from $treeUri", e)
+            null
+        }
     }
 
     /**

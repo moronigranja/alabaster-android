@@ -186,27 +186,40 @@ adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 
 ### The entry screen
 
-One screen holds both games. A **hero card** shows the game that will start as **its own art and
-nothing else** (read from your copy at runtime, never bundled), with the action as a round badge on its
-corner: a play glyph that starts it, or a folder glyph while no folder is pointed at. The card takes
-the colour its art was drawn for — Alabaster Dawn's transparent wordmark gets a light tile, CrossCode's
-opaque title art gets a card in its own background colour.
-
-Under it, each game has a row with its name, its folder, a ready dot and a **⋮** menu to change or
-forget that folder; tapping a row moves the hero to that game. One **saves** folder is shared by both
-(each game writes its own files into it).
+One screen holds both games, each as a **row card**: the game's **own title art** in a square tile
+(read from your copy at runtime, never bundled), its name at a fixed size, and a dim line naming the
+folders in use — the game folder and that game's saves folder, as paths under the storage root
+(`Download/…`). A round **play** badge and a **⋮** menu sit at the card's end, and one tap anywhere
+on the card starts that game. A game with no folder yet shows an **Add <game>** button in place of
+its card.
 
 Picking a folder is how the screen learns which game it is — the entry page is the fingerprint — so
-point each game at its folder once and both are one tap away after that. Tapping the wrong row's
-Start says which game the folder actually is and files it under that game's row. Troubleshoot and the
-port version stay on this screen, because it is the screen every report is taken from.
+point each game at its folder once and both are one tap away after that. Picking the wrong card's
+folder says which game it actually is and files it under that game's card. Each game keeps **its own
+saves folder** (the log file, the pad layout and the game's own saves all follow the game being
+started). Under the cards, **Start last game directly** skips this screen and goes straight into the
+last game played. Troubleshoot and the port version stay on this screen, because it is the screen
+every report is taken from.
+
+A stored grant outlives the folder it points at, so the port checks on startup that each folder is
+still there. A game whose folder has been moved or deleted is shown **dimmed with `(missing)`** next
+to its path, the status line names it, and tapping the card re-opens the picker instead of starting a
+game that is not there; a saves folder that has gone is marked the same way and the port falls back to
+app storage for that session.
 
 ### Game files and saves
 
-Pick the game's **install folder** — the one holding Alabaster Dawn's `terra/` directory or
+Pick each game's **install folder** — the one holding Alabaster Dawn's `terra/` directory or
 CrossCode's `assets/` directory (the folder that also holds the game's own `package.json`). The port
-indexes it read-only and never writes to it. Then pick a **saves folder**; the port keeps its own
-`pad-layout.json` and its diagnostics log there, next to whatever the game writes.
+indexes it read-only and never writes to it. Then pick that game's **saves folder** from its card's
+**⋮**; the port keeps its own `pad-layout.json` and its diagnostics log there, next to whatever the
+game writes.
+
+Until a saves folder is picked, saves go to app-private storage (the side menu says so, and it is not
+exportable). Picking a folder **carries those saves into it** — a file is copied when the folder does
+not have it or the app's copy is newer, and nothing is deleted — so progress made before a folder was
+chosen is not left behind. Two *user* folders are never merged automatically: re-pointing a card at a
+different folder uses that folder as it is.
 
 ### Input
 
@@ -225,8 +238,9 @@ indexes it read-only and never writes to it. Then pick a **saves folder**; the p
 Back opens a panel over the running game: hide-with-external-input, a frame-rate cap with its rate
 slider (20/30/40/45/60 fps), a picture-position choice (Top/Centre/Bottom, where the engine supports
 it), an FPS/battery/temperature readout, the saves-folder log switch, the version and status lines,
-and Exit. All of it lives in the app's prefs; **Exit ends the app process**, so the next launch is
-clean.
+**Game selection** and Exit. Game selection tears the running game down and returns to the two-card
+entry screen with the process alive; **Exit ends the app process**, so the next launch is clean. All
+of it lives in the app's prefs.
 
 ### Diagnostics
 
@@ -266,6 +280,8 @@ android/                        the app
 fix/                            the desktop controller fix (Linux / Wine containers)
 tools/                          the desktop harness and probes used to measure the games
   game-harness.py               boots a game in headless Chromium with a shim at document start
+  design/                       renders the port's own icons, palette and screen mock-ups to PNG
+    preview.py                  reads the shipped vectors, PortStyle palette and dp constants
 FINDINGS.md                     the research record (§13 is the CrossCode probe)
 ON_SCREEN_GAMEPAD_PLAN.md       the on-screen pad design
 docs/alabaster-dawn-port.md     the Alabaster Dawn port and controller-fix documentation

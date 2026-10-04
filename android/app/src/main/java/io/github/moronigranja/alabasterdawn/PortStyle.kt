@@ -10,8 +10,8 @@ import android.content.res.ColorStateList
  * The port's own look, in one place: the console-style dark panel and warm off-white text the side
  * menu, the diagnostics dialog and the entry screen share.
  *
- * The palette is the port's own. No game art is drawn from here — the entry screen's hero image is
- * read out of the *user's* copy of the game at runtime (see [GameProfile.logoPath] and `NOTICE.md`).
+ * The palette is the port's own. No game art is drawn from here — each game card's art is
+ * read out of the *user's* copy of the game at runtime (see [GameProfile.artPath] and `NOTICE.md`).
  */
 object PortStyle {
 
@@ -29,9 +29,9 @@ object PortStyle {
     const val RIPPLE = 0x33E8DCC8
     const val PILL = 0x1FE8DCC8
 
-    /** The hero card's own colour: the games' art is drawn for a bright title screen, not for a dark
-     *  panel, so the card is a light tile the art sits on. */
-    const val CARD = 0xFFF3F0E9.toInt()
+    /** The rounded square a game's title art sits in on its card (art with transparent corners
+     *  still reads on it, and it is darker than the card so the tile has its own edge). */
+    const val TILE = 0xFF0B1016.toInt()
 
     /** The hairline between rows. */
     const val HAIRLINE = 0x33E8DCC8.toInt()
@@ -52,7 +52,23 @@ object PortStyle {
             setColor(color)
         }
 
-    /** The round action badge that sits on the hero card. */
+    /**
+     * A game card on the entry screen: the panel, outlined, so the rounded rectangle still reads
+     * where the page behind it is the same near-black.
+     */
+    fun card(context: Context): GradientDrawable = GradientDrawable().apply {
+        cornerRadius = dp(context, 20).toFloat()
+        setColor(PANEL)
+        setStroke(dp(context, 1), HAIRLINE)
+    }
+
+    /** The rounded square a game's title art sits in on its card. */
+    fun tile(context: Context): GradientDrawable = GradientDrawable().apply {
+        cornerRadius = dp(context, 14).toFloat()
+        setColor(TILE)
+    }
+
+    /** The round play badge on a game card. */
     fun badge(context: Context): GradientDrawable = GradientDrawable().apply {
         shape = GradientDrawable.OVAL
         setColor(ACCENT)

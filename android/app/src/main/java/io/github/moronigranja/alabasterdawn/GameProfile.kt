@@ -61,15 +61,15 @@ enum class GameProfile(
     /** The render canvas the port's overlays measure. Both engines own the element's own layout. */
     val canvasSelector: String,
     /**
-     * The game's own art inside its install, relative to the picked root, for the entry screen's
-     * hero: Alabaster Dawn's wordmark, CrossCode's title-screen character art (`assets/media/gui/title-bg.png`). It is **drawn from the
-     * user's copy at runtime and never shipped** — the APK carries no game art (see `NOTICE.md`), and
-     * a build that moved the file simply gets no image.
+     * The game's own art inside its install, relative to the picked root, for its card's tile on the
+     * entry screen: each game's *title art* — Alabaster Dawn's emblem, CrossCode's character scene.
+     * It is **drawn from the user's copy at runtime and never shipped** — the APK carries no game art
+     * (see `NOTICE.md`), and a build that moved the file simply gets no image.
      *
      * Both are the games' *composed* art, not their atlases: `game-logo-small.png` and CrossCode's
      * `title-logo.png` are sprite sheets, whose opaque filler draws as black slabs on a panel.
      */
-    val logoPath: String,
+    val artPath: String,
 ) {
     ALABASTER_DAWN(
         id = "ada",
@@ -84,7 +84,7 @@ enum class GameProfile(
         rewrites = true,
         viewAlign = true,
         canvasSelector = ".xgCanvas",
-        logoPath = "terra/media/gui/title/title-name-01.png",
+        artPath = "terra/media/gui/title/title-bg-01.png",
     ),
     CROSSCODE(
         id = "cc",
@@ -102,7 +102,7 @@ enum class GameProfile(
         rewrites = false,
         viewAlign = false,
         canvasSelector = "#canvas",
-        logoPath = "assets/media/gui/title-bg.png",
+        artPath = "assets/media/gui/title-bg.png",
     );
 
     /** The entry page's index key (also its path under the picked root). */
@@ -123,8 +123,8 @@ enum class GameProfile(
      */
     val gameFolderKey: String get() = "game_tree_uri_$id"
 
-    /** What the entry screen tells the user to pick. */
-    val setupHint: String get() = "Pick the folder that contains the game's $pageRoot/ directory."
+    /** Where the app remembers this game's saves folder. One key per game, so each keeps its own. */
+    val savesFolderKey: String get() = "saves_tree_uri_$id"
 
     companion object {
         /** The asset-loader origin the picked folder is served from. */

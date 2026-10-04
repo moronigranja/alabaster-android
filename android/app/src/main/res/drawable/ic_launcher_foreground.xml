@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The mark: a controller (body + two grips) in slate on the alabaster field, its d-pad and
-     face buttons punched back to the background colour, plus this port's teal accent dot.
-     Paths are drawn in the 108x108 adaptive-icon viewport; the group keeps the glyph inside
-     the 66dp mask-safe circle. Original artwork for this port - not game art. -->
+<!-- The mark: a window - this host is a page running a game - with a controller in its page.
+     Paths are drawn in the 108x108 adaptive-icon viewport; the outer group keeps the glyph
+     inside the 66dp mask-safe circle. Original artwork for this port - not game art. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -14,42 +13,49 @@
         android:scaleX="0.9"
         android:scaleY="0.9">
 
-        <!-- body (a pill) and the two grips hanging below its ends -->
+        <!-- the window (its title bar is the strip the page does not cover) -->
         <path
-            android:fillColor="#2A3441"
-            android:pathData="M40,40h28a10,10 0 0 1 0,20h-28a10,10 0 0 1 0,-20z" />
-        <path
-            android:fillColor="#2A3441"
-            android:pathData="M21,60a9,9 0 1 0 18,0a9,9 0 1 0 -18,0z" />
-        <path
-            android:fillColor="#2A3441"
-            android:pathData="M69,60a9,9 0 1 0 18,0a9,9 0 1 0 -18,0z" />
+            android:fillColor="#FF0E1A22"
+            android:pathData="M32,16h44a16,16 0 0 1 16,16v44a16,16 0 0 1 -16,16h-44a16,16 0 0 1 -16,-16v-44a16,16 0 0 1 16,-16z" />
 
-        <!-- d-pad -->
+        <!-- its page -->
         <path
-            android:fillColor="#E8DCC8"
-            android:pathData="M36,43h8v14h-8z" />
-        <path
-            android:fillColor="#E8DCC8"
-            android:pathData="M31,48h18v4h-18z" />
+            android:fillColor="#FFF3F0E9"
+            android:pathData="M33,29h42a9,9 0 0 1 9,9v37a9,9 0 0 1 -9,9h-42a9,9 0 0 1 -9,-9v-37a9,9 0 0 1 9,-9z" />
 
-        <!-- face buttons -->
-        <path
-            android:fillColor="#E8DCC8"
-            android:pathData="M62,45a3,3 0 1 0 6,0a3,3 0 1 0 -6,0z" />
-        <path
-            android:fillColor="#E8DCC8"
-            android:pathData="M68,45a3,3 0 1 0 6,0a3,3 0 1 0 -6,0z" />
-        <path
-            android:fillColor="#E8DCC8"
-            android:pathData="M62,52a3,3 0 1 0 6,0a3,3 0 1 0 -6,0z" />
-        <path
-            android:fillColor="#E8DCC8"
-            android:pathData="M68,52a3,3 0 1 0 6,0a3,3 0 1 0 -6,0z" />
-
-        <!-- accent -->
-        <path
-            android:fillColor="#2F9E9B"
-            android:pathData="M51,52a3,3 0 1 0 6,0a3,3 0 1 0 -6,0z" />
+        <!-- the controller, in the page -->
+        <group
+            android:translateX="54"
+            android:translateY="60"
+            android:scaleX="1.15"
+            android:scaleY="1.15">
+            <path
+                android:fillColor="#FF0E1A22"
+                android:pathData="M-21,-10h42a10,10 0 0 1 0,20h-42a10,10 0 0 1 0,-20z" />
+            <path
+                android:fillColor="#FF0E1A22"
+                android:pathData="M-27,9a9,9 0 1 0 18,0a9,9 0 1 0 -18,0z" />
+            <path
+                android:fillColor="#FF0E1A22"
+                android:pathData="M9,9a9,9 0 1 0 18,0a9,9 0 1 0 -18,0z" />
+            <path
+                android:fillColor="#FFE8DCC8"
+                android:pathData="M-16,-2.2h12v4.4h-12z" />
+            <path
+                android:fillColor="#FFE8DCC8"
+                android:pathData="M-12.2,-6h4.4v12h-4.4z" />
+            <path
+                android:fillColor="#FF4FB3A6"
+                android:pathData="M10.4,-4.5a2.6,2.6 0 1 0 5.2,0a2.6,2.6 0 1 0 -5.2,0z" />
+            <path
+                android:fillColor="#FFE8A24A"
+                android:pathData="M16.4,1a2.6,2.6 0 1 0 5.2,0a2.6,2.6 0 1 0 -5.2,0z" />
+            <path
+                android:fillColor="#FFE8A24A"
+                android:pathData="M10.4,6.5a2.6,2.6 0 1 0 5.2,0a2.6,2.6 0 1 0 -5.2,0z" />
+            <path
+                android:fillColor="#FF4FB3A6"
+                android:pathData="M4.4,1a2.6,2.6 0 1 0 5.2,0a2.6,2.6 0 1 0 -5.2,0z" />
+        </group>
     </group>
 </vector>

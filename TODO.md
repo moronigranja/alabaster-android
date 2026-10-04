@@ -52,3 +52,16 @@ Decided against for now: a shared shim core (`ada-shim.js` and `cc-shim.js` dupl
 gamepad/frame-rate/stats/error plumbing; the two engines need opposite platform answers and are the
 only two Radical Fish NW.js games — extract a core only if a third appears), and CrossCode extensions
 (`assets/extension`; the loader runs and reports an empty list).
+
+## Entry screen (0.8.0, new)
+
+The entry screen is one row card per game (its own title art in a tile, the game and saves paths, a
+play badge and a **⋮**), each game keeps its own saves folder, and a folder that has been moved or
+deleted is marked rather than silently claimed. Two items queued for the cards' **⋮**:
+
+* **A `Help` item** — what to copy over for the game files (the folder holding Alabaster Dawn's
+  `terra/` or CrossCode's `assets/`, beside the game's own `package.json`) and where the saves live
+  (the picked saves folder, or app storage until one is picked). Today that only exists in the README.
+* **An option to create a link to a game** — a shortcut that opens the port straight into that game,
+  rather than the two-card screen.
+

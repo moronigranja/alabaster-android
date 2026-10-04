@@ -36,6 +36,44 @@ interface SaveStore {
     fun rename(from: String, to: String): Boolean
 }
 
+/**
+ * Carrying saves from one store into another.
+ *
+ * The two stores are alternatives, not a chain (see `PortActivity.openSaveStore`): saves made while
+ * app storage was in use — no folder set, or the set one missing — would be left behind, unreachable,
+ * the moment a folder is picked. App storage is only ever the port's own fallback, never a folder the
+ * user chose, so carrying **out of it** is always safe. Two user folders are deliberately never
+ * merged: that would overwrite a newer save with an older one.
+ */
+object SaveCarry {
+
+    /**
+     * Copies everything under [from] that [to] does not already have, or has an older copy of.
+     * Nothing is deleted, and the paths actually written are returned (in visit order).
+     */
+    fun copyNewer(from: SaveStore, to: SaveStore): List<String> {
+        val copied = ArrayList<String>()
+        copyInto(from, to, "", copied)
+        return copied
+    }
+
+    private fun copyInto(from: SaveStore, to: SaveStore, dir: String, copied: MutableList<String>) {
+        for (entry in from.list(dir).orEmpty()) {
+            val rel = if (dir.isEmpty()) entry.name else "$dir/${entry.name}"
+            if (entry.isDir) {
+                to.mkdir(rel)
+                copyInto(from, to, rel, copied)
+                continue
+            }
+            val here = from.stat(rel) ?: continue
+            val there = to.stat(rel)
+            if (there != null && here.mtimeMillis <= there.mtimeMillis) continue
+            val text = from.read(rel) ?: continue
+            if (to.write(rel, text)) copied.add(rel)
+        }
+    }
+}
+
 /** Saves in the folder the user picked with SAF. */
 class SafStore(private val resolver: ContentResolver, val treeUri: Uri) : SaveStore {
 
