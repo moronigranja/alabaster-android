@@ -832,7 +832,15 @@ class PortActivity : Activity() {
             useWideViewPort = false
             cacheMode = WebSettings.LOAD_DEFAULT
         }
-        if (isDebuggable()) WebView.setWebContentsDebuggingEnabled(true)
+        /* WebView inspection: always for a debug build, and for a released APK only when the global
+         * setting below is on (`adb shell settings put global rfport_webview_debug 1`). A released
+         * build is not debuggable, and this is the only way to read a page's own exception - a stalled
+         * loader leaves nothing else. Reading a global setting needs no permission; writing it is the
+         * shell's. */
+        if (webViewInspectable()) {
+            WebView.setWebContentsDebuggingEnabled(true)
+            diag.line("webView inspection on (${DEBUG_WEBVIEW_SETTING})")
+        }
         view.setBackgroundColor(Color.BLACK)
         view.isFocusable = true
         view.isFocusableInTouchMode = true
@@ -1522,6 +1530,12 @@ class PortActivity : Activity() {
     private fun isDebuggable(): Boolean =
         (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
+    private fun webViewInspectable(): Boolean = isDebuggable() || try {
+        Settings.Global.getInt(contentResolver, DEBUG_WEBVIEW_SETTING, 0) != 0
+    } catch (e: Exception) {
+        false
+    }
+
     private fun readAsset(name: String): String = try {
         assets.open(name).use { String(it.readBytes(), Charsets.UTF_8) }
     } catch (e: Exception) {
@@ -1540,6 +1554,8 @@ class PortActivity : Activity() {
         private const val MENU_FORGET_FOLDER = 2
         /* How tall the hero card is: its own art, with the action badge on its corner. */
         private const val HERO_DP = 128
+        /* The global setting that turns WebView inspection on for a released build. */
+        private const val DEBUG_WEBVIEW_SETTING = "rfport_webview_debug"
         /* The round action badge on the hero card's corner. */
         private const val BADGE_DP = 56
         private const val KEY_SAVES = "saves_tree_uri"

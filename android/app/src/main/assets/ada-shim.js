@@ -537,11 +537,19 @@
         };
     }
 
-    function readdirRaw(p) {
+    /* Node's contract, and it is not a harmless superset: `readdir` yields *names*, and dirents only
+     * when `withFileTypes` asks for them. Handing back objects to a caller that concatenates the entry
+     * onto a path gives `assets/extension/[object Object]`, and the loader dies on the ENOENT it then
+     * throws - which is exactly how CrossCode stalled on its loading bar (measured 2026-10-04, and the
+     * page's own debugger named it: node-webkit.html:191). */
+    function readdirRaw(p, opts) {
         var list = parseJson(call(function (b) { return b.fsReaddir(String(p)); }, null));
         if (!list) return null;
+        var dirents = !!(opts && typeof opts === "object" && opts.withFileTypes);
         var out = [];
-        for (var i = 0; i < list.length; i++) out.push(makeDirent(list[i].n, list[i].d));
+        for (var i = 0; i < list.length; i++) {
+            out.push(dirents ? makeDirent(list[i].n, list[i].d) : String(list[i].n));
+        }
         return out;
     }
 
@@ -652,15 +660,15 @@
             return st;
         },
         lstatSync: function (p) { return fs.statSync(p); },
-        readdirSync: function (p) {
-            var l = readdirRaw(p);
+        readdirSync: function (p, opts) {
+            var l = readdirRaw(p, opts);
             if (!l) throw enoent(p);
             return l;
         },
         readdir: function (p, opts, cb) {
-            if (typeof opts === "function") { cb = opts; }
+            if (typeof opts === "function") { cb = opts; opts = null; }
             if (typeof cb !== "function") return;
-            var l = readdirRaw(p);
+            var l = readdirRaw(p, opts);
             if (l) cb(null, l); else cb(enoent(p));
         },
         readFileSync: function (p) {
@@ -1291,6 +1299,12 @@
      * logcat (tag RfPort) through the bridge. */
     window.addEventListener("error", function (e) {
         try {
+            /* A subresource that will not load fires on the element, not on window. */
+            var resource = e && e.target;
+            if (resource && resource !== window && (resource.src || resource.href)) {
+                report("resource", (resource.tagName || "?") + " " + (resource.src || resource.href) + " failed");
+                return;
+            }
             if (e && e.message) {
                 /* A shader the engine's compiler refused, paired with the port's own decision about that
                  * file. On the 0.7.2 report (issue #5, Mali-G76) the probe accepted the declarations and
@@ -1305,7 +1319,13 @@
                             : "the game's own bytes (the probe accepted those declarations)") +
                         (shaderArrays && shaderArrays.detail ? " [" + shaderArrays.detail + "]" : ""));
                 }
-                report("window.onerror", (e.filename || "?") + ":" + (e.lineno || 0) + " " + e.message);
+                if (!e.error && e.message === "Script error.") {
+                    report("window.onerror", (e.filename || "?") + ":" + (e.lineno || 0) +
+                        " masked script error (injected script or worker)");
+                    return;
+                }
+                var stack = e.error && e.error.stack ? " | " + String(e.error.stack).split("\n")[0] : "";
+                report("window.onerror", (e.filename || "?") + ":" + (e.lineno || 0) + " " + e.message + stack);
             }
         } catch (err) { /* ignore */ }
     }, true);

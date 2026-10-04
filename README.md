@@ -235,6 +235,15 @@ app's log, and the engine's own console errors. A boot that stops is reported by
 still pending, grouped by kind), the record is carried across a restart, and it can be shared as text
 or kept as `ada-diagnostics.log` in the saves folder.
 
+When a record is not enough, the page's own debugger can be attached to a *released* build — which is
+what named CrossCode's stalled loader (FINDINGS §23):
+
+```sh
+adb shell settings put global rfport_webview_debug 1     # off again with: settings delete global …
+adb forward tcp:9222 localabstract:webview_devtools_remote_$(adb shell pidof io.github.moronigranja.alabasterdawn)
+# now chrome://inspect, or any CDP client: Runtime.exceptionThrown / Log.entryAdded / a console
+```
+
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 ---

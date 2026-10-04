@@ -2877,3 +2877,73 @@ the lift): every lifted file matched its whole table — `vertex/water-plane.ver
 `lib/color-utils.glsl (1/1)`, `fragment/water-fx-wall.frag (1/1)`, `vertex/water-fx-wall.vert (1/1)` — and
 `boot: complete in 7634ms, 1757 resources` with no link failure and no stall, so the lifted spellings are
 accepted where they were never needed before.
+
+---
+
+## 23. CrossCode stalled on its loading bar: my `readdir` was not Node's (2026-10-04)
+
+The first CrossCode run on hardware (SM-S908U1, Android 16; the game and its Steam saves copied to the
+phone for it) froze at ~45 % of the game's own loading bar. What the device said:
+
+```
++29078ms loading https://appassets.androidplatform.net/game/assets/node-webkit.html
++29204ms JS ERROR shim: loaded for CrossCode
++29758ms ENGINE facts: game=CrossCode; webgl2=true; gl=none; canvas=1136x640; platform=Desktop
++30124ms JS ERROR window.onerror: ?:0 masked script error (injected script or worker)
+then: engine silent for 129145ms, last bridge call: -
+assets served=796 missed=0 inFlight=0 slowest=175ms
+```
+
+`missed=0 inFlight=0` is the part that clears the port: no asset was missing and none was hanging, and
+the page stopped *asking* after 796 of them. The loader had died on a JavaScript error, and the record
+only had "Script error." — no file, no line, no message.
+
+### 23.1 The instrument that named it
+
+A released APK is not debuggable, so `setWebContentsDebuggingEnabled` was off and there was nothing to
+attach to. The port now turns WebView inspection on when a global setting says so
+(`adb shell settings put global rfport_webview_debug 1`, read with `Settings.Global.getInt`, which
+needs no permission; the shell writes it). With that on:
+
+```sh
+adb forward tcp:9222 localabstract:webview_devtools_remote_$(adb shell pidof io.github.moronigranja.alabasterdawn)
+# then, over CDP: Runtime.enable + Page.reload, and read Runtime.exceptionThrown
+```
+
+The page's own debugger had the real error, which `window.onerror` had masked:
+
+```
+Uncaught Error: ENOENT: no such file or directory, open 'assets/extension/[object Object]'
+    at https://appassets.androidplatform.net/game/assets/node-webkit.html:191:21
+```
+
+### 23.2 The cause
+
+CrossCode's extension loader is `a.readdir(b, this.onDirRead.bind(this))`, and `onDirRead` treats each
+entry as a **filename string**: `h[0] != "."`, `h.indexOf(".json")`, `lstatSync(c + h)`,
+`existsSync(c + h + "/" + h + ".json")`. My shim's `readdir`/`readdirSync` returned **dirent objects**
+for every call, so `c + h` became `assets/extension/[object Object]`, `lstatSync` threw its own ENOENT
+inside a callback with no `try`, and the page's boot died there. `assets/extension/` ships four
+extension folders (`fish-gear`, `flying-hedgehag`, `scorpion-robo`, `snowman-tank`), so the loop always
+ran — an empty directory would have hidden it.
+
+Node's contract is not a superset: `readdir` yields **names**, and dirents only when `withFileTypes` is
+set. Both shims now implement exactly that (`readdirRaw(p, opts)`), and the `Alabaster Dawn` shim got the
+same fix although nothing there calls it: an in-memory `[]` in the browser prototype and an engine that
+never asks is exactly why this stayed hidden until CrossCode ran on a phone.
+
+### 23.3 Verified
+
+After the fix, on the same device: the game reaches its title screen (`v1.4.2-4`, "Press to start"), and
+the page's own state reads `running: true`, `platform: Desktop`, **`extensions: 4`** (the four bundled
+mods loaded), `fps: 60` — the extension step that killed the boot now completes. `assets` server side:
+no misses, none in flight.
+
+### 23.4 Two record bugs this found, both fixed
+
+* **`game unknown`** in the record while the game's own version was there: `GameFiles.readText` capped a
+  document at 64 KiB, and CrossCode's changelog is 78 KiB. The cap is 1 MiB now (Alabaster Dawn's is
+  750 B, which is why the smaller one was never a problem).
+* **A masked error read like a page bug with a missing message.** The shims now say when an error is
+  masked ("injected script or worker"), include the first stack frame when there is one, and report a
+  *subresource* that failed to load (an element error, which `window.onerror` never sees).

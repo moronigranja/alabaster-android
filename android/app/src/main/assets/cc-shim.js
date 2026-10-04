@@ -145,11 +145,19 @@
         };
     }
 
-    function readdirRaw(p) {
+    /* Node's contract, and it is not a harmless superset: `readdir` yields *names*, and dirents only
+     * when `withFileTypes` asks for them. Handing back objects to a caller that concatenates the entry
+     * onto a path gives `assets/extension/[object Object]`, and the loader dies on the ENOENT it then
+     * throws - which is exactly how CrossCode stalled on its loading bar (measured 2026-10-04, and the
+     * page's own debugger named it: node-webkit.html:191). */
+    function readdirRaw(p, opts) {
         var list = parseJson(call(function (b) { return b.fsReaddir(String(p)); }, null));
         if (!list) return null;
+        var dirents = !!(opts && typeof opts === "object" && opts.withFileTypes);
         var out = [];
-        for (var i = 0; i < list.length; i++) out.push(makeDirent(list[i].n, list[i].d));
+        for (var i = 0; i < list.length; i++) {
+            out.push(dirents ? makeDirent(list[i].n, list[i].d) : String(list[i].n));
+        }
         return out;
     }
 
@@ -193,15 +201,15 @@
             return st;
         },
         lstatSync: function (p) { return fs.statSync(p); },
-        readdirSync: function (p) {
-            var l = readdirRaw(p);
+        readdirSync: function (p, opts) {
+            var l = readdirRaw(p, opts);
             if (!l) throw enoent(p);
             return l;
         },
         readdir: function (p, opts, cb) {
-            if (typeof opts === "function") { cb = opts; }
+            if (typeof opts === "function") { cb = opts; opts = null; }
             if (typeof cb !== "function") return;
-            var l = readdirRaw(p);
+            var l = readdirRaw(p, opts);
             if (l) cb(null, l); else cb(enoent(p));
         },
         readFileSync: function (p) {
@@ -600,6 +608,7 @@
     }
 
     setInterval(function () {
+      try {
         if (facts.sent && facts.hadGl) return;
         var canvas = gameCanvas();
         var gl = null;
@@ -614,6 +623,7 @@
             facts.hadGl = true;
             sendFacts();
         }
+      } catch (e) { report("facts tick", e); }
     }, 500);
 
     /* ---- error surfacing -------------------------------------------------
@@ -621,7 +631,24 @@
      * through the bridge. */
     window.addEventListener("error", function (e) {
         try {
-            if (e && e.message) report("window.onerror", (e.filename || "?") + ":" + (e.lineno || 0) + " " + e.message);
+            /* A subresource that will not load fires on the element, not on window: without this a
+             * missing script or image is silent. */
+            var t = e && e.target;
+            if (t && t !== window && (t.src || t.href)) {
+                report("resource", (t.tagName || "?") + " " + (t.src || t.href) + " failed");
+                return;
+            }
+            if (!e || !e.message) return;
+            var where = (e.filename || "?") + ":" + (e.lineno || 0);
+            /* "Script error." with no error object is a masked error: it came from a script with no
+             * origin of its own (the injected shim) or from a worker, and the browser removes the
+             * details. Say so, so the record does not read like a page bug with a missing message. */
+            if (!e.error && e.message === "Script error.") {
+                report("window.onerror", where + " masked script error (injected script or worker)");
+                return;
+            }
+            var stack = e.error && e.error.stack ? " | " + String(e.error.stack).split("\n")[0] : "";
+            report("window.onerror", where + " " + e.message + stack);
         } catch (err) { /* ignore */ }
     }, true);
     window.addEventListener("unhandledrejection", function (e) {

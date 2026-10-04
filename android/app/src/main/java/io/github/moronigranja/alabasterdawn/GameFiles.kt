@@ -129,7 +129,9 @@ object GameFiles {
         treeUri: Uri,
         index: GameIndex,
         path: String,
-        maxBytes: Long = 64 * 1024,
+        /* A game's changelog is whole-document JSON: CrossCode's is 78 KiB (Alabaster Dawn's is 750 B),
+         * so a cap tuned to the smaller one silently loses the bigger game's version. */
+        maxBytes: Long = 1024 * 1024,
     ): String? {
         val entry = index.find(path) ?: return null
         if (entry.isDir || entry.size <= 0 || entry.size > maxBytes) return null
