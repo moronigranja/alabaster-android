@@ -17,7 +17,9 @@ package io.github.moronigranja.alabasterdawn
  * The name lives here and nowhere else.
  */
 object LogFile {
-    /** At the saves root, next to `pad-layout.json`; the engine ignores unknown root entries. */
+    /** At the saves root, next to `pad-layout.json`; the engine ignores unknown root entries. One
+     * name for the host, not one per game: the record is read back at launch, before the game (and so
+     * the profile) is known, and a single file is what lets a crash-carried record survive a switch. */
     const val FILE = "ada-diagnostics.log"
 
     /** Boolean, default true: whether the record is written to [FILE]. */

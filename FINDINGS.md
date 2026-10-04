@@ -1,5 +1,14 @@
 # Alabaster Dawn — controller/Android research notes
 
+> **CrossCode, 2026-10-04.** §13's plan is executed: the port is now a host for two games — a
+> `GameProfile` (detected from the picked folder) carries everything game-specific, and a second shim,
+> `android/app/src/main/assets/cc-shim.js`, is the §13 probe's device-backed form. Injected at document
+> start, it boots the unmodified Steam build (1.0.0, `v1.4.2-4`) to its title screen in headless
+> Chromium: `ig.platform == Desktop`, `ig.engineName == "Cubic Impact (0.5)"`, canvas `1136x640`, 0 page
+> exceptions, `EXTENSIONS: Array(0)` — `tools/game-harness.py` is the instrument, `docs/crosscode-title.png`
+> is that run. Device cost, audio and save round-trips are open (`TODO.md`). Nothing in Alabaster Dawn's
+> path changed: its shim is `ada-shim.js` and its behaviour is unchanged.
+
 > The in-container installer that grew out of §3.2-3.4 now lives in its own repo:
 > `~/repos/wine-chromium-gamepad` (README + docs/FINDINGS.md + docs/STATUS.md, host test 15/15).
 > This file stays the record of the desktop/container investigation itself.

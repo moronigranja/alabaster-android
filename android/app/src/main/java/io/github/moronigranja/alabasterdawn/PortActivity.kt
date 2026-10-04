@@ -58,6 +58,8 @@ class PortActivity : Activity() {
     private var gameTreeUri: Uri? = null
     private var savesTreeUri: Uri? = null
     private var index: GameIndex? = null
+    /** Which game the picked folder is, from its entry page; null before the tree is indexed. */
+    private var profile: GameProfile? = null
     /** The game's newest release, parsed from the changelog once the tree is indexed (see [GameVersion]). */
     private var gameReleaseVersion: String? = null
     private var fsBridge: FsBridge? = null
@@ -139,7 +141,6 @@ class PortActivity : Activity() {
             "${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT}, ${Build.SUPPORTED_ABIS.firstOrNull()})")
         gameTreeUri = validateGrant(prefs.getString(KEY_GAME, null), wantWrite = false)
         savesTreeUri = validateGrant(prefs.getString(KEY_SAVES, null), wantWrite = true)
-        shimSource = readAsset(SHIM_ASSET)
         hideWithExternalInput = prefs.getBoolean(KEY_HIDE_EXTERNAL_INPUT, true)
         viewAlign = ViewAlign.fromWire(prefs.getString(KEY_VIEW_ALIGN, null))
         statsEnabled = prefs.getBoolean(KEY_STATS, false)
@@ -248,7 +249,8 @@ class PortActivity : Activity() {
         startButton.isEnabled = gameTreeUri != null
         if (status.length() == 0) {
             status.text = when {
-                gameTreeUri == null -> "Pick the folder that contains the game's terra/ directory."
+                gameTreeUri == null ->
+                    "Pick the game's install folder — the one holding Alabaster Dawn's terra/ or CrossCode's assets/."
                 savesTreeUri == null ->
                     "No saves folder: saves will be kept inside the app and cannot be copied out."
                 else -> "Ready: ${GameFiles.displayNameOf(gameTreeUri)} + ${GameFiles.displayNameOf(savesTreeUri)}"
@@ -354,22 +356,35 @@ class PortActivity : Activity() {
                 diag.line("indexing failed: $e")
                 null
             }
-            val release = built?.let {
-                GameFiles.readText(contentResolver, tree, it, CHANGELOG_PATH)
-                    ?.let(GameVersion::fromChangelog)
+            val release = built?.let { raw ->
+                val p = GameProfile.detect(raw)
+                p?.versionPath?.let {
+                    GameFiles.readText(contentResolver, tree, raw, it)?.let(GameVersion::fromChangelog)
+                }
             }
+            val detected = built?.let(GameProfile::detect)
             runOnUiThread {
                 if (built == null) {
                     status.text = "Could not read that folder."
                     startButton.isEnabled = true
                     return@runOnUiThread
                 }
-                index = built
+                if (detected == null) {
+                    status.text = "That folder is not a game this port runs. " +
+                        GameProfile.entries.joinToString(" or ") { it.setupHint }
+                    startButton.isEnabled = true
+                    diag.line("picked folder is neither game (no entry page found)")
+                    return@runOnUiThread
+                }
+                val bound = built.bind(detected.pageRoot)
+                profile = detected
+                index = bound
                 gameReleaseVersion = release
-                diag.line("indexed ${built.size} entries in ${System.currentTimeMillis() - started}ms")
+                diag.line("indexed ${bound.size} entries in ${System.currentTimeMillis() - started}ms " +
+                    "(${detected.displayName})")
                 padLayoutStore = PadLayoutStore(prefs, saveStore!!)
-                fsBridge = FsBridge(contentResolver, tree, built, saveStore!!)
-                status.text = "Loaded ${built.size} files."
+                fsBridge = FsBridge(contentResolver, tree, bound, saveStore!!)
+                status.text = "Loaded ${bound.size} files."
                 launchWebView()
             }
         }, "ada-index").start()
@@ -392,11 +407,15 @@ class PortActivity : Activity() {
      * Drops the game's stored Resolution option — the one value a phone user can set that leaves the
      * game too slow to reach its own Options menu. The engine keeps its device-local options as one
      * JSON object in `localStorage` and reads it at boot, so the reset is a URL parameter the shim
-     * acts on before the engine boots ([RESET_VIDEO_PARAM]); with a page to reload it happens now,
-     * and from the pre-game screen it is armed for the next start instead. The one-shot is cleared
-     * as the URL is built, so a kill in between cannot leave it half-applied.
+     * acts on before the engine boots (the profile's `resetVideoParam`); with a page to reload it
+     * happens now, and from the pre-game screen it is armed for the next start instead. The one-shot
+     * is cleared as the URL is built, so a kill in between cannot leave it half-applied.
+     *
+     * Only a game whose profile carries a reset parameter has the control at all (the side menu and
+     * diagnostics hide it for the others).
      */
     private fun resetVideoOptions() {
+        if (profile?.resetVideoParam == null) return
         closeMenu()
         val view = webView
         if (view == null) {
@@ -411,20 +430,25 @@ class PortActivity : Activity() {
     }
 
     /** The game's URL, carrying the one-shot video reset to the shim when one was armed. */
-    private fun gameUrl(resetVideo: Boolean): String =
-        if (resetVideo) "$INDEX_URL?$RESET_VIDEO_PARAM=1" else INDEX_URL
+    private fun gameUrl(resetVideo: Boolean): String {
+        val p = profile ?: return ""
+        val param = p.resetVideoParam
+        return if (resetVideo && param != null) "${p.entryUrl}?$param=1" else p.entryUrl
+    }
 
     private fun launchWebView() {
         val built = index ?: return
         val bridge = fsBridge ?: return
+        val selected = profile ?: return
+        shimSource = readAsset(selected.shimAsset)
         val injectShim = !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
         diag.line("webView ${webViewPackage()} document-start scripts=" + !injectShim +
             " ua=${webSettingsUserAgent()}")
         if (injectShim) {
-            diag.line("document-start scripts unsupported; the shim is injected via terra/index.html")
+            diag.line("document-start scripts unsupported; the shim is injected via " + selected.indexHtml)
         }
         val handler = GameAssetHandler(
-            contentResolver, gameTreeUri!!, built, assets, injectShim, diag
+            contentResolver, gameTreeUri!!, built, selected, assets, injectShim, diag
         )
         assetHandler = handler
         val loader = WebViewAssetLoader.Builder()
@@ -450,7 +474,7 @@ class PortActivity : Activity() {
         view.isFocusableInTouchMode = true
         val telemetry = Telemetry(this)
         view.addJavascriptInterface(
-            AdaBridge(
+            PortBridge(
                 bridge,
                 viewAlign = { viewAlign },
                 statsEnabled = { statsEnabled },
@@ -458,16 +482,16 @@ class PortActivity : Activity() {
                 telemetry = telemetry,
                 diag = diag,
                 onQuit = { runOnUiThread { exitGame() } },
-            ).also { ada ->
+            ).also { port ->
                 /* The page's shader self-test finishes asynchronously; show the record again once it
                  * carries the verdicts (FINDINGS §22.11). */
-                ada.onShaderSelfTestDone = { runOnUiThread { if (!isFinishing) showDiagnostics() } }
+                port.onShaderSelfTestDone = { runOnUiThread { if (!isFinishing) showDiagnostics() } }
             },
             BRIDGE_NAME
         )
         if (!injectShim) {
             try {
-                WebViewCompat.addDocumentStartJavaScript(view, shimSource, setOf(ORIGIN))
+                WebViewCompat.addDocumentStartJavaScript(view, shimSource, setOf(GameProfile.ORIGIN))
             } catch (e: Exception) {
                 Log.e(TAG, "document-start injection failed", e)
             }
@@ -504,7 +528,7 @@ class PortActivity : Activity() {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
             )
         )
-        val menu = SideMenuView(this).apply {
+        val menu = SideMenuView(this, viewAlignSupported = selected.viewAlign).apply {
             setHideWithExternalInput(this@PortActivity.hideWithExternalInput)
             setStatsEnabled(statsEnabled)
             setLimitFps(limitFps)
@@ -565,11 +589,11 @@ class PortActivity : Activity() {
         setContentView(frame)
         view.requestFocus()
         setStatus("Loading the game…")
-        diag.line("loading $INDEX_URL")
+        diag.line("loading ${selected.entryUrl}")
         webViewStartedAt = monotonicMs()
         watchdog.removeCallbacksAndMessages(null)
         watchdog.postDelayed(watchdogTick, WATCHDOG_TICK_MS)
-        val resetVideo = prefs.getBoolean(KEY_RESET_VIDEO, false)
+        val resetVideo = selected.resetVideoParam != null && prefs.getBoolean(KEY_RESET_VIDEO, false)
         if (resetVideo) prefs.edit().putBoolean(KEY_RESET_VIDEO, false).apply()
         view.loadUrl(gameUrl(resetVideo))
     }
@@ -633,6 +657,7 @@ class PortActivity : Activity() {
             { resetVideoOptions() },
             { runShaderSelfTest() },
             { openDriverSettings() },
+            shaderTools = profile?.rewrites == true,
         ).apply {
             setOnDismissListener {
                 /* The dialog held window focus, which blurred the page; hand it back like closeMenu. */
@@ -785,7 +810,10 @@ class PortActivity : Activity() {
                 Intent.createChooser(
                     Intent(Intent.ACTION_SEND).apply {
                         type = "text/plain"
-                        putExtra(Intent.EXTRA_SUBJECT, "Alabaster Dawn Android port diagnostics")
+                        putExtra(
+                            Intent.EXTRA_SUBJECT,
+                            (profile?.displayName ?: "Radical Fish") + " Android port diagnostics"
+                        )
                         putExtra(Intent.EXTRA_TEXT, text)
                     },
                     "Share diagnostics"
@@ -836,7 +864,8 @@ class PortActivity : Activity() {
     private fun openMenu() {
         val menu = menuView ?: return
         menu.setStatus(padView?.externalInputInUse == true, savesStatusLine())
-        menu.setVersion("port ${appVersion()}")
+        /* The game's name matters in a report from a host that runs two of them. */
+        menu.setVersion("port ${appVersion()} · " + (profile?.displayName ?: "no game"))
         menu.setLastEngineReport(lastEngineReport)
         menu.open()
     }
@@ -1137,7 +1166,7 @@ class PortActivity : Activity() {
     }
 
     companion object {
-        private const val TAG = "AdaPort"
+        private const val TAG = "RfPort"
         private const val PREF = "ada"
         private const val KEY_GAME = "game_tree_uri"
         private const val KEY_SAVES = "saves_tree_uri"
@@ -1153,9 +1182,6 @@ class PortActivity : Activity() {
          * from the side menu's Reset resolution row, or from the pre-game screen where there is no
          * page to reload yet, and cleared as the URL that carries it to the shim is built. */
         private const val KEY_RESET_VIDEO = "reset_video"
-        /* The query parameter the injected shim watches for (ada-shim.js, `resetStoredResolution`),
-         * so the two sides cannot drift. */
-        private const val RESET_VIDEO_PARAM = "adaResetVideo"
         /* Whether the shim draws its frame-rate/resolution/battery/thermal readout. */
         private const val KEY_STATS = "stats_overlay"
         /* Whether the shim caps the page's frame rate, for battery, and at what (see [FpsLimit]). */
@@ -1163,11 +1189,7 @@ class PortActivity : Activity() {
         private const val KEY_FPS_LIMIT = "fps_limit"
         private const val REQ_GAME = 101
         private const val REQ_SAVES = 102
-        private const val BRIDGE_NAME = "AdaBridge"
-        private const val SHIM_ASSET = "ada-shim.js"
-        private const val CHANGELOG_PATH = "terra/data/database/changelog.json"
-        private const val ORIGIN = "https://appassets.androidplatform.net"
-        private const val INDEX_URL = "$ORIGIN/game/terra/index.html"
+        private const val BRIDGE_NAME = "PortBridge"
 
         /* Diagnostics: how long the page's frame clock may go quiet before it is reported, how often
          * that is repeated, how long an asset read may be unfinished first, and the poll interval. */

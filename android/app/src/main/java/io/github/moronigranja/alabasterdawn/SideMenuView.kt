@@ -37,7 +37,7 @@ import android.widget.TextView
  * `blur` (see PortActivity.setPageFocus), so the descendants are made unfocusable and the WebView
  * keeps focus while the panel is open — including the slider, which is dragged, not focused.
  */
-class SideMenuView(context: Context) : FrameLayout(context) {
+class SideMenuView(context: Context, private val viewAlignSupported: Boolean = true) : FrameLayout(context) {
 
     /** A tap on the overlay switch (never fired by [setHideWithExternalInput]). */
     var onHideWithExternalInput: ((Boolean) -> Unit)? = null
@@ -241,17 +241,21 @@ class SideMenuView(context: Context) : FrameLayout(context) {
             logToggle.isChecked = !logToggle.isChecked
         }
 
-        /* not a row: a section header keeps its small dim style */
-        panel.addView(TextView(context).apply {
-            text = "Game position"
-            textSize = 14f
-            setTextColor(COLOR_DIM)
-            setPadding(0, dp(16), 0, 0)
-        })
+        /* The picture position is the port moving the engine's canvas, which only the `terra` engine's
+         * mouse mapping was measured against; a game whose profile does not carry it gets no section. */
+        if (viewAlignSupported) {
+            /* not a row: a section header keeps its small dim style */
+            panel.addView(TextView(context).apply {
+                text = "Game position"
+                textSize = 14f
+                setTextColor(COLOR_DIM)
+                setPadding(0, dp(16), 0, 0)
+            })
 
-        addRadio(panel, ViewAlign.TOP, "Top", R.drawable.ic_menu_align_top, last = false)
-        addRadio(panel, ViewAlign.CENTER, "Center", R.drawable.ic_menu_align_center, last = false)
-        addRadio(panel, ViewAlign.BOTTOM, "Bottom", R.drawable.ic_menu_align_bottom, last = true)
+            addRadio(panel, ViewAlign.TOP, "Top", R.drawable.ic_menu_align_top, last = false)
+            addRadio(panel, ViewAlign.CENTER, "Center", R.drawable.ic_menu_align_center, last = false)
+            addRadio(panel, ViewAlign.BOTTOM, "Bottom", R.drawable.ic_menu_align_bottom, last = true)
+        }
 
         /* Pushes the status lines and Exit to the bottom of the panel. */
         panel.addView(View(context), LinearLayout.LayoutParams(0, 0, 1f))

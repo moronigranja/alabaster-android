@@ -71,7 +71,7 @@ class Telemetry(private val context: Context) {
     }
 
     companion object {
-        private const val TAG = "AdaPort"
+        private const val TAG = "RfPort"
         private const val SAMPLE_MS = 5_000L
         private const val EMPTY = "{\"level\":null,\"temp\":null,\"thermal\":null}"
     }

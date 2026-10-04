@@ -7,7 +7,7 @@ package io.github.moronigranja.alabasterdawn
  *
  * Two kinds of line end up here. The app's own boot milestones (`indexed 2652 files in 8103ms`,
  * grant accepted, WebView facts) come from [line]; the engine's own reports come from the shim
- * through `AdaBridge.reportDiag` and land in [event]. A line that repeats immediately — which is
+ * through `PortBridge.reportDiag` and land in [event]. A line that repeats immediately — which is
  * what a failure the engine throws once per frame looks like — is collapsed to `(xN)` in place, so
  * the ring keeps the context around a fault instead of only its last few seconds. Nothing here
  * throws, nothing here blocks, and the buffer is bounded, so it is safe to log from the asset
@@ -31,7 +31,7 @@ class Diag(
     private var lastMessage: String? = null
     private var lastRepeats: Int = 0
 
-    /* The engine polls getGamepadJson() exactly once per frame (see ada-shim.js), which makes it the
+    /* The engine polls getGamepadJson() exactly once per frame (see the profile's shim), which makes it the
      * port's frame clock: if it goes quiet, the page's JS thread is blocked or dead, not merely
      * waiting for a resource. */
     @Volatile

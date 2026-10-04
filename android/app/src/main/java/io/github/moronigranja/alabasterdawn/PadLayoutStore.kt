@@ -37,6 +37,6 @@ class PadLayoutStore(private val prefs: SharedPreferences, private val saves: Sa
 
     companion object {
         const val PREF_KEY = "pad_layout_json"
-        private const val TAG = "AdaPort"
+        private const val TAG = "RfPort"
     }
 }

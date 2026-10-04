@@ -28,3 +28,27 @@ Ultra) and the Mali array lift (§22). **v0.7.0** carried the shader/GPU pass (G
 *link* probe instead of the reported count, the dither served on the render grid), the Reset-resolution
 button, the 30 fps switch, the exit that keeps the task in recents and the shader-error record
 (README "What works today", §16-§21).
+
+## CrossCode (0.8.0, new)
+
+The host now runs CrossCode as well: `GameProfile` selects it from the picked folder, and
+`cc-shim.js` boots the game to its title screen (`ig.platform == Desktop`, Cubic Impact 0.5, 0 page
+errors — harness-verified 2026-10-04 with `tools/game-harness.py`, screenshot in
+`docs/crosscode-title.png`). What a phone adds is **not measured**:
+
+* **GPU cost at 1136×640.** Headless SwiftShader drew the title screen fine, which is encouraging but
+  is not a measurement; §9.5 is the recipe.
+* **Audio.** The engine's `AudioContext` starts suspended under automation; the app sets
+  `mediaPlaybackRequiresUserGesture=false` and resumes on tap, but no CrossCode sound has been heard.
+* **Fullscreen and scale.** The engine's own scale/fullscreen option vs the port's immersive mode, and
+  how the 1136×640 canvas sits on a 20:9 phone. The picture-position control is off for this profile
+  (it was measured against the `terra` engine's mouse mapping).
+* **Pad mapping** in-game.
+* **Saves.** The engine's own save path list is built from `nw.gui.App.dataPath` (the port makes it
+  `/saves`), so save files should land in the picked folder and travel with it. Untested: a save made
+  on the phone, copied to a desktop install, and back.
+
+Decided against for now: a shared shim core (`ada-shim.js` and `cc-shim.js` duplicate the
+gamepad/frame-rate/stats/error plumbing; the two engines need opposite platform answers and are the
+only two Radical Fish NW.js games — extract a core only if a third appears), and CrossCode extensions
+(`assets/extension`; the loader runs and reports an empty list).

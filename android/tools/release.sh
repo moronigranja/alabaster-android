@@ -8,7 +8,7 @@
 # app-release-unsigned.apk.
 #
 # The SHIPPED artifact is named after the product and the version
-# (`AlabasterDawn-Android-<versionName>.apk`) so a downloaded file says what it is; AGP no
+# (`RadicalFishPort-Android-<versionName>.apk`) so a downloaded file says what it is; AGP no
 # longer exposes the output file name, so the rename happens here, at the shipping step, and
 # the digest/signature checks run on the shipped copy.
 #
@@ -46,7 +46,7 @@ fi
 
 VERSION=$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts | head -1)
 APK=app/build/outputs/apk/release/app-release.apk
-SHIP=build/release/AlabasterDawn-Android-$VERSION.apk
+SHIP=build/release/RadicalFishPort-Android-$VERSION.apk
 
 ./gradlew :app:assembleRelease
 [ -f "$APK" ] || { echo "no APK at $APK" >&2; exit 1; }
@@ -79,6 +79,6 @@ if [ "$UPLOAD" -eq 1 ]; then
   DRAFT_ARGS=()
   [ "$PUBLISH" -eq 1 ] || DRAFT_ARGS=(--draft)
   gh release create "v$VERSION" "$SHIP" "${NOTES_ARGS[@]}" "${DRAFT_ARGS[@]}" \
-     --title "Alabaster Dawn Android port v$VERSION"
+     --title "RadicalFish Port v$VERSION"
   echo "Release v$VERSION $([ "$PUBLISH" -eq 1 ] && echo published || echo drafted)."
 fi

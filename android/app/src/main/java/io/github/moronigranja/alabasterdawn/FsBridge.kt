@@ -236,7 +236,7 @@ class SafStore(private val resolver: ContentResolver, val treeUri: Uri) : SaveSt
     }
 
     companion object {
-        private const val TAG = "AdaPort"
+        private const val TAG = "RfPort"
 
         /** Deliberate: `MimeTypeMap.getExtensionFromMimeType` returns null for it, so providers keep
          *  the game's own `....save` name instead of appending an extension. */
@@ -294,7 +294,7 @@ class FileStore(private val base: File) : SaveStore {
         f.writeText(data, Charsets.UTF_8)
         true
     } catch (e: Exception) {
-        Log.e("AdaPort", "write $rel failed", e)
+        Log.e("RfPort", "write $rel failed", e)
         false
     }
 
@@ -427,7 +427,7 @@ class FsBridge(
     val storeLabel: String? get() = store.label
 
     companion object {
-        private const val TAG = "AdaPort"
+        private const val TAG = "RfPort"
         const val SAVES_ROOT = "/saves"
 
         /** Whether [path] addresses the picked saves tree rather than the read-only game tree. */

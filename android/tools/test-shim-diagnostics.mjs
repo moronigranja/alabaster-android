@@ -142,7 +142,7 @@ function bootShim({ stallMs = 30, reportEveryMs = 1000, pollMs = 5, canvas = nul
    * serves whatever a case is given here, so both a refusing and an accepting verdict are exercised. */
   const bodies = Object.assign({}, variants);
   define("fetch", (url) => Promise.resolve({ text: () => Promise.resolve(bodies[url] ?? "") }));
-  window.AdaBridge = {
+  window.PortBridge = {
     reportDiag: (kind, payload) => reports.push({ kind, payload }),
     reportJsError: (message) => errors.push(message),
     setVertexUniformVectors: (vectors) => vertexUniforms.push(vectors),

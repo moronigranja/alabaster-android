@@ -16,30 +16,38 @@ class GameEntry(val docId: String, val size: Long, val isDir: Boolean)
  * both the asset handler (URLs under `/game/`) and the fs bridge (paths relative to the page root)
  * need. Built once per launch by [GameFiles.indexTree]; never mutated afterwards, so the
  * background [GameAssetHandler] threads can read it without locking.
+ *
+ * [pageRoot] is the selected [GameProfile]'s page root: the game-space prefix a page-relative path
+ * resolves under. The tree is indexed before the game is known (its entry page is what says which
+ * game it is), so the raw index carries `""` and [bind] returns the index the host uses.
  */
-class GameIndex(private val entries: Map<String, GameEntry>) {
+class GameIndex(private val entries: Map<String, GameEntry>, val pageRoot: String) {
 
     val size: Int get() = entries.size
+
+    /** The same tree under a profile's page root. Called once, with the detected profile. */
+    fun bind(pageRoot: String): GameIndex = GameIndex(entries, pageRoot)
 
     fun find(path: String): GameEntry? = entries[path]
 
     /**
-     * Game-space fs paths are page-relative: the bundle's ENGINE_CONF roots are empty strings, so a
-     * sound resource asks for `media/audio/sfx/x.ogg` while the picked root holds exactly that file
-     * under `terra/`. Try both spellings; the index is a map lookup, so the extra probe is free.
+     * Game-space fs paths are page-relative: the engines' own roots are empty strings, so a resource
+     * asks for `data/...` (or a sound for `media/audio/sfx/x.ogg`) while the picked root holds it
+     * under [pageRoot]. Try both spellings; the index is a map lookup, so the extra probe is free.
      */
     fun findGamePath(path: String): GameEntry? {
         val p = path.trimStart('/')
         entries[p]?.let { return it }
-        return entries["terra/$p"]
+        return entries["$pageRoot/$p"]
     }
 
     /** Relative index key of the directory [path] names, or null when it is not a directory. */
     fun findGameDir(path: String): String? {
-        val p = path.trimStart('/')
-        if (p.isEmpty() || p == "terra") return "terra"
+        /* The engines build directory paths with a trailing separator (`assets/extension/`). */
+        val p = path.trim('/')
+        if (p.isEmpty() || p == pageRoot) return pageRoot
         if (entries[p]?.isDir == true) return p
-        if (entries["terra/$p"]?.isDir == true) return "terra/$p"
+        if (entries["$pageRoot/$p"]?.isDir == true) return "$pageRoot/$p"
         return null
     }
 
@@ -62,7 +70,7 @@ class GameIndex(private val entries: Map<String, GameEntry>) {
 
 object GameFiles {
 
-    const val TAG = "AdaPort"
+    const val TAG = "RfPort"
 
     private val PROJECTION = arrayOf(
         Document.COLUMN_DOCUMENT_ID,
@@ -107,7 +115,8 @@ object GameFiles {
             }
         }
         Log.i(TAG, "indexed ${entries.size - files} directories / $files files")
-        return GameIndex(entries)
+        /* Unbound: the caller detects the game from the entry page, then [GameIndex.bind]s it. */
+        return GameIndex(entries, "")
     }
 
     /**
@@ -135,7 +144,7 @@ object GameFiles {
 
     /**
      * Last path segment of a picked tree URI's document id, for the pre-game screen. The document id
-     * of a tree URI looks like `primary:Download/AlabasterDawn`.
+     * of a tree URI looks like `primary:Download/GameFolder`.
      */
     fun displayNameOf(treeUri: Uri?): String? {
         if (treeUri == null) return null

@@ -37,6 +37,17 @@ class GameVersionTest {
     }
 
     @Test
+    fun `CrossCode's changelog array is read too`() {
+        /* Its own document names the array `changelog` (measured on the 1.0.0 Steam build). */
+        assertEquals(
+            "1.4.2",
+            GameVersion.fromChangelog(
+                """{"changelog":[{"name":"3rd Anniversary Gift","version":"1.4.2"},{"version":"1.4.1"}]}"""
+            )
+        )
+    }
+
+    @Test
     fun `a changelog with nothing to read is null`() {
         assertNull(GameVersion.fromChangelog("""{"entries":[]}"""))
         assertNull(GameVersion.fromChangelog("{}"))

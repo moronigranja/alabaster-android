@@ -6,19 +6,26 @@ import org.json.JSONObject
  * Which build of the *game* the user's own files are, for the diagnostics record. An Early Access
  * title ships often, and a moved asset or a changed bundle is indistinguishable from a port bug
  * without it. Two sources, both the game's own: the changelog document (available as soon as the
- * tree is indexed) and the version the engine inlined into `bundle.js` - the numbers the game itself
- * compares against the changelog ("Version collision!") and the only source that carries the hotfix.
- * Pure string parsing; nothing is read here.
+ * tree is indexed) and, for the `terra` engine, the version inlined into `bundle.js` - the numbers the
+ * game itself compares against the changelog ("Version collision!") and the only source that carries
+ * the hotfix. Pure string parsing; nothing is read here.
+ *
+ * Both games ship a changelog whose newest release is first, under a different array name (Alabaster
+ * Dawn's `entries`, CrossCode's `changelog`), and [fromChangelog] reads either.
  */
 object GameVersion {
 
-    /** `entries[0].version` of the changelog document - the newest release - or null. */
+    /** The newest release's `version` in the changelog document, or null. */
     fun fromChangelog(json: String?): String? {
         if (json == null) return null
         return try {
-            JSONObject(json)
-                .getJSONArray("entries").getJSONObject(0).getString("version")
-                .takeIf { it.isNotBlank() }
+            val root = JSONObject(json)
+            val releases = when {
+                root.has("entries") -> root.getJSONArray("entries")
+                root.has("changelog") -> root.getJSONArray("changelog")
+                else -> return null
+            }
+            releases.getJSONObject(0).getString("version").takeIf { it.isNotBlank() }
         } catch (e: Exception) {
             null
         }

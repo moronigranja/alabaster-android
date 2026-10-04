@@ -5,7 +5,7 @@
  * It is the ported, device-backed version of tools/ada-browser-shim.js, which
  * was proven to boot the unmodified bundle to its title screen in a plain
  * browser. The in-memory fs of that prototype is replaced by synchronous calls
- * into the app's @JavascriptInterface bridge (window.AdaBridge), which serves
+ * into the app's @JavascriptInterface bridge (window.PortBridge), which serves
  * the user's picked game tree (read-only) and saves tree (read-write).
  *
  * Why each piece is needed (measured against this bundle, see FINDINGS.md 4.3):
@@ -31,12 +31,12 @@
 (function () {
     "use strict";
 
-    var HAS_BRIDGE = typeof window.AdaBridge == "object" && window.AdaBridge !== null;
+    var HAS_BRIDGE = typeof window.PortBridge == "object" && window.PortBridge !== null;
 
     function report(what, err) {
         try {
             if (HAS_BRIDGE) {
-                window.AdaBridge.reportJsError(what + ": " + (err && err.message ? err.message : String(err)));
+                window.PortBridge.reportJsError(what + ": " + (err && err.message ? err.message : String(err)));
             }
         } catch (e) { /* nothing left to do */ }
     }
@@ -46,10 +46,10 @@
     function call(fn, fallback) {
         if (!HAS_BRIDGE) return fallback;
         try {
-            var v = fn(window.AdaBridge);
+            var v = fn(window.PortBridge);
             return v === undefined ? fallback : v;
         } catch (e) {
-            report("AdaBridge call", e);
+            report("PortBridge call", e);
             return fallback;
         }
     }
@@ -476,7 +476,7 @@
                     try { return JSON.stringify(a); } catch (e) { return String(a); }
                 }).join(" ").split("\n")[0];
                 if (HAS_BRIDGE) {
-                    window.AdaBridge.reportDiag("console." + level, text.slice(0, 300));
+                    window.PortBridge.reportDiag("console." + level, text.slice(0, 300));
                 }
             } catch (e) { /* the console must never break */ }
         }
@@ -1139,7 +1139,7 @@
 
     function reportDiag(kind, text) {
         try {
-            if (HAS_BRIDGE) window.AdaBridge.reportDiag(kind, text);
+            if (HAS_BRIDGE) window.PortBridge.reportDiag(kind, text);
         } catch (e) { /* nothing left to do */ }
     }
 
@@ -1288,7 +1288,7 @@
 
     /* ---- error surfacing -------------------------------------------------
      * A device-only failure is otherwise a black screen: forward everything to
-     * logcat (tag AdaPort) through the bridge. */
+     * logcat (tag RfPort) through the bridge. */
     window.addEventListener("error", function (e) {
         try {
             if (e && e.message) {
@@ -1350,5 +1350,5 @@
         }
     })();
 
-    report("shim", "loaded" + (HAS_BRIDGE ? "" : " (no AdaBridge!)"));
+    report("shim", "loaded" + (HAS_BRIDGE ? "" : " (no PortBridge!)"));
 })();

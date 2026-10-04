@@ -4,6 +4,7 @@ import android.app.Dialog
 import android.content.Context
 import android.graphics.Typeface
 import android.util.TypedValue
+import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
@@ -41,6 +42,12 @@ class DiagnosticsDialog(
     private val onShaderSelfTest: () -> Unit,
     /** Called on "OpenGL driver": the owner opens whatever screen sets it (ANGLE Preferences). */
     private val onDriverSettings: () -> Unit,
+    /**
+     * Whether this game has the port's shader machinery at all. False for an engine without the GLSL
+     * the tools exist for (CrossCode), where the Reset-resolution row, the spelling test and the Mali
+     * hint would all be about files the game does not have.
+     */
+    private val shaderTools: Boolean,
 ) : Dialog(context) {
 
     private val status = TextView(context)
@@ -83,18 +90,20 @@ class DiagnosticsDialog(
         }
         root.addView(status)
 
-        root.addView(
-            TextView(context).apply {
-                /* The one instruction that has fixed a Mali phone so far, and the one thing an app
-                 * cannot do for itself: the driver choice is a privileged `Settings.Global` entry. */
-                text = "Does the game stop on its loading bar? On a Mali device that is the OpenGL " +
-                    "driver: open \"OpenGL driver\" below and set this app to ANGLE. If it starts, " +
-                    "the panel's spelling test says which shaders still disagree."
-                textSize = 12f
-                setTextColor(COLOR_DIM)
-                setPadding(0, dp(8), 0, 0)
-            }
-        )
+        if (shaderTools) {
+            root.addView(
+                TextView(context).apply {
+                    /* The one instruction that has fixed a Mali phone so far, and the one thing an app
+                     * cannot do for itself: the driver choice is a privileged `Settings.Global` entry. */
+                    text = "Does the game stop on its loading bar? On a Mali device that is the OpenGL " +
+                        "driver: open \"OpenGL driver\" below and set this app to ANGLE. If it starts, " +
+                        "the panel's spelling test says which shaders still disagree."
+                    textSize = 12f
+                    setTextColor(COLOR_DIM)
+                    setPadding(0, dp(8), 0, 0)
+                }
+            )
+        }
 
         root.addView(
             LinearLayout(context).apply {
@@ -103,13 +112,15 @@ class DiagnosticsDialog(
                     this.text = "Share"
                     setOnClickListener { status.text = onShare() }
                 })
-                addView(Button(context).apply {
-                    this.text = "Reset resolution"
-                    setOnClickListener {
-                        onResetResolution()
-                        dismiss()
-                    }
-                })
+                if (shaderTools) {
+                    addView(Button(context).apply {
+                        this.text = "Reset resolution"
+                        setOnClickListener {
+                            onResetResolution()
+                            dismiss()
+                        }
+                    })
+                }
                 addView(Button(context).apply {
                     this.text = "Close"
                     setOnClickListener { dismiss() }
@@ -126,7 +137,7 @@ class DiagnosticsDialog(
                         onShaderSelfTest()
                         dismiss()
                     }
-                })
+                }.also { it.visibility = if (shaderTools) View.VISIBLE else View.GONE })
                 addView(Button(context).apply {
                     this.text = "OpenGL driver"
                     setOnClickListener { onDriverSettings() }

@@ -4,12 +4,12 @@ import android.util.Log
 import android.webkit.JavascriptInterface
 
 /**
- * The `window.AdaBridge` object the injected shim talks to.
+ * The `window.PortBridge` object the injected shim talks to.
  *
  * Every method here is synchronous on purpose: the shim mirrors Node's synchronous fs, so the app
  * must answer inline. Nothing throws across the boundary - failures come back as `false` / `null`.
  */
-class AdaBridge(
+class PortBridge(
     private val fs: FsBridge,
     /** Read once per engine frame by the shim, which polls like it polls `getGamepadJson`. */
     private val viewAlign: () -> ViewAlign,
@@ -212,6 +212,6 @@ class AdaBridge(
     }
 
     companion object {
-        private const val TAG = "AdaPort"
+        private const val TAG = "RfPort"
     }
 }

@@ -23,6 +23,8 @@ class GameAssetHandler(
     private val resolver: ContentResolver,
     private val treeUri: Uri,
     private val index: GameIndex,
+    /** Which game this tree is: its page root, shim and whether the engine rewrites apply. */
+    private val profile: GameProfile,
     private val assets: AssetManager,
     /** Fallback mode: pull the shim in with a script tag, for WebViews without document-start scripts. */
     private val injectShim: Boolean,
@@ -72,14 +74,10 @@ class GameAssetHandler(
     }
 
     private fun serve(rel: String): WebResourceResponse {
-        if (rel == SHIM_PATH) {
+        if (rel == profile.shimPath) {
             if (!injectShim) return miss(rel)
-            val shim = try {
-                assets.open(SHIM_ASSET).use { it.readBytes() }
-            } catch (e: Exception) {
-                Log.e(TAG, "cannot read $SHIM_ASSET", e)
-                return miss(rel)
-            }
+            val shim = readShim()
+            if (shim == null) return miss(rel)
             return ok("application/javascript", "utf-8", shim)
         }
 
@@ -87,12 +85,13 @@ class GameAssetHandler(
          * could serve, built from the game's own bytes on this device and served to the page, which
          * compiles each one on the WebView's own context and reports what this device's front end
          * takes. A reserved path — no game file lives at `ada-variants` — and deliberately not cached:
-         * the page asks once, when the panel's button is tapped. */
-        if (rel == ShaderVariants.INDEX) {
+         * the page asks once, when the panel's button is tapped. Only a game with the shader machinery
+         * has these files at all. */
+        if (profile.rewrites && rel == ShaderVariants.INDEX) {
             val names = ShaderVariants.names().joinToString("\n", postfix = "\n")
             return ok("text/plain", "utf-8", names.toByteArray(Charsets.UTF_8))
         }
-        if (rel.startsWith("${ShaderVariants.INDEX}/")) {
+        if (profile.rewrites && rel.startsWith("${ShaderVariants.INDEX}/")) {
             val name = rel.removePrefix("${ShaderVariants.INDEX}/")
             val text = ShaderVariants.text(name, ::gameShader)
             if (text == null) {
@@ -110,48 +109,63 @@ class GameAssetHandler(
         if (entry.isDir) return miss(rel)
         /* A rewritten asset served before: the bytes are the same for the process lifetime, so this
          * skips both the 12.7 MB read and the rewrite. ok() builds a fresh stream per call. */
-        rewrite.get(rel)?.let { cached ->
-            val mime = mimeOf(rel)
-            return ok(mime, encodingOf(mime), cached)
+        if (profile.rewrites) {
+            rewrite.get(rel)?.let { cached ->
+                val mime = mimeOf(rel)
+                return ok(mime, encodingOf(mime), cached)
+            }
         }
 
         var body = read(entry) ?: return miss(rel)
-        /* `bundle.js` carries the engine's own `TEX_SLOT_COUNT`, and the preload scanner asks for it
-         * before a document-start script's bridge call can land (measured on the Fold 7). Hold that one
-         * request briefly so the decision is taken with the page's link outcome in hand; a page that
-         * never answers times out into the count-based plan, unchanged. */
-        if (rel == BUNDLE_JS) {
-            ShaderSlots.awaitReport(WAIT_FOR_REPORT_MS)
-            ShaderSlots.lock()
-        }
-        /* Whether this file is lifted into the array spelling some fragment front ends accept does *not*
-         * depend on the page's own compiler any more: the probe can accept declarations the engine's own
-         * compiles then refuse, and that mistake costs a frozen boot (FINDINGS 22.17), while lifting is
-         * valid ES 3.0 everywhere. The probe's answer is still recorded, by [AdaBridge.setShaderArrays]. */
-        /* Only the assets that are actually rewritten are cached: everything else (images, audio,
-         * JSON) is served verbatim and read once per boot, and caching all 2 652 of them
-         * would cost tens of megabytes for nothing. The `.vert` shaders only join in when the device
-         * cannot carry the game's own 256-slot uniform table (see [ShaderSlots]). */
-        val vertexShaders = ShaderSlots.rewrites()
-        val cacheable = rel == BUNDLE_JS || rel == OPTIONS_DB ||
-            (ShaderPrecision.rewrites(rel) || rel.endsWith(".frag")) ||
-            (injectShim && rel == INDEX_HTML) ||
-            ShaderArrays.rewrites(rel) ||
-            (vertexShaders && rel.endsWith(".vert"))
-        if (injectShim && rel == INDEX_HTML) body = injectShimTag(body)
-        if (rel.endsWith(".frag")) body = keepBarycentricAlive(rel, body)
-        if (rel.endsWith(".vert")) body = vertexShader(rel, body)
-        if (rel.endsWith(".frag") || rel.endsWith(".vert")) body = ShaderPrecision.rewrite(rel, body)
-        if (rel.endsWith(".frag")) body = ditherGrid(rel, body)
-        if (ShaderArrays.rewrites(rel)) body = arrayTypes(rel, body)
-        if (rel == BUNDLE_JS) body = phoneResolutionLadder(rel, body)
-        if (rel == OPTIONS_DB) body = relabelResolutions(rel, body)
-        if (cacheable && !rewrite.put(rel, body) && cacheWarned.add(rel)) {
-            Log.w(TAG, "not caching $rel: the rewritten set no longer fits the rewrite cache")
+        if (profile.rewrites) {
+            /* `bundle.js` carries the engine's own `TEX_SLOT_COUNT`, and the preload scanner asks for
+             * it before a document-start script's bridge call can land (measured on the Fold 7). Hold
+             * that one request briefly so the decision is taken with the page's link outcome in hand; a
+             * page that never answers times out into the count-based plan, unchanged. */
+            if (rel == BUNDLE_JS) {
+                ShaderSlots.awaitReport(WAIT_FOR_REPORT_MS)
+                ShaderSlots.lock()
+            }
+            /* Whether this file is lifted into the array spelling some fragment front ends accept does
+             * *not* depend on the page's own compiler any more: the probe can accept declarations the
+             * engine's own compiles then refuse, and that mistake costs a frozen boot (FINDINGS 22.17),
+             * while lifting is valid ES 3.0 everywhere. The probe's answer is still recorded, by
+             * [PortBridge.setShaderArrays]. */
+            /* Only the assets that are actually rewritten are cached: everything else (images, audio,
+             * JSON) is served verbatim and read once per boot, and caching all 2 652 of them
+             * would cost tens of megabytes for nothing. The `.vert` shaders only join in when the
+             * device cannot carry the game's own 256-slot uniform table (see [ShaderSlots]). */
+            val vertexShaders = ShaderSlots.rewrites()
+            val cacheable = rel == BUNDLE_JS || rel == OPTIONS_DB ||
+                (ShaderPrecision.rewrites(rel) || rel.endsWith(".frag")) ||
+                (injectShim && rel == profile.indexHtml) ||
+                ShaderArrays.rewrites(rel) ||
+                (vertexShaders && rel.endsWith(".vert"))
+            if (injectShim && rel == profile.indexHtml) body = injectShimTag(body)
+            if (rel.endsWith(".frag")) body = keepBarycentricAlive(rel, body)
+            if (rel.endsWith(".vert")) body = vertexShader(rel, body)
+            if (rel.endsWith(".frag") || rel.endsWith(".vert")) body = ShaderPrecision.rewrite(rel, body)
+            if (rel.endsWith(".frag")) body = ditherGrid(rel, body)
+            if (ShaderArrays.rewrites(rel)) body = arrayTypes(rel, body)
+            if (rel == BUNDLE_JS) body = phoneResolutionLadder(rel, body)
+            if (rel == OPTIONS_DB) body = relabelResolutions(rel, body)
+            if (cacheable && !rewrite.put(rel, body) && cacheWarned.add(rel)) {
+                Log.w(TAG, "not caching $rel: the rewritten set no longer fits the rewrite cache")
+            }
+        } else if (injectShim && rel == profile.indexHtml) {
+            body = injectShimTag(body)
         }
 
         val mime = mimeOf(rel)
         return ok(mime, encodingOf(mime), body)
+    }
+
+    /** The profile's shim - the script the entry page runs before its own. */
+    private fun readShim(): ByteArray? = try {
+        assets.open(profile.shimAsset).use { it.readBytes() }
+    } catch (e: Exception) {
+        Log.e(TAG, "cannot read the shim ${profile.shimAsset}", e)
+        null
     }
 
     /** Requests still unfinished after [thresholdMs]: a path here is a stalled SAF read, not a stall. */
@@ -372,17 +386,21 @@ class GameAssetHandler(
     }
 
     /**
-     * Inserts `<script src="ada-shim.js"></script>` right before the bundle tag. The bytes are
-     * rewritten in memory; the file on the user's disk is never touched.
+     * Inserts the profile's `<script src="…"></script>` next to the anchor in the entry page:
+     * before the bundle tag for Alabaster Dawn, right after `<head>` for CrossCode (whose first
+     * scripts are in the head and which has no single bundle). The bytes are rewritten in memory; the
+     * file on the user's disk is never touched.
      */
     private fun injectShimTag(html: ByteArray): ByteArray {
         val text = String(html, Charsets.UTF_8)
-        val anchor = text.indexOf(BUNDLE_TAG)
-        if (anchor == -1) {
-            Log.e(TAG, "$INDEX_HTML does not contain $BUNDLE_TAG; serving it unmodified")
+        val at = text.indexOf(profile.shimAnchor)
+        if (at == -1) {
+            Log.e(TAG, "${profile.indexHtml} does not contain ${profile.shimAnchor}; serving it unmodified")
             return html
         }
-        return (text.substring(0, anchor) + SHIM_TAG + text.substring(anchor)).toByteArray(Charsets.UTF_8)
+        val cut = if (profile.shimAfterAnchor) at + profile.shimAnchor.length else at
+        val tag = "<script src=\"${profile.shimAsset}\"></script>\n"
+        return (text.substring(0, cut) + tag + text.substring(cut)).toByteArray(Charsets.UTF_8)
     }
 
     private fun encodingOf(mime: String): String? = when {
@@ -409,15 +427,10 @@ class GameAssetHandler(
     }
 
     companion object {
-        private const val TAG = "AdaPort"
+        private const val TAG = "RfPort"
         /* An asset read this slow means the tree's provider is struggling (a card, a slow volume). */
         private const val SLOW_MS = 1500L
         private const val SLOW_LOG_LIMIT = 20
-        const val SHIM_PATH = "terra/ada-shim.js"
-        const val SHIM_ASSET = "ada-shim.js"
-        const val INDEX_HTML = "terra/index.html"
-        private const val BUNDLE_TAG = "<script src=\"dist/bundle.js\""
-        private const val SHIM_TAG = "<script src=\"ada-shim.js\"></script>\n"
 
         private const val BUNDLE_JS = "terra/dist/bundle.js"
         /* Long enough for the page's throwaway shaders to compile and its bridge call to land; the

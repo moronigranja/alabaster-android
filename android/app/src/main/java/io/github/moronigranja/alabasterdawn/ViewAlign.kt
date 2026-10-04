@@ -2,7 +2,7 @@ package io.github.moronigranja.alabasterdawn
 
 /**
  * Where the side menu puts the game picture inside the window. [wire] is both the pref value and
- * the string the page reads from `AdaBridge.getViewAlign()`, so the two sides cannot drift.
+ * the string the page reads from `PortBridge.getViewAlign()`, so the two sides cannot drift.
  */
 enum class ViewAlign(val wire: String) {
     TOP("top"),

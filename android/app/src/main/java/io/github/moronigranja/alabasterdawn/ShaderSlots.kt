@@ -56,13 +56,13 @@ object ShaderSlots {
     /** A slot table's declaration, as every shader writes it. */
     private val TABLE = Regex("""uniform\s+vec2\s+(u_\w*SlotCoords)\s*\[TEX_SLOT_COUNT\];""")
 
-    /** What the page's GL stack reported through `AdaBridge.setVertexUniformVectors`; 0 until then. */
+    /** What the page's GL stack reported through `PortBridge.setVertexUniformVectors`; 0 until then. */
     @Volatile
     var vertexUniformVectors: Int = 0
 
     /**
      * Whether the page *linked* a shader declaring the game's own 256-slot table (and, separately,
-     * `gui.vert`'s two of them), reported through `AdaBridge.setShaderTables`. `null` until the page
+     * `gui.vert`'s two of them), reported through `PortBridge.setShaderTables`. `null` until the page
      * answers.
      *
      * The reported vector count is not the same question: Adreno's compiler packs a `vec2` array two
