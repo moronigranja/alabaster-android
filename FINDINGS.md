@@ -2947,3 +2947,47 @@ no misses, none in flight.
 * **A masked error read like a page bug with a missing message.** The shims now say when an error is
   masked ("injected script or worker"), include the first stack frame when there is one, and report a
   *subresource* that failed to load (an element error, which `window.onerror` never sees).
+
+### 23.5 The copied save did not load: `dataPath` needs the profile component (2026-10-04)
+
+With CrossCode booting, its Steam save (copied to the phone) still did not show: no **Continue** on the
+title screen, and Load Game empty. The file was *readable* — `/saves/Default/cc.save` through the
+shim answered `exists: true, size: 158569`.
+
+Asked the live page instead of guessing, with `new ig.StorageData("cc.save")`:
+
+```
+path  = "cc.save"
+list  = ["/saves/cc.save", "/saves/cc.save.backup", "/saves/cc.save.backup2"]
+dataPath = "/saves"
+```
+
+The game joins `nw.App.dataPath + "/" + this.path`, so with the shim's `/saves` it asked for
+`<picked>/cc.save` while the save sat at `<picked>/Default/cc.save`. The reason the desktop has it one
+level deeper is that NW.js's `App.dataPath` there is the Chromium **profile** dir —
+`~/.config/CrossCode/Default` — which is also why `_getSaveFilePathList` carries that Windows branch
+stripping `\User Data\Default`.
+
+Fix: CrossCode's shim sets `dataPath = "/saves/Default"`. The phone's layout now mirrors the desktop's
+byte for byte, so a saves folder moves between them with no renaming — the same property Alabaster
+Dawn's `/saves` + `Saves/…` already had. Verified: the path list becomes
+`/saves/Default/cc.save` (`existsSync` true) and the title screen lists **Continue**.
+
+### 23.6 The keyboard did not drive CrossCode: Impact binds on the legacy `keyCode`
+
+While driving the device over adb: the port logged `key KEYCODE_ENTER -> page (scan 0)` and the title
+screen did not move, while the on-screen pad did advance it. The game's own input layer says why:
+
+```js
+keydown: function (a) { … var b = a.type == "keydown" ? a.keyCode : …;
+                        if (b = this.bindings[b]) { this.actions[b] = true; … } }
+```
+
+CrossCode's bindings are indexed by **`keyCode`**, and the `KeyboardEvent` constructor refuses to set
+it on a synthetic event — so the port's event (carrying `code`/`key` only) reached the page and
+matched nothing. Alabaster Dawn's `terra` binds on `code`, which is why this never showed there.
+
+Fix: the port defines the legacy `keyCode`/`which` onto the event after it is built
+(`legacyKeyCode`, the pre-`code` numbers: Enter 13, Space 32, arrows 37-40, KeyA 65, Digit0 48, F1 112),
+while still carrying `code`/`key` for `terra`. Verified on the S22 Ultra: the port's own Enter advanced
+CrossCode's title screen to its main menu.

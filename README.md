@@ -217,7 +217,8 @@ indexes it read-only and never writes to it. Then pick a **saves folder**; the p
   of quiet (a switch in the side menu).
 * **Mouse and keyboard** — a mouse click falls through the pad to the WebView, and a keyboard plays
   the game: WASD/arrows, Enter, Escape, Space, Tab, modifiers and F1–F12 are dispatched to the page
-  with a real DOM `code`/`key` where Android delivers no scan code.
+  with a real DOM `code`/`key` where Android delivers no scan code — plus the legacy `keyCode`/`which`,
+  which Impact-era engines (CrossCode's) index their bindings by.
 
 ### The side menu
 

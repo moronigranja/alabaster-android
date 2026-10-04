@@ -1319,9 +1319,14 @@ class PortActivity : Activity() {
 
     /**
      * The `keydown`/`keyup` the page should have received for [event], or null when the Android key
-     * code has no DOM name. Only [`code`](https://developer.mozilla.org/docs/Web/API/KeyboardEvent/code),
-     * the physical key, is what the engine binds on; `key` is carried because the engine reads it for
-     * a few never-ignored keys.
+     * code has no DOM name.
+     *
+     * `code` is the physical key and is what Alabaster Dawn's `terra` engine binds on; `key` is
+     * carried because the engine reads it for a few never-ignored keys. Impact-era engines bind on the
+     * *legacy* `keyCode`/`which` instead - CrossCode's Cubic Impact 0.5 does - and the
+     * `KeyboardEvent` constructor refuses to set those, so they are defined onto the event after it is
+     * built. Without them the event reached CrossCode and its title screen ignored it (measured on the
+     * S22 Ultra, 2026-10-04: `key KEYCODE_ENTER -> page` in the record, no effect on screen).
      */
     private fun domKeyEvent(event: KeyEvent): String? {
         val (code, key) = when (val k = event.keyCode) {
@@ -1354,8 +1359,39 @@ class PortActivity : Activity() {
         }
         val type = if (event.action == KeyEvent.ACTION_UP) "keyup" else "keydown"
         val repeat = if (event.repeatCount > 0) "true" else "false"
-        return "window.dispatchEvent(new KeyboardEvent('$type',{code:'$code',key:'$key'," +
-            "bubbles:true,cancelable:true,repeat:$repeat}))"
+        val legacy = legacyKeyCode(code)
+        val legacyJs = if (legacy > 0) {
+            "try{Object.defineProperty(e,'keyCode',{get:function(){return $legacy}});" +
+                "Object.defineProperty(e,'which',{get:function(){return $legacy}});}catch(x){}"
+        } else {
+            ""
+        }
+        return "(function(){var e=new KeyboardEvent('$type',{code:'$code',key:'$key'," +
+            "bubbles:true,cancelable:true,repeat:$repeat});$legacyJs" +
+            "window.dispatchEvent(e);})()"
+    }
+
+    /**
+     * The legacy `keyCode`/`which` a DOM `code` stands for, or 0 when it has none. These are the
+     * pre-`code` numbers (`Enter` 13, `Space` 32, arrows 37-40, `KeyA` 65, `Digit0` 48, `F1` 112).
+     */
+    private fun legacyKeyCode(code: String): Int = when {
+        code.length == 4 && code.startsWith("Key") && code[3] in 'A'..'Z' -> code[3].code
+        code.startsWith("Digit") && code.length == 6 -> '0'.code + (code[5] - '0')
+        code.length in 2..3 && code[0] == 'F' && code.drop(1).toIntOrNull() in 1..12 ->
+            111 + code.drop(1).toInt()
+        code == "ArrowLeft" -> 37
+        code == "ArrowUp" -> 38
+        code == "ArrowRight" -> 39
+        code == "ArrowDown" -> 40
+        code == "Enter" || code == "NumpadEnter" -> 13
+        code == "Escape" -> 27
+        code == "Space" -> 32
+        code == "Tab" -> 9
+        code.startsWith("Shift") -> 16
+        code.startsWith("Control") -> 17
+        code.startsWith("Alt") -> 18
+        else -> 0
     }
 
     /** Mouse movement and clicks hide the pad exactly like a controller; the event is not consumed. */

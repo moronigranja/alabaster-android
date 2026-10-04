@@ -306,9 +306,15 @@
 
     var nwGui = {
         App: {
-            /* The literal /saves: the bridge maps everything under it onto the picked saves folder, so
-             * CrossCode's own App.dataPath-based save files land there and travel with the folder. */
-            argv: [], dataPath: "/saves", quit: quitApp, clearCache: noop,
+            /* `/saves/Default`, not `/saves`: the bridge maps anything under /saves onto the picked
+             * saves folder, and CrossCode's save path list is `dataPath + "/cc.save"` - so the file
+             * lands at `<picked>/Default/cc.save`, which is exactly where the desktop build keeps it
+             * (`~/.config/CrossCode/Default/cc.save`, because NW.js's App.dataPath there is the
+             * Chromium profile dir). A saves folder therefore moves between the phone and the desktop
+             * with no renaming. Measured from the game's own `_getSaveFilePathList()` on the S22
+             * Ultra, 2026-10-04: with the old `/saves` it asked for `/saves/cc.save` and found
+             * nothing, which is why the title screen offered no Continue. */
+            argv: [], dataPath: "/saves/Default", quit: quitApp, clearCache: noop,
             on: noop, once: noop, removeAllListeners: noop,
             openDevTools: noop, closeAllWindows: noop, registerGlobalHotKey: noop,
             getProxyForURL: function () { return ""; }
