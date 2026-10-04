@@ -186,11 +186,15 @@ adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 
 ### The entry screen
 
-One screen holds both games. A **hero card** shows the game that the big button will start — its own
-logo (read from your copy at runtime, never bundled), its name and the folder it points at. Under it,
-each game has a row with a ready dot and a **⋮** menu to change or forget its folder; tapping a row
-moves the hero to that game. One **saves** folder is shared by both (each game writes its own files
-into it).
+One screen holds both games. A **hero card** shows the game that will start as **its own art and
+nothing else** (read from your copy at runtime, never bundled), with the action as a round badge on its
+corner: a play glyph that starts it, or a folder glyph while no folder is pointed at. The card takes
+the colour its art was drawn for — Alabaster Dawn's transparent wordmark gets a light tile, CrossCode's
+opaque title art gets a card in its own background colour.
+
+Under it, each game has a row with its name, its folder, a ready dot and a **⋮** menu to change or
+forget that folder; tapping a row moves the hero to that game. One **saves** folder is shared by both
+(each game writes its own files into it).
 
 Picking a folder is how the screen learns which game it is — the entry page is the fingerprint — so
 point each game at its folder once and both are one tap away after that. Tapping the wrong row's

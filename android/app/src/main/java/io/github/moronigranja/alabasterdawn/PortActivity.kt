@@ -5,6 +5,7 @@ import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.res.ColorStateList
 import android.content.pm.ApplicationInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -35,6 +36,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.PopupMenu
@@ -67,10 +69,11 @@ class PortActivity : Activity() {
     private val gameLogos = HashMap<GameProfile, Bitmap>()
     /** The game the hero card is showing: what this screen's one button will start. */
     private var heroGame: GameProfile? = null
+    private lateinit var heroCard: FrameLayout
     private lateinit var heroLogo: ImageView
-    private lateinit var heroName: TextView
-    private lateinit var heroFolder: TextView
-    private lateinit var heroStart: Button
+    private lateinit var heroStart: ImageButton
+    /** The colour each game's card takes, decided from its own art (see [cardColourFor]). */
+    private val gameCardColour = HashMap<GameProfile, Int>()
 
     private var gameTreeUri: Uri? = null
     private var savesTreeUri: Uri? = null
@@ -240,42 +243,44 @@ class PortActivity : Activity() {
             }
         )
 
-        /* The hero: whichever game this screen will start. */
-        val hero = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            background = PortStyle.panel(this@PortActivity)
-            setPadding(pad, pad, pad, pad)
+        /* The hero: which game this screen will start, as its own art and nothing else - the rows
+         * below already name the game and its folder. The badge on its corner is the action. */
+        val hero = FrameLayout(this).apply {
+            /* The card takes the colour its art was drawn for (see [artWantsLightCard]). */
+            background = PortStyle.panel(this@PortActivity, color = PortStyle.CARD)
+            clipToOutline = true
             layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+                ViewGroup.LayoutParams.MATCH_PARENT, PortStyle.dp(this@PortActivity, HERO_DP)
             ).apply { topMargin = gap }
         }
         heroLogo = ImageView(this).apply {
-            adjustViewBounds = true
             scaleType = ImageView.ScaleType.FIT_CENTER
-            layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, PortStyle.dp(this@PortActivity, HERO_LOGO_DP)
+            layoutParams = FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
             )
+            /* Keep the art out of the badge's corner: a wordmark that runs under it reads as clipped,
+             * and the badge is on every card, so the gap is the card's own shape. */
+            val badgeZone = PortStyle.dp(this@PortActivity, BADGE_DP + 24)
+            setPadding(0, 0, badgeZone, 0)
         }
         hero.addView(heroLogo)
-        heroName = TextView(this).apply {
-            textSize = 20f
-            setTextColor(PortStyle.TEXT)
-            setPadding(0, gap / 2, 0, 0)
-        }
-        hero.addView(heroName)
-        heroFolder = TextView(this).apply {
-            textSize = 13f
-            setTextColor(PortStyle.DIM)
-        }
-        hero.addView(heroFolder)
-        heroStart = Button(this).apply {
+        heroStart = ImageButton(this).apply {
             setOnClickListener { heroAction() }
-            PortStyle.dress(this, primary = true)
-            layoutParams = LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = gap }
+            imageTintList = ColorStateList.valueOf(PortStyle.INK)
+            background = PortStyle.badge(this@PortActivity)
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            val inset = PortStyle.dp(this@PortActivity, 15)
+            setPadding(inset, inset, inset, inset)
+            layoutParams = FrameLayout.LayoutParams(
+                PortStyle.dp(this@PortActivity, BADGE_DP), PortStyle.dp(this@PortActivity, BADGE_DP),
+                Gravity.BOTTOM or Gravity.END
+            ).apply {
+                val margin = PortStyle.dp(this@PortActivity, 12)
+                setMargins(0, 0, margin, margin)
+            }
         }
         hero.addView(heroStart)
+        heroCard = hero
         root.addView(hero)
 
         root.addView(sectionLabel("Games"))
@@ -449,6 +454,7 @@ class PortActivity : Activity() {
                 val bitmap = decodeLogo(uri, profile.logoPath)
                 if (bitmap != null) runOnUiThread {
                     gameLogos[profile] = bitmap
+                    gameCardColour[profile] = cardColourFor(bitmap)
                     refreshUi()
                 }
             }, "ada-logo").start()
@@ -456,7 +462,7 @@ class PortActivity : Activity() {
     }
 
     /**
-     * The game's logo, decoded at roughly the hero box's size (a power-of-two downscale, so a big
+     * The game's art, decoded at roughly the hero box's size (a power-of-two downscale, so a big
      * logo does not cost a full-size bitmap). Null when the user's copy does not carry that file,
      * which is not a failure: the hero then shows text only.
      */
@@ -466,35 +472,48 @@ class PortActivity : Activity() {
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
         if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
         var sample = 1
-        val target = PortStyle.dp(this, HERO_LOGO_DP) * 2
+        val target = PortStyle.dp(this, HERO_DP) * 2
         while (bounds.outHeight / (sample * 2) >= target) sample *= 2
         return BitmapFactory.decodeByteArray(
             bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample }
         )
     }
 
+    /**
+     * The card colour a game's art asks for. Art drawn for a bright title screen has transparent
+     * corners and reads on the light tile (Alabaster Dawn's wordmark); art that carries its own
+     * opaque background gets a card of that very colour, so a matte blends into the card instead of
+     * banding against it (CrossCode's title art is a character on black).
+     */
+    private fun cardColourFor(bitmap: Bitmap): Int {
+        val right = bitmap.width - 1
+        val bottom = bitmap.height - 1
+        val corners = arrayOf(0 to 0, right to 0, 0 to bottom, right to bottom)
+            .map { (x, y) -> bitmap.getPixel(x, y) }
+        /* All four, not any: one opaque corner is enough to draw a slab on the light tile. */
+        if (corners.all { Color.alpha(it) < 16 }) return PortStyle.CARD
+        return corners.firstOrNull { Color.alpha(it) == 255 } ?: PortStyle.PANEL
+    }
+
     private fun refreshUi() {
         val hero = heroGame ?: gameUris.entries.firstOrNull { it.value != null }?.key
         heroGame = hero
-        if (hero == null) {
-            /* Nothing pointed at yet: the port's own mark, not the games'. */
-            heroLogo.setImageResource(R.drawable.ic_launcher_foreground)
-            heroLogo.visibility = View.VISIBLE
-            heroName.text = "Pick a game to start"
-            heroFolder.text = "Alabaster Dawn or CrossCode \u2014 read from your own copy"
-            heroStart.text = "Choose game files"
+        val ready = hero != null && gameUris[hero] != null
+        /* The game's own art; the port's own mark when nothing is chosen or its copy has no art. */
+        val art = hero?.let { gameLogos[it] }
+        if (art != null) {
+            heroLogo.setImageBitmap(art)
         } else {
-            val logo = gameLogos[hero]
-            if (logo != null) {
-                heroLogo.setImageBitmap(logo)
-                heroLogo.visibility = View.VISIBLE
-            } else {
-                heroLogo.visibility = View.GONE
-            }
-            heroName.text = hero.displayName
-            val folder = GameFiles.displayNameOf(gameUris[hero])
-            heroFolder.text = folder ?: "No folder yet \u2014 choose the game's install folder"
-            heroStart.text = if (folder != null) "START" else "Choose folder"
+            heroLogo.setImageResource(R.drawable.ic_launcher_foreground)
+        }
+        /* The port's own mark is transparent, so an unchosen game sits on the light tile too. */
+        heroCard.background = PortStyle.panel(
+            this, color = hero?.let { gameCardColour[it] } ?: PortStyle.CARD
+        )
+        heroStart.setImageResource(if (ready) R.drawable.ic_play else R.drawable.ic_folder_open)
+        heroStart.contentDescription = when {
+            ready && hero != null -> "Start ${hero.displayName}"
+            else -> "Choose the game's files"
         }
         heroStart.isEnabled = true
         for (p in GameProfile.entries) {
@@ -634,7 +653,10 @@ class PortActivity : Activity() {
                 if (forgetLegacyKey) edit.remove(KEY_GAME)
                 edit.apply()
                 gameUris[detected] = uri
-                if (logo != null) gameLogos[detected] = logo
+                if (logo != null) {
+                    gameLogos[detected] = logo
+                    gameCardColour[detected] = cardColourFor(logo)
+                }
                 heroGame = detected
                 gameTreeUri = uri
                 learnedUri = uri
@@ -1516,8 +1538,10 @@ class PortActivity : Activity() {
         private const val KEY_LAST_GAME = "last_game"
         private const val MENU_CHANGE_FOLDER = 1
         private const val MENU_FORGET_FOLDER = 2
-        /* How tall the hero card's logo box is. */
-        private const val HERO_LOGO_DP = 100
+        /* How tall the hero card is: its own art, with the action badge on its corner. */
+        private const val HERO_DP = 128
+        /* The round action badge on the hero card's corner. */
+        private const val BADGE_DP = 56
         private const val KEY_SAVES = "saves_tree_uri"
 
         /* Whether the on-screen pad draws its controls. */

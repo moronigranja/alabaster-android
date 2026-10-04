@@ -62,7 +62,7 @@ enum class GameProfile(
     val canvasSelector: String,
     /**
      * The game's own art inside its install, relative to the picked root, for the entry screen's
-     * hero: Alabaster Dawn's wordmark, CrossCode's title-screen character art. It is **drawn from the
+     * hero: Alabaster Dawn's wordmark, CrossCode's title-screen character art (`assets/media/gui/title-bg.png`). It is **drawn from the
      * user's copy at runtime and never shipped** — the APK carries no game art (see `NOTICE.md`), and
      * a build that moved the file simply gets no image.
      *
@@ -102,7 +102,7 @@ enum class GameProfile(
         rewrites = false,
         viewAlign = false,
         canvasSelector = "#canvas",
-        logoPath = "assets/media/gui/title/title-bg.png",
+        logoPath = "assets/media/gui/title-bg.png",
     );
 
     /** The entry page's index key (also its path under the picked root). */

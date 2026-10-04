@@ -24,9 +24,9 @@ The compatibility shims in `android/app/src/main/assets/` (`ada-shim.js`, `cc-sh
 project's own code; they exist so the unmodified game finds the Node/NW.js surface it expects on a
 desktop. No game file is patched on disk, and no game code is redistributed.
 
-The setup screen shows each game's own logo — read at runtime out of the folder you picked, drawn on
-the device, and **never bundled**: the Google Play/Steam artwork, icons and title screens stay in your
-installation where they belong, and the app's own launcher icon is original work (see `LICENSE`).
+The setup screen shows each game's own title art — read at runtime out of the folder you picked, drawn
+on the device, and **never bundled**: the artwork, icons and title screens stay in your installation
+where they belong, and the app's own launcher icon and mark are original work (see `LICENSE`).
 
 "Alabaster Dawn", "CrossCode" and the associated logos are trademarks of their owners, used here
 descriptively. This is an unofficial, non-commercial interoperability project — not affiliated with,

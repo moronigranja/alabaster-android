@@ -29,6 +29,10 @@ object PortStyle {
     const val RIPPLE = 0x33E8DCC8
     const val PILL = 0x1FE8DCC8
 
+    /** The hero card's own colour: the games' art is drawn for a bright title screen, not for a dark
+     *  panel, so the card is a light tile the art sits on. */
+    const val CARD = 0xFFF3F0E9.toInt()
+
     /** The hairline between rows. */
     const val HAIRLINE = 0x33E8DCC8.toInt()
 
@@ -42,9 +46,16 @@ object PortStyle {
         (value * context.resources.displayMetrics.density).toInt()
 
     /** A rounded panel, the shape every screen of the port is built out of. */
-    fun panel(context: Context, radiusDp: Int = 20): GradientDrawable = GradientDrawable().apply {
-        cornerRadius = dp(context, radiusDp).toFloat()
-        setColor(PANEL)
+    fun panel(context: Context, radiusDp: Int = 20, color: Int = PANEL): GradientDrawable =
+        GradientDrawable().apply {
+            cornerRadius = dp(context, radiusDp).toFloat()
+            setColor(color)
+        }
+
+    /** The round action badge that sits on the hero card. */
+    fun badge(context: Context): GradientDrawable = GradientDrawable().apply {
+        shape = GradientDrawable.OVAL
+        setColor(ACCENT)
     }
 
     /**
