@@ -423,10 +423,12 @@ that made water invisible on every device, the NW.js surface CrossCode's engine 
 mask that cropped its own icon) were found on hardware and are recorded with the evidence in
 `FINDINGS.md`.
 
-Every commit is authored and signed off by a human; AI-assisted commits carry an `Assisted-by:`
-trailer naming the tool and model, the convention the Linux kernel, Fedora and others settled on. No AI
-is ever credited as a co-author or as a sign-off, and the copyright and the MIT licence stay human.
-That is also why review is welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Every commit is authored and signed off by a human, and no AI is ever credited as a co-author or as a
+sign-off; the copyright and the MIT licence stay human. AI-assisted commits carry an `Assisted-by:`
+trailer naming the harness and the model — the convention the Linux kernel, Fedora and others settled
+on — **from 2026-10-04**. The history before that date was written the same way but carries no trailer;
+it is not retroactively marked, because backfilling it would rewrite published commits and the v0.8.0
+tag. That is also why review is welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 

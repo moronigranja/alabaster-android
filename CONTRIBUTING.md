@@ -17,6 +17,14 @@ the change, and answer for it.**
   Assisted-by: oh-my-pi DeepSeek V4.1 Flash
   ```
 
+  Pass it on the commit itself, so it cannot be forgotten:
+
+  ```sh
+  git commit --trailer "Assisted-by: oh-my-pi DeepSeek V4.1 Flash" -m "…"
+  ```
+
+  The convention starts on 2026-10-04; commits before it (including v0.8.0) carry no trailer.
+
   `Generated-by:` is for the case where the patch is substantially AI-generated rather than AI-assisted
   (both are recognised; when in doubt, `Assisted-by:`). If the tool will not say which model it used,
   write the tool and `auto` — never invent a model string.
