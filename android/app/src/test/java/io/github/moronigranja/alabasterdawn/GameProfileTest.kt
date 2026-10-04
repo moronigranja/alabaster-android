@@ -61,6 +61,12 @@ class GameProfileTest {
     }
 
     @Test
+    fun `each game remembers its folder under its own key`() {
+        assertEquals("game_tree_uri_ada", GameProfile.ALABASTER_DAWN.gameFolderKey)
+        assertEquals("game_tree_uri_cc", GameProfile.CROSSCODE.gameFolderKey)
+    }
+
+    @Test
     fun `the engine rewrites and the resolution reset are Alabaster Dawn's alone`() {
         assertEquals(true, GameProfile.ALABASTER_DAWN.rewrites)
         assertEquals(true, GameProfile.ALABASTER_DAWN.viewAlign)

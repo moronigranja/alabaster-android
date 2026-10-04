@@ -50,16 +50,24 @@ import java.io.File
 class PortActivity : Activity() {
 
     private lateinit var prefs: SharedPreferences
-    private lateinit var gameLabel: TextView
     private lateinit var savesLabel: TextView
     private lateinit var status: TextView
-    private lateinit var startButton: Button
+
+    /** One row label and one Start button per game (see [buildPreGameUi]), and the folder each has
+     *  remembered. Both games can be pointed out once and either started from here. */
+    private val gameLabels = HashMap<GameProfile, TextView>()
+    private val gameStarts = HashMap<GameProfile, Button>()
+    private val gameUris = HashMap<GameProfile, Uri?>()
 
     private var gameTreeUri: Uri? = null
     private var savesTreeUri: Uri? = null
     private var index: GameIndex? = null
     /** Which game the picked folder is, from its entry page; null before the tree is indexed. */
     private var profile: GameProfile? = null
+    /* The folder read the moment it was picked, so Start does not walk the tree a second time. */
+    private var learnedUri: Uri? = null
+    private var learnedIndex: GameIndex? = null
+    private var learnedRelease: String? = null
     /** The game's newest release, parsed from the changelog once the tree is indexed (see [GameVersion]). */
     private var gameReleaseVersion: String? = null
     private var fsBridge: FsBridge? = null
@@ -139,7 +147,9 @@ class PortActivity : Activity() {
         } }
         diag.line("port ${appVersion()} on ${Build.MANUFACTURER} ${Build.MODEL}, Android " +
             "${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT}, ${Build.SUPPORTED_ABIS.firstOrNull()})")
-        gameTreeUri = validateGrant(prefs.getString(KEY_GAME, null), wantWrite = false)
+        for (p in GameProfile.entries) {
+            gameUris[p] = validateGrant(prefs.getString(p.gameFolderKey, null), wantWrite = false)
+        }
         savesTreeUri = validateGrant(prefs.getString(KEY_SAVES, null), wantWrite = true)
         hideWithExternalInput = prefs.getBoolean(KEY_HIDE_EXTERNAL_INPUT, true)
         viewAlign = ViewAlign.fromWire(prefs.getString(KEY_VIEW_ALIGN, null))
@@ -153,6 +163,12 @@ class PortActivity : Activity() {
         saveStore = openSaveStore()
         carryPreviousRecord(saveStore!!)
         buildPreGameUi()
+        /* A folder an earlier version remembered (single-slot, before the port ran two games): read it
+         * once to find out which game it is and file it under that game's row. */
+        val legacy = validateGrant(prefs.getString(KEY_GAME, null), wantWrite = false)
+        if (legacy != null && gameUris.values.all { it == null }) {
+            learnGameFolder(legacy, forgetLegacyKey = true)
+        }
         applyImmersive()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             /* On Android 16 with targetSdk 36 the framework routes back to the dispatcher and never
@@ -182,7 +198,23 @@ class PortActivity : Activity() {
                 setTextColor(Color.WHITE)
             }
         )
-        gameLabel = folderRow(root, "game") { pick(REQ_GAME, wantWrite = false) }
+        /* One row per game: the folder it holds, and a Start. Picking a folder files it under
+         * whichever game it turns out to be, so both can be pointed out once and either started. */
+        root.addView(
+            TextView(this).apply {
+                text = "Game files"
+                textSize = 14f
+                setTextColor(Color.LTGRAY)
+                setPadding(0, pad / 2, 0, pad / 4)
+            }
+        )
+        for (p in GameProfile.entries) addGameRow(root, p)
+        root.addView(
+            Button(this).apply {
+                text = "Choose game files"
+                setOnClickListener { pick(REQ_GAME, wantWrite = false) }
+            }
+        )
         savesLabel = folderRow(root, "saves") { pick(REQ_SAVES, wantWrite = true) }
         status = TextView(this).apply {
             textSize = 13f
@@ -190,19 +222,9 @@ class PortActivity : Activity() {
             setPadding(0, pad / 2, 0, pad / 2)
         }
         root.addView(status)
-        startButton = Button(this).apply {
-            text = "Start"
-            setOnClickListener { startGame() }
-        }
         root.addView(
             LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
-                addView(
-                    startButton,
-                    LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT
-                    )
-                )
                 /* A device-only failure is reported from here: the record names the WebView, the GL
                  * backend and what the engine was doing, without adb. The panel it opens is also
                  * where the stored Resolution can be dropped (FINDINGS §19). */
@@ -225,6 +247,31 @@ class PortActivity : Activity() {
         refreshUi()
     }
 
+    /**
+     * One game's row on the entry screen: its name and remembered folder on the left, Start on the
+     * right. Start is disabled until a folder is known for that game, so the screen says at a glance
+     * what is ready and what still needs picking.
+     */
+    private fun addGameRow(parent: LinearLayout, profile: GameProfile) {
+        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val label = TextView(this).apply {
+            textSize = 15f
+            setTextColor(Color.WHITE)
+        }
+        row.addView(
+            label,
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        )
+        val start = Button(this).apply {
+            text = "Start"
+            setOnClickListener { startGame(profile) }
+        }
+        row.addView(start)
+        parent.addView(row)
+        gameLabels[profile] = label
+        gameStarts[profile] = start
+    }
+
     private fun folderRow(parent: LinearLayout, which: String, onPick: () -> Unit): TextView {
         val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         val label = TextView(this).apply {
@@ -244,18 +291,26 @@ class PortActivity : Activity() {
     }
 
     private fun refreshUi() {
-        gameLabel.text = "Game files: " + (GameFiles.displayNameOf(gameTreeUri) ?: "(not set)")
+        for (p in GameProfile.entries) {
+            gameLabels[p]?.text = "${p.displayName}: " +
+                (GameFiles.displayNameOf(gameUris[p]) ?: "(not set)")
+            gameStarts[p]?.isEnabled = gameUris[p] != null
+        }
         savesLabel.text = "Saves: " + (GameFiles.displayNameOf(savesTreeUri) ?: "(not set)")
-        startButton.isEnabled = gameTreeUri != null
         if (status.length() == 0) {
             status.text = when {
-                gameTreeUri == null ->
-                    "Pick the game's install folder — the one holding Alabaster Dawn's terra/ or CrossCode's assets/."
+                gameUris.values.all { it == null } ->
+                    "Pick a game's install folder — the one holding Alabaster Dawn's terra/ or CrossCode's assets/."
                 savesTreeUri == null ->
                     "No saves folder: saves will be kept inside the app and cannot be copied out."
-                else -> "Ready: ${GameFiles.displayNameOf(gameTreeUri)} + ${GameFiles.displayNameOf(savesTreeUri)}"
+                else -> "Ready."
             }
         }
+    }
+
+    /** While a game is starting, no Start is tappable. */
+    private fun setStartButtonsEnabled(enabled: Boolean) {
+        for ((p, button) in gameStarts) button.isEnabled = enabled && gameUris[p] != null
     }
 
     private fun pick(requestCode: Int, wantWrite: Boolean) {
@@ -309,8 +364,9 @@ class PortActivity : Activity() {
             saveStore = fresh
             if (!previousRecordCarried) carryPreviousRecord(fresh)
         } else {
-            gameTreeUri = uri
-            prefs.edit().putString(KEY_GAME, uri.toString()).apply()
+            /* Read it now: reading is what says which game it is, and Start then does not walk the
+             * tree again (see [startGame]). */
+            learnGameFolder(uri)
         }
         diag.line("granted ${if (wantWrite) "saves" else "game"}: $uri (flags=$flags)")
         status.text = ""
@@ -336,10 +392,64 @@ class PortActivity : Activity() {
 
     /* ------------------------------------------------------------------------- game ---- */
 
-    private fun startGame() {
-        val tree = gameTreeUri ?: return
+    /**
+     * Reads a folder the user just picked and files it under whichever game it is, so the entry
+     * screen learns both folders from two picks and either can then be started with one tap. The
+     * index is kept, because Start needs exactly this map and reading it twice buys nothing.
+     */
+    private fun learnGameFolder(uri: Uri, forgetLegacyKey: Boolean = false) {
+        setStatus("Reading " + (GameFiles.displayNameOf(uri) ?: "the folder") + "…")
+        Thread({
+            val built = try {
+                GameFiles.indexTree(contentResolver, uri)
+            } catch (e: Exception) {
+                Log.e(TAG, "indexing failed", e)
+                diag.line("indexing failed: $e")
+                null
+            }
+            val detected = built?.let(GameProfile::detect)
+            val release = built?.let { raw ->
+                detected?.versionPath?.let {
+                    GameFiles.readText(contentResolver, uri, raw, it)?.let(GameVersion::fromChangelog)
+                }
+            }
+            runOnUiThread {
+                if (built == null) {
+                    status.text = "Could not read that folder."
+                    return@runOnUiThread
+                }
+                if (detected == null) {
+                    status.text = "That folder is not a game this port runs. " +
+                        GameProfile.entries.joinToString(" or ") { it.setupHint }
+                    diag.line("picked folder is neither game (no entry page found)")
+                    return@runOnUiThread
+                }
+                val edit = prefs.edit().putString(detected.gameFolderKey, uri.toString())
+                if (forgetLegacyKey) edit.remove(KEY_GAME)
+                edit.apply()
+                gameUris[detected] = uri
+                gameTreeUri = uri
+                learnedUri = uri
+                learnedIndex = built
+                learnedRelease = release
+                diag.line("${detected.displayName} files: ${GameFiles.displayNameOf(uri)} " +
+                    "(${built.size} entries)")
+                status.text = ""
+                refreshUi()
+            }
+        }, "ada-index").start()
+    }
+
+    /** Starts [selected] from the folder its row holds, reading the folder only if it was not. */
+    private fun startGame(selected: GameProfile) {
+        val tree = gameUris[selected] ?: return
         if (index != null) return
-        startButton.isEnabled = false
+        setStartButtonsEnabled(false)
+        /* The folder was read when it was picked; reuse that map rather than walking the tree again. */
+        if (learnedUri == tree && learnedIndex != null) {
+            onFolderRead(selected, tree, learnedIndex, learnedRelease, System.currentTimeMillis())
+            return
+        }
         setStatus("Indexing game files…")
         /* The saves store was opened at startup; the flush chain starts here rather than in
          * launchWebView, because reading a big game folder can take a while and a failure there has
@@ -356,38 +466,60 @@ class PortActivity : Activity() {
                 diag.line("indexing failed: $e")
                 null
             }
+            val detected = built?.let(GameProfile::detect)
             val release = built?.let { raw ->
-                val p = GameProfile.detect(raw)
-                p?.versionPath?.let {
+                detected?.versionPath?.let {
                     GameFiles.readText(contentResolver, tree, raw, it)?.let(GameVersion::fromChangelog)
                 }
             }
-            val detected = built?.let(GameProfile::detect)
-            runOnUiThread {
-                if (built == null) {
-                    status.text = "Could not read that folder."
-                    startButton.isEnabled = true
-                    return@runOnUiThread
-                }
-                if (detected == null) {
-                    status.text = "That folder is not a game this port runs. " +
-                        GameProfile.entries.joinToString(" or ") { it.setupHint }
-                    startButton.isEnabled = true
-                    diag.line("picked folder is neither game (no entry page found)")
-                    return@runOnUiThread
-                }
-                val bound = built.bind(detected.pageRoot)
-                profile = detected
-                index = bound
-                gameReleaseVersion = release
-                diag.line("indexed ${bound.size} entries in ${System.currentTimeMillis() - started}ms " +
-                    "(${detected.displayName})")
-                padLayoutStore = PadLayoutStore(prefs, saveStore!!)
-                fsBridge = FsBridge(contentResolver, tree, bound, saveStore!!)
-                status.text = "Loaded ${bound.size} files."
-                launchWebView()
-            }
+            runOnUiThread { onFolderRead(selected, tree, built, release, started) }
         }, "ada-index").start()
+    }
+
+    /**
+     * The folder is read: launch it if it is the game whose Start was tapped, and otherwise say which
+     * game it actually is (and file it under that one's row, which is what the user has to tap next).
+     */
+    private fun onFolderRead(
+        selected: GameProfile,
+        tree: Uri,
+        built: GameIndex?,
+        release: String?,
+        started: Long,
+    ) {
+        if (built == null) {
+            status.text = "Could not read that folder."
+            setStartButtonsEnabled(true)
+            return
+        }
+        val detected = GameProfile.detect(built)
+        if (detected == null) {
+            status.text = "That folder is not a game this port runs. " +
+                GameProfile.entries.joinToString(" or ") { it.setupHint }
+            diag.line("picked folder is neither game (no entry page found)")
+            setStartButtonsEnabled(true)
+            return
+        }
+        if (detected != selected) {
+            prefs.edit().putString(detected.gameFolderKey, tree.toString()).apply()
+            gameUris[detected] = tree
+            status.text = "That folder is ${detected.displayName}, not ${selected.displayName}."
+            diag.line("Start tapped for ${selected.displayName} with a ${detected.displayName} folder")
+            setStartButtonsEnabled(true)
+            refreshUi()
+            return
+        }
+        val bound = built.bind(detected.pageRoot)
+        profile = detected
+        index = bound
+        gameTreeUri = tree
+        gameReleaseVersion = release
+        diag.line("indexed ${bound.size} entries in ${System.currentTimeMillis() - started}ms " +
+            "(${detected.displayName})")
+        padLayoutStore = PadLayoutStore(prefs, saveStore!!)
+        fsBridge = FsBridge(contentResolver, tree, bound, saveStore!!)
+        status.text = "Loaded ${bound.size} files."
+        launchWebView()
     }
 
     private fun openSaveStore(): SaveStore {

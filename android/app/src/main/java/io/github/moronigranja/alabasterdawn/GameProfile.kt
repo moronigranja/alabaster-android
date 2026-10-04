@@ -105,7 +105,13 @@ enum class GameProfile(
      */
     val shimPath: String get() = "$pageRoot/$shimAsset"
 
-    /** What the pre-game screen tells the user to pick. */
+    /**
+     * Where the app remembers this game's install folder. One key per game, so both folders can be
+     * kept at once and either game can be started from the entry screen without re-picking.
+     */
+    val gameFolderKey: String get() = "game_tree_uri_$id"
+
+    /** What the entry screen tells the user to pick. */
     val setupHint: String get() = "Pick the folder that contains the game's $pageRoot/ directory."
 
     companion object {
