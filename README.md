@@ -52,6 +52,7 @@
     <li>
       <a href="#usage">Usage</a>
       <ul>
+        <li><a href="#the-entry-screen">The entry screen</a></li>
         <li><a href="#game-files-and-saves">Game files and saves</a></li>
         <li><a href="#input">Input</a></li>
         <li><a href="#the-side-menu">The side menu</a></li>
@@ -79,8 +80,9 @@
 This repository is an Android **WebView host** for the NW.js games of Radical Fish Games, plus a
 desktop **controller fix** for the same games' PC builds. The port reads the game files from a folder
 you pick with the Storage Access Framework, injects a per-game compatibility shim at document start,
-and serves the tree to the page from the APK — **the game's files are never edited**. Saves go to a
-second folder you pick, in a layout a desktop install can read.
+and serves the tree to the page from the APK — **the game's files are never edited**. Each game gets
+its own saves folder, in a layout a desktop install can read; until one is picked, saves are kept
+inside the app and carried into the folder once it is.
 
 The port's own chrome is shared by both games: an on-screen pad with a layout editor, native gamepad
 support, mouse and keyboard passthrough, a side menu, and a diagnostics record built for the failure
@@ -110,6 +112,12 @@ is neutral now that the same app runs two games.
   root and entry page, which shim the page gets, where the game's own version is written, and whether
   the host's engine rewrites apply. The profile is *detected from the picked folder* — the entry page
   is the fingerprint — so switching games is switching folders, and nothing is stored.
+* **One card per game, one saves folder each.** The entry screen shows both games at once — each as a
+  row card with its own title art, its name, the folders it is using, a play badge and a **⋮** menu —
+  and checks at startup that those folders are still there: a stored SAF grant outlives the folder it
+  points at, so a moved or deleted one is marked (dimmed card, `(missing)`, a tap re-opens the picker)
+  instead of being silently claimed. The saves key is per game, so the log file, the pad layout and
+  the game's own saves follow whichever game is being started.
 * **Two shims, deliberately.** Alabaster Dawn runs the `terra` engine and CrossCode runs Cubic Impact
   0.5; they need opposite platform answers (`window.process` must stay **undefined** for the former to
   take its browser path, and must be an **object** for the latter to take its desktop path). Each shim
@@ -180,9 +188,9 @@ adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 
 ## Usage
 
-| Setup | Running | On-screen pad | Pad layout editor | Side menu | Diagnostics |
+| Entry screen | Running | On-screen pad | Pad layout editor | Side menu | Diagnostics |
 |---|---|---|---|---|---|
-| ![Setup screen](docs/setup.png) | ![Title screen](docs/title-screen.png) | ![On-screen pad](docs/on-screen-pad.png) | ![Pad editor](docs/pad-editor.png) | ![Side menu](docs/side-menu.png) | ![Diagnostics](docs/diagnostics.png) |
+| ![Entry screen](docs/setup.png) | ![Title screen](docs/title-screen.png) | ![On-screen pad](docs/on-screen-pad.png) | ![Pad editor](docs/pad-editor.png) | ![Side menu](docs/side-menu.png) | ![Diagnostics](docs/diagnostics.png) |
 
 ### The entry screen
 
@@ -197,9 +205,9 @@ Picking a folder is how the screen learns which game it is — the entry page is
 point each game at its folder once and both are one tap away after that. Picking the wrong card's
 folder says which game it actually is and files it under that game's card. Each game keeps **its own
 saves folder** (the log file, the pad layout and the game's own saves all follow the game being
-started). Under the cards, **Start last game directly** skips this screen and goes straight into the
-last game played. Troubleshoot and the port version stay on this screen, because it is the screen
-every report is taken from.
+started). Under the cards, **Start last game directly** skips this screen entirely — it is never
+built, so it cannot flash on the way past — and goes straight into the last game played. Troubleshoot
+and the port version stay on this screen, because it is the screen every report is taken from.
 
 A stored grant outlives the folder it points at, so the port checks on startup that each folder is
 still there. A game whose folder has been moved or deleted is shown **dimmed with `(missing)`** next
@@ -295,6 +303,9 @@ docs/alabaster-dawn-port.md     the Alabaster Dawn port and controller-fix docum
 
 - [x] Per-game profile seam; Alabaster Dawn's behaviour unchanged
 - [x] CrossCode shim: boot to the title screen in a desktop harness
+- [x] Entry screen: a card per game (title art, name, both folder paths, play badge, **⋮**), a saves
+      folder each, folders that have been moved or deleted marked, and **Game selection** in the side
+      menu to come back to it without ending the process
 - [ ] CrossCode on a phone: GPU cost at 1136×640, audio, fullscreen/scale, pad mapping
 - [ ] CrossCode save round-trip (save-string export, and the file path list)
 - [ ] CrossCode extensions (`assets/extension`) if mods are wanted
