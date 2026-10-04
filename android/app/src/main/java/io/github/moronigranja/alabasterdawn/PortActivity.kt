@@ -1517,7 +1517,7 @@ class PortActivity : Activity() {
         private const val MENU_CHANGE_FOLDER = 1
         private const val MENU_FORGET_FOLDER = 2
         /* How tall the hero card's logo box is. */
-        private const val HERO_LOGO_DP = 84
+        private const val HERO_LOGO_DP = 100
         private const val KEY_SAVES = "saves_tree_uri"
 
         /* Whether the on-screen pad draws its controls. */

@@ -61,9 +61,13 @@ enum class GameProfile(
     /** The render canvas the port's overlays measure. Both engines own the element's own layout. */
     val canvasSelector: String,
     /**
-     * The game's own logo inside its install, relative to the picked root, for the entry screen's
-     * hero. It is **drawn from the user's copy at runtime and never shipped**: the APK carries no game
-     * art (see `NOTICE.md`), and a build that moved the file simply gets no image.
+     * The game's own art inside its install, relative to the picked root, for the entry screen's
+     * hero: Alabaster Dawn's wordmark, CrossCode's title-screen character art. It is **drawn from the
+     * user's copy at runtime and never shipped** — the APK carries no game art (see `NOTICE.md`), and
+     * a build that moved the file simply gets no image.
+     *
+     * Both are the games' *composed* art, not their atlases: `game-logo-small.png` and CrossCode's
+     * `title-logo.png` are sprite sheets, whose opaque filler draws as black slabs on a panel.
      */
     val logoPath: String,
 ) {
@@ -80,7 +84,7 @@ enum class GameProfile(
         rewrites = true,
         viewAlign = true,
         canvasSelector = ".xgCanvas",
-        logoPath = "terra/media/gui/game-logo-small.png",
+        logoPath = "terra/media/gui/title/title-name-01.png",
     ),
     CROSSCODE(
         id = "cc",
@@ -98,7 +102,7 @@ enum class GameProfile(
         rewrites = false,
         viewAlign = false,
         canvasSelector = "#canvas",
-        logoPath = "assets/media/gui/title-logo-new.png",
+        logoPath = "assets/media/gui/title/title-bg.png",
     );
 
     /** The entry page's index key (also its path under the picked root). */
