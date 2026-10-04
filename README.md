@@ -61,6 +61,7 @@
     </li>
     <li><a href="#repository-layout">Repository layout</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
+    <li><a href="#ai-usage">AI usage</a></li>
     <li><a href="#contributing">Contributing</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#acknowledgments">Acknowledgments</a></li>
@@ -378,6 +379,8 @@ tools/                          the desktop harness and probes used to measure t
     preview.py                  reads the shipped vectors, PortStyle palette and dp constants
 FINDINGS.md                     the research record (§13 is the CrossCode probe)
 ON_SCREEN_GAMEPAD_PLAN.md       the on-screen pad design
+CONTRIBUTING.md                 how to build/test, and the AI-disclosure rule for commits
+AGENTS.md                       the same rules, for AI coding agents working in the repo
 docs/alabaster-dawn-port.md     the Alabaster Dawn port and controller-fix documentation
 ```
 
@@ -406,11 +409,35 @@ proposed features and known issues.
 
 ---
 
+## AI usage
+
+This project is maintained by a developer, and **most of its code was written by an AI assistant**,
+chiefly **DeepSeek V4.1 Flash**, served through OpenRouter and driven by the **oh-my-pi** agentic
+coding harness. What the human does: sets the direction, makes the design calls, runs the port on real
+devices, reviews every change, and owns the result. What the AI does: writes the Kotlin, the shims, the
+tests, and most of this documentation.
+
+Said plainly because it is easy to check and worth knowing. The interesting part of this repository is
+not who typed the code — it is what was measured. The failure modes it documents (a `mediump` sentinel
+that made water invisible on every device, the NW.js surface CrossCode's engine expects, a launcher
+mask that cropped its own icon) were found on hardware and are recorded with the evidence in
+`FINDINGS.md`.
+
+Every commit is authored and signed off by a human; AI-assisted commits carry an `Assisted-by:`
+trailer naming the tool and model, the convention the Linux kernel, Fedora and others settled on. No AI
+is ever credited as a co-author or as a sign-off, and the copyright and the MIT licence stay human.
+That is also why review is welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+---
+
 ## Contributing
 
 Issues and pull requests are welcome. Hardware reports are the most valuable contribution there is:
 this port's hard bugs have all been found on devices the maintainer does not own, and the diagnostics
-panel exists so that a screenshot of it is a complete report.
+panel exists so that a screenshot of it is a complete report. [`CONTRIBUTING.md`](CONTRIBUTING.md) has
+the build/test commands and the AI-disclosure rule for commits.
 
 1. Fork the project
 2. Create your branch (`git checkout -b feature/AmazingFeature`)

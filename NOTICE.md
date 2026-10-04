@@ -6,6 +6,10 @@ RadicalFish Ports — an unofficial Android port for Radical Fish Games' NW.js t
 CrossCode), plus a desktop controller fix for the same games' PC builds. MIT licensed, © 2026 Moroni
 Granja. See `LICENSE`.
 
+Most of this project's code was written by an AI assistant (DeepSeek V4.1 Flash, driven by the
+oh-my-pi harness); the maintainer is the author of record, reviews every change, and holds the
+copyright. AI-assisted commits carry an `Assisted-by:` trailer naming the tool and model.
+
 This file is copied into the released APK as `assets/NOTICE.md` (with `assets/LICENSE`), so a
 distributed binary carries the notices it is distributed under.
 
