@@ -8,7 +8,7 @@
 
 <br />
 <div align="center">
-  <h3 align="center">RadicalFish Port</h3>
+  <h3 align="center">RadicalFish Ports</h3>
 
   <p align="center">
     An unofficial Android port for Radical Fish Games' NW.js titles.
@@ -94,7 +94,7 @@ table (`GameProfile`) and one shim script each.
 | Game | Engine | Status |
 |---|---|---|
 | **Alabaster Dawn** (Early Access) | `terra` engine, `terra/index.html` | Boot to title screen and gameplay verified end-to-end on Samsung Galaxy S22 Ultra (Android 16), Galaxy Z Fold 7 (Android 17) and an Android 14 emulator — controller, on-screen pad, saves `Default` → `Backups` → `Backups2`, options, exit. The full detail is in [`docs/alabaster-dawn-port.md`](docs/alabaster-dawn-port.md). |
-| **CrossCode** 1.0.0 (`v1.4.2-4`) | Cubic Impact 0.5, `assets/node-webkit.html` | Boots to its title screen with `cc-shim.js`: `ig.platform == Desktop`, `ig.engineName == "Cubic Impact (0.5)"`, canvas `1136x640`, 0 page exceptions, extensions list empty — verified in a desktop Chromium harness on 2026-10-04 (`tools/game-harness.py`; the screenshot above is that run). **Device verification, audio and save round-trips are still open** — see the Roadmap. |
+| **CrossCode** 1.0.0 (`v1.4.2-4`) | Cubic Impact 0.5, `assets/node-webkit.html` | Boots to its title screen with `cc-shim.js`: `ig.platform == Desktop`, `ig.engineName == "Cubic Impact (0.5)"`, canvas `1136x640`, 0 page exceptions, extensions list empty — verified in a desktop Chromium harness on 2026-10-04 (`tools/game-harness.py`; the screenshot above is that run), and **on a phone** on 2026-10-04 (Galaxy Z Fold 7, Android 17): title screen at 60 fps, `window=475x751@2.625`, game build `v1.4.2-4`, and the engine wrote `Default/cc.save` into the picked saves folder ([screenshot](docs/crosscode-phone.png)). **Audio, in-game pad mapping, the heavier scenes' GPU cost and the save round-trip back to a desktop are still open** — see the Roadmap. |
 
 Saves: Alabaster Dawn's Steam layout (`Saves/Default/…`, `Saves/Backups…`) is written into the picked
 saves folder exactly as the desktop build writes it, so a `Saves/` folder can be copied in and back
@@ -226,11 +226,85 @@ app storage for that session.
 
 ### Game files and saves
 
-Pick each game's **install folder** — the one holding Alabaster Dawn's `terra/` directory or
-CrossCode's `assets/` directory (the folder that also holds the game's own `package.json`). The port
-indexes it read-only and never writes to it. Then pick that game's **saves folder** from its card's
-**⋮**; the port keeps its own `pad-layout.json` and its diagnostics log there, next to whatever the
-game writes.
+The port runs each game's own web application from a folder you pick; it indexes that folder read-only
+and never writes to it. **You need only the game's web-app directory** — Alabaster Dawn's `terra/`,
+CrossCode's `assets/`. Everything else in a Steam install (`nw_*.pak`, `lib/`, `locales/`, the
+executable, SwiftShader) is the desktop NW.js runtime, which the phone supplies; copy the game
+directory alone and the transfer is a fraction of the download.
+
+**Where the game is on your PC.** On Steam, right-click the game → *Manage* → *Browse local files*;
+that opens `steamapps/common/<game>` — under `C:\Program Files (x86)\Steam\` on Windows (or wherever
+the library is), and under `~/.steam/steam/` (also `~/.local/share/Steam/`) on Linux and the Steam
+Deck. Copy the game directory to the phone, then point the card's **⋮** → **Select game folder** at
+the folder that *holds* it — the entry page inside `terra/`/`assets/` is how the port knows which game
+it is:
+
+```
+Download/                          on the phone
+└── AlabasterDawn/                 ← pick this (the card's game folder)
+    └── terra/                     the whole game: copy this from the PC
+        ├── index.html
+        ├── dist/bundle.js
+        └── data/ media/ …
+```
+
+```
+Download/
+└── CrossCode/                     ← pick this
+    └── assets/                    the whole game: copy this from the PC
+        ├── node-webkit.html
+        ├── js/game.compiled.js
+        └── data/ media/ impact/ game/ …
+```
+
+**Where the saves are on your PC.** Copy the save folder — or just its contents — into the saves
+folder you picked (a card's **⋮** → **Select save folder**), and the game will offer **Continue**:
+
+* **Alabaster Dawn** — `%LOCALAPPDATA%\Alabaster Dawn\Saves` on Windows,
+  `~/.config/Alabaster Dawn/Saves` on Linux and the Steam Deck (`Save_ID_auto.save`, `System.save`).
+  Copy the `Saves` folder itself, or its contents; both are read:
+
+  ```
+  Download/
+  └── AdaSaves/                     ← pick this (the card's saves folder)
+      ├── Saves/                    the desktop "Saves" folder, copied whole…
+      │   ├── Default/Save_ID_0000.save
+      │   ├── Backups/
+      │   └── Backups2/
+  …
+  Download/
+  └── AdaSaves/                     ← pick this
+      ├── Default/Save_ID_0000.save …or the "Saves" folder's contents, dropped straight in
+      ├── Backups/
+      └── Backups2/
+  ```
+
+* **CrossCode** — `%LOCALAPPDATA%\CrossCode` on Windows (it also looks inside its `User
+  Data\Default`), `~/.config/CrossCode/Default` on Linux and the Steam Deck (`cc.save`). That desktop
+  path is NW.js's Chromium profile directory, so it also holds browser junk — copy the save files, or
+  the `Default` folder itself:
+
+  ```
+  Download/
+  └── CcSaves/                      ← pick this (the card's saves folder)
+      ├── cc.save                   the save file, straight from the profile directory…
+      ├── cc.save.backup
+      └── cc.save.backup2
+  …
+  Download/
+  └── CcSaves/                      ← pick this
+      └── Default/                  …or the "Default" folder, copied whole
+          └── cc.save
+  ```
+
+  Copied flat, Alabaster Dawn's saves are the desktop `Saves` folder's contents (`Default/`,
+  `Backups/` at the top) and CrossCode's are its save files (`cc.save*` at the top). In both shapes the
+  port serves the game's own `Saves/…`/`Default/…` paths at the picked root, so a save round-trips
+  between phone and desktop with no renaming. The port also keeps its own `pad-layout.json` and its
+  diagnostics log at the root of that folder.
+
+The same paths are in the app: a card's **⋮** → **Help: what to copy** prints the game directory, the
+desktop save locations and the save file names for that game, in case a path has moved.
 
 Until a saves folder is picked, saves go to app-private storage (the side menu says so, and it is not
 exportable). Picking a folder **carries those saves into it** — a file is copied when the folder does
@@ -244,7 +318,9 @@ different folder uses that folder as it is.
 * **On-screen pad** — both sticks, d-pad, A/B/X/Y, L1/R1, L2/R2, Select/Start/HOME, with a toggle
   pill and an `EDIT` mode (drag to move, corner handle to resize, `-`/`+`, `RESET`, `UNDO`, `DONE`).
   While a controller, mouse or keyboard is in use the whole overlay hides and returns after a minute
-  of quiet (a switch in the side menu).
+  of quiet (a switch in the side menu). A **Dynamic sticks** switch (on by default) makes each stick
+  start where its half is touched — the ring and knob appear under the thumb and vanish when it
+  lifts; off restores the fixed rings.
 * **Mouse and keyboard** — a mouse click falls through the pad to the WebView, and a keyboard plays
   the game: WASD/arrows, Enter, Escape, Space, Tab, modifiers and F1–F12 are dispatched to the page
   with a real DOM `code`/`key` where Android delivers no scan code — plus the legacy `keyCode`/`which`,
@@ -253,8 +329,9 @@ different folder uses that folder as it is.
 ### The side menu
 
 Back opens a panel over the running game: hide-with-external-input, a frame-rate cap with its rate
-slider (20/30/40/45/60 fps), a picture-position choice (Top/Centre/Bottom, where the engine supports
-it), an FPS/battery/temperature readout, the saves-folder log switch, the version and status lines,
+slider (20/30/40/45/60 fps), a picture-position choice (Top/Centre/Bottom — both engines move the
+canvas's layout box, which their own mouse maps follow), an FPS/battery/temperature readout, the
+saves-folder log switch, the version and status lines,
 **Game selection** and Exit. Game selection tears the running game down and returns to the two-card
 entry screen with the process alive; **Exit ends the app process**, so the next launch is clean. All
 of it lives in the app's prefs.

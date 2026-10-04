@@ -2991,3 +2991,55 @@ Fix: the port defines the legacy `keyCode`/`which` onto the event after it is bu
 (`legacyKeyCode`, the pre-`code` numbers: Enter 13, Space 32, arrows 37-40, KeyA 65, Digit0 48, F1 112),
 while still carrying `code`/`key` for `terra`. Verified on the S22 Ultra: the port's own Enter advanced
 CrossCode's title screen to its main menu.
+
+---
+
+## 24. CrossCode on a phone, the save layouts, and the launcher mark's safe circle (2026-10-04)
+
+### 24.1 CrossCode boots and saves on a Fold 7
+
+The harness result (§13.2) said nothing about a phone. On 2026-10-04, with 0.8.0 (19) installed on a
+Galaxy Z Fold 7 (Android 17, SDK 37), the CrossCode card was started and the port's own record read:
+
+```
++17814ms ENGINE facts: game=CrossCode; webgl2=true; gl=none; driver=native;
+                     canvas=1136x640; window=475x751@2.625; platform=Desktop
++20587ms ENGINE fps: limited to 60 fps
+```
+
+`gl=none` is expected, not a failure: CrossCode is a canvas-2D engine, so the port's probe for a WebGL
+context on `#canvas` finds none. The title screen drew at the stats readout's **60 fps · 1136x640**, the
+game's own build reported `v1.4.2-4`, and the engine had written `Default/cc.save` (158 614 B) into the
+picked saves folder — the round-trip path of §23.5, now exercised by the engine rather than by a copy.
+Screenshot: `docs/crosscode-phone.png`. Still open: audio, the pad in-game, the heavier scenes' GPU cost,
+and a save carried back to a desktop.
+
+### 24.2 The mark was cropped: adaptive icons only show the inner region
+
+The circuit-fish mark first shipped at group scale 0.86, and it was visibly cut on the home screen. An
+adaptive icon's layers are 108dp but the launcher only shows the inner region (a ~66-72dp circle on most
+launchers, 72dp being the common visible diameter). Measured by rasterising the two vector XMLs and
+counting mark pixels outside a centred mask circle:
+
+| mask circle | scale 0.86 | scale 0.60 |
+|---|---|---|
+| 60dp | 34.2 % clipped | 1.2 % |
+| 66dp | 23.8 % | 0.0 % |
+| 72dp | 13.7 % | 0.0 % |
+
+The mark spanned x 13–95 / y 16–89 dp. At 0.60 it fits the 66dp mask-safe circle with none of it outside
+at 66dp or larger. The harness's own `launcher.png` masks the *whole* 108dp viewport, so it does not catch
+this — the safe circle it draws is the guide, not the crop. The check lives in the release notes' recipe
+below rather than in the repo: rasterise `ic_launcher_background/foreground`, apply a circle mask at
+66/72dp, count non-field pixels outside it.
+
+### 24.3 The saves folder reads either shape
+
+Both engines write one level below the picked folder — Alabaster Dawn `Saves/…` (its desktop `dataPath` is
+the game's config directory) and CrossCode `Default/…` (its desktop `dataPath` *is*
+`~/.config/CrossCode/Default`, §23.5). A desktop saves folder copied **whole** reproduces that; its
+**contents** copied flat do not, and the game then finds nothing. `SaveLayout` decides once per store open:
+if the game's subfolder is absent and the flat marker is present (`Default` for Alabaster Dawn, `cc.save`
+for CrossCode), the leading subfolder segment is stripped from every path, so reads, writes and the
+engine's own `Default` → `Backups` rotation land at the picked root. Only the leading segment is dropped,
+so the port's own `pad-layout.json` and log at the root are untouched. Unit-tested in `SaveLayoutTest`.

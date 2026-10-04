@@ -61,6 +61,25 @@ class OnScreenPadModel {
         private set
 
     /**
+     * True while the two sticks are dynamic: each one's origin is the point its half was touched at,
+     * not a fixed spot. The fixed ring is then never drawn, the editor does not offer the sticks
+     * (they have no home to drag), and a touch that misses every other control starts the stick of
+     * the half it fell in. Off is the stock, fixed pad.
+     */
+    var dynamicSticks = false
+        set(value) {
+            if (field == value) return
+            /* A held stick must not survive the switch as a stuck axis at a stale origin. */
+            releaseAll()
+            /* Nor may the editor keep a stick selected once the mode stops offering it: with no
+             * fixed home, `place` leaves the shape at its last spot and the handle/outline would
+             * keep drawing there. */
+            if (isStick(selected)) selected = NO_CONTROL
+            field = value
+            placeAll()
+        }
+
+    /**
      * True while the user has the pad hidden. The pill row is then just the way back - one small
      * centred pill drawn as a downward chevron, and no EDIT pill, because there is no layout on screen
      * to edit. Set by the View from its `padEnabled` preference; the pill geometry follows it.
@@ -119,7 +138,10 @@ class OnScreenPadModel {
 
     /** The control a point falls on, or [NO_CONTROL]. First match wins (see [CONTROLS] ordering). */
     fun controlAt(x: Float, y: Float): Int {
-        for (control in 0 until CONTROLS) if (inside(control, x, y)) return control
+        for (control in 0 until CONTROLS) {
+            if (dynamicSticks && isStick(control)) continue
+            if (inside(control, x, y)) return control
+        }
         return NO_CONTROL
     }
 
@@ -179,17 +201,40 @@ class OnScreenPadModel {
     fun knobRadius(control: Int): Float =
         shapes[control].radius * (STICK_KNOB / STICK_RADIUS)
 
+    /** True for the two controls that drive axes instead of a button index. */
+    private fun isStick(control: Int): Boolean = control == LEFT_STICK || control == RIGHT_STICK
+
+    /** The half a touch belongs to: left of centre is the left stick, centre and right the right one. */
+    private fun stickForHalf(x: Float): Int = if (x < viewWidth / 2f) LEFT_STICK else RIGHT_STICK
+
+    /** True while a pointer holds [control]; only meaningful for the sticks in dynamic mode. */
+    fun stickActive(control: Int): Boolean = isStick(control) && pointerOf[control] != NO_POINTER
+
     /**
      * A DOWN inside a control claims it. False when the point is on no control, or when that
-     * control already belongs to another pointer (two fingers must never fight over one axis).
+     * control already belongs to another pointer (two fingers must never fight over one axis). In
+     * dynamic mode a DOWN that misses every control starts the stick of the half it fell in.
      */
     fun down(id: Int, x: Float, y: Float): Boolean {
         if (controlOf.containsKey(id)) return false
         val control = controlAt(x, y)
-        if (control == NO_CONTROL || pointerOf[control] != NO_POINTER) return false
-        pointerOf[control] = id
-        controlOf[id] = control
-        apply(control, x, y)
+        if (control != NO_CONTROL) {
+            if (pointerOf[control] != NO_POINTER) return false
+            pointerOf[control] = id
+            controlOf[id] = control
+            apply(control, x, y)
+            return true
+        }
+        if (!dynamicSticks) return false
+        val stick = stickForHalf(x)
+        /* A second finger on the same half gets no stick: one axis, one pointer. */
+        if (pointerOf[stick] != NO_POINTER) return false
+        pointerOf[stick] = id
+        controlOf[id] = stick
+        /* The touch point becomes the home; the knob starts centred there. */
+        shapes[stick].x = x
+        shapes[stick].y = y
+        apply(stick, x, y)
         return true
     }
 
@@ -281,11 +326,14 @@ class OnScreenPadModel {
         val b = base[control]
         val s = shapes[control]
         s.circular = b.circular
-        s.x = b.x + layout.offsetX[control] * unit
-        s.y = b.y + layout.offsetY[control] * unit
         s.radius = b.radius * layout.scale[control]
         s.halfWidth = b.halfWidth * layout.scale[control]
         s.halfHeight = b.halfHeight * layout.scale[control]
+        /* A dynamic stick has no fixed home: its origin is set by the touch that claims it. Its size
+         * still follows the layout, so `global` and `scale` keep working. */
+        if (dynamicSticks && isStick(control)) return
+        s.x = b.x + layout.offsetX[control] * unit
+        s.y = b.y + layout.offsetY[control] * unit
         clamp(control)
     }
 
@@ -493,7 +541,10 @@ class OnScreenPadModel {
 
         private const val EDGE_PAD = 0.35f
         private const val STICK_RADIUS = 1.5f
-        private const val STICK_DEADZONE = 0.12f
+
+        /** A stick's neutral band, a fraction of its radius — small, because a dynamic stick is placed
+         * by the thumb and only deliberate drags should register. */
+        private const val STICK_DEADZONE = 0.08f
 
         /** How far a control's centre must stay from an edge, in touch units. */
         private const val CLAMP_MARGIN = 0.2f

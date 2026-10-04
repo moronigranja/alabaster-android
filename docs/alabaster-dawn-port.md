@@ -444,7 +444,7 @@ what changed, what to do, what is verified, upgrading — and leave the mechanis
 `docs/release-notes-<version>.md` and `FINDINGS.md`. v0.7.2 was first published with the long notes as the
 body; do not repeat that.
 
-`tools/release.sh` renames the shipped artifact to `AlabasterDawn-Android-<version>.apk` (never
+`tools/release.sh` renames the shipped artifact to `RadicalFishPorts-Android-<version>.apk` (never
 `app-release-unsigned.apk`, never `app-debug.apk`) and runs the digest and signature checks on that
 exact file. Back the keystore and `keystore.properties` up off-machine: losing them locks updates
 on every device that installed a build signed with them.

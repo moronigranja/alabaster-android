@@ -74,6 +74,49 @@ object SaveCarry {
     }
 }
 
+/**
+ * A picked saves folder whose game files were copied *flat* — the desktop folder's contents dropped
+ * straight in, not the folder itself (see [GameProfile.saveSubdir]/[GameProfile.saveFlatMarker]).
+ * The game still asks for `Saves/…` (Alabaster Dawn) or `Default/…` (CrossCode); every relative path
+ * that leads with that one directory is served [prefix]-less instead, so reads, writes and the
+ * game's own `Default` → `Backups` rotation all land at the picked root.
+ *
+ * Only the leading segment is dropped, and only when it exactly is the prefix: `Save_ID.save` at the
+ * root, the port's own `pad-layout.json`/log, and any deeper file are untouched. Detection happens
+ * once, at store open ([SaveLayout.detect]), so a folder is never half one shape and half the other.
+ */
+class SaveLayoutStore(private val inner: SaveStore, private val prefix: String) : SaveStore {
+
+    override val label: String? get() = inner.label
+
+    /** The path as the game names it, mapped onto the flattened folder. */
+    private fun flatten(rel: String): String =
+        if (rel == prefix) "" else if (rel.startsWith("$prefix/")) rel.substring(prefix.length + 1) else rel
+
+    override fun exists(rel: String): Boolean = inner.exists(flatten(rel))
+    override fun mkdir(rel: String): Boolean = inner.mkdir(flatten(rel))
+    override fun list(rel: String): List<DirEntry>? = inner.list(flatten(rel))
+    override fun stat(rel: String): StatInfo? = inner.stat(flatten(rel))
+    override fun read(rel: String): String? = inner.read(flatten(rel))
+    override fun write(rel: String, data: String): Boolean = inner.write(flatten(rel), data)
+    override fun rm(rel: String): Boolean = inner.rm(flatten(rel))
+    override fun rename(from: String, to: String): Boolean =
+        inner.rename(flatten(from), flatten(to))
+}
+
+/**
+ * Picks the saves layout for a store: the game's own [GameProfile.saveSubdir] when it is there, or
+ * [GameProfile.saveFlatMarker] with the subfolder absent, which means the desktop saves were copied
+ * flat. Anything else (an empty or new folder) keeps the standard shape.
+ */
+object SaveLayout {
+    fun detect(store: SaveStore, profile: GameProfile): SaveStore {
+        if (store.stat(profile.saveSubdir)?.isDir == true) return store
+        if (!store.exists(profile.saveFlatMarker)) return store
+        return SaveLayoutStore(store, profile.saveSubdir)
+    }
+}
+
 /** Saves in the folder the user picked with SAF. */
 class SafStore(private val resolver: ContentResolver, val treeUri: Uri) : SaveStore {
 

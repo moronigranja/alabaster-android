@@ -76,6 +76,17 @@ class OnScreenPadView(context: Context) : View(context) {
             invalidate()
         }
 
+    /** Whether the sticks start where a half is touched (the side menu's switch). */
+    var dynamicSticks: Boolean
+        get() = model.dynamicSticks
+        set(value) {
+            if (model.dynamicSticks == value) return
+            model.dynamicSticks = value
+            /* The switch cleared whatever was held; republish so the engine sees the neutral pad. */
+            pushState(force = true)
+            invalidate()
+        }
+
     /** True while a controller, mouse or keyboard is being used: the controls hide until it goes quiet. */
     var externalInputInUse = false
         private set
@@ -205,11 +216,11 @@ class OnScreenPadView(context: Context) : View(context) {
                     val control = model.controlAt(x, y)
                     model.beginDrag(control, x, y)
                     dragPointer[id] = control
-                } else if (controlsDrawn()) {
+                } else if (overlayActive()) {
                     /* While the controls are drawn the pad consumes the whole gesture: the page has
                      * no touch UI, and the engine has no touch input device to fall back on. */
-                    model.down(id, x, y)
-                    if (pushState()) invalidate()
+                    val claimed = model.down(id, x, y)
+                    if (pushState() || (claimed && model.dynamicSticks)) invalidate()
                     consumed = true
                 }
                 consumed = consumed || model.editing || controlsDrawn() || pill != OnScreenPadModel.PILL_NONE
@@ -246,7 +257,8 @@ class OnScreenPadView(context: Context) : View(context) {
                     scalePointer.remove(id)
                     consumed = true
                 } else {
-                    if (model.up(id) && pushState()) invalidate()
+                    val released = model.up(id)
+                    if (pushState() || (released && model.dynamicSticks)) invalidate()
                     consumed = controlsDrawn()
                 }
             }
@@ -257,7 +269,7 @@ class OnScreenPadView(context: Context) : View(context) {
                     scalePointer.clear()
                 } else {
                     for (p in 0 until event.pointerCount) model.up(event.getPointerId(p))
-                    if (pushState()) invalidate()
+                    if (pushState() || model.dynamicSticks) invalidate()
                 }
                 consumed = true
             }
@@ -328,9 +340,21 @@ class OnScreenPadView(context: Context) : View(context) {
         stroke.strokeWidth = model.layoutUnit * STROKE_UNITS
         val drawn = controlsDrawn()
         if (drawn || model.editing) {
-            drawStick(canvas, OnScreenPadModel.LEFT_STICK, 0)
-            drawDpad(canvas)
-            drawStick(canvas, OnScreenPadModel.RIGHT_STICK, 2)
+            if (model.dynamicSticks) {
+                /* No fixed rings: a stick is on screen only while a finger holds it, at the point
+                 * its half was touched (its shape holds the live origin). */
+                if (model.stickActive(OnScreenPadModel.LEFT_STICK)) {
+                    drawStick(canvas, OnScreenPadModel.LEFT_STICK, 0)
+                }
+                drawDpad(canvas)
+                if (model.stickActive(OnScreenPadModel.RIGHT_STICK)) {
+                    drawStick(canvas, OnScreenPadModel.RIGHT_STICK, 2)
+                }
+            } else {
+                drawStick(canvas, OnScreenPadModel.LEFT_STICK, 0)
+                drawDpad(canvas)
+                drawStick(canvas, OnScreenPadModel.RIGHT_STICK, 2)
+            }
             drawDisc(canvas, OnScreenPadModel.FACE_Y, "Y")
             drawDisc(canvas, OnScreenPadModel.FACE_A, "A")
             drawDisc(canvas, OnScreenPadModel.FACE_X, "X")

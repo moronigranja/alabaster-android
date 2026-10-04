@@ -109,6 +109,7 @@ class PortActivity : Activity() {
     private var padView: OnScreenPadView? = null
     private var menuView: SideMenuView? = null
     private var hideWithExternalInput = true
+    private var dynamicSticks = true
     private var viewAlign = ViewAlign.DEFAULT
     private var statsEnabled = false
     /** Whether the shim caps the page's frame rate (the side menu's battery switch). */
@@ -196,6 +197,7 @@ class PortActivity : Activity() {
         lastGame = prefs.getString(KEY_LAST_GAME, null)
             ?.let { id -> GameProfile.entries.firstOrNull { it.id == id } }
         hideWithExternalInput = prefs.getBoolean(KEY_HIDE_EXTERNAL_INPUT, true)
+        dynamicSticks = prefs.getBoolean(KEY_DYNAMIC_STICKS, true)
         viewAlign = ViewAlign.fromWire(prefs.getString(KEY_VIEW_ALIGN, null))
         statsEnabled = prefs.getBoolean(KEY_STATS, false)
         limitFps = prefs.getBoolean(KEY_LIMIT_FPS, false)
@@ -292,13 +294,15 @@ class PortActivity : Activity() {
         return "Point the port at your own copy of the game: no game files are bundled and nothing " +
             "is uploaded.\n\n" +
             "Game files\n" +
-            "Copy ${profile.pcInstallFolder} from your computer to the phone \u2014 the folder that " +
-            "holds ${profile.pageRoot}/ and the game's package.json. On Steam: right-click " +
-            "${profile.displayName} \u2192 Manage \u2192 Browse local files.\n\n" +
+            "On Steam: right-click ${profile.displayName} \u2192 Manage \u2192 Browse local files. " +
+            "Copy the ${profile.pageRoot}/ folder from ${profile.pcInstallFolder} to the phone, then " +
+            "pick the folder that holds it. Only ${profile.pageRoot}/ is read; the rest of the " +
+            "install is the desktop NW.js runtime, not needed.\n\n" +
             "Saves\n" +
             "On the computer they are in:\n$saves\n" +
-            "Copy them into the saves folder you picked here (this card's \u22ee \u2192 Select save " +
-            "folder) and the game will list Continue.\n" +
+            "Copy the save folder itself into the saves folder you picked here (this card's \u22ee " +
+            "\u2192 Select save folder), or just its contents \u2014 the port reads either shape " +
+            "(the game's own ${profile.saveSubdir}/ subfolder, or the files at the top level).\n" +
             "Not there? Search your computer for ${profile.pcSaveFiles.joinToString(" or ")}."
     }
 
@@ -728,7 +732,7 @@ class PortActivity : Activity() {
             saveStore = fresh
             if (!previousRecordCarried) carryPreviousRecord(fresh)
             /* Saves made while app storage was in use would otherwise be left behind, unreachable. */
-            carryAppStorageSaves(uri)
+            carryAppStorageSaves(uri, target)
             diag.line("granted saves for ${target.displayName}: $uri (flags=$flags)")
         } else {
             /* Read it now: reading is what says which game it is, and Start then does not walk the
@@ -937,7 +941,11 @@ class PortActivity : Activity() {
          * falls back to app storage, where writes work (the entry screen marks the folder missing). */
         if (uri != null && GameFiles.treeResolves(contentResolver, uri)) {
             try {
-                return SafStore(contentResolver, uri)
+                val saf = SafStore(contentResolver, uri)
+                /* A folder holding the game's own subfolder (`Saves/…`, `Default/…`) is served as
+                 * is; one holding that subfolder's *contents* — the desktop folder copied flat —
+                 * is served at the root instead (see [SaveLayout]). */
+                return if (forGame != null) SaveLayout.detect(saf, forGame) else saf
             } catch (e: Exception) {
                 Log.e(TAG, "saves tree unusable, falling back to app storage", e)
             }
@@ -958,11 +966,11 @@ class PortActivity : Activity() {
      * A file is copied when the folder does not have it, or the app's copy is newer. Nothing is
      * deleted, and the copy runs off the main thread (the target is SAF).
      */
-    private fun carryAppStorageSaves(into: Uri) {
+    private fun carryAppStorageSaves(into: Uri, forGame: GameProfile) {
         val source = FileStore.appPrivate(this)
         Thread({
             val copied = try {
-                SaveCarry.copyNewer(source, SafStore(contentResolver, into))
+                SaveCarry.copyNewer(source, SaveLayout.detect(SafStore(contentResolver, into), forGame))
             } catch (e: Exception) {
                 Log.e(TAG, "cannot carry app-storage saves into ${GameFiles.pathOf(into)}", e)
                 return@Thread
@@ -1098,6 +1106,7 @@ class PortActivity : Activity() {
         val pad = OnScreenPadView(this).apply {
             padEnabled = prefs.getBoolean(KEY_PAD, true)
             hideWithExternalInput = this@PortActivity.hideWithExternalInput
+            dynamicSticks = this@PortActivity.dynamicSticks
             layout = padLayoutStore?.load() ?: PadLayout()
             onToggle = { prefs.edit().putBoolean(KEY_PAD, it).apply() }
             onLayoutChanged = { padLayoutStore?.save(it) }
@@ -1112,6 +1121,7 @@ class PortActivity : Activity() {
         )
         val menu = SideMenuView(this, viewAlignSupported = selected.viewAlign).apply {
             setHideWithExternalInput(this@PortActivity.hideWithExternalInput)
+            setDynamicSticks(this@PortActivity.dynamicSticks)
             setStatsEnabled(statsEnabled)
             setLimitFps(limitFps)
             setFpsLimit(fpsLimit)
@@ -1121,6 +1131,12 @@ class PortActivity : Activity() {
                 this@PortActivity.hideWithExternalInput = it
                 prefs.edit().putBoolean(KEY_HIDE_EXTERNAL_INPUT, it).apply()
                 padView?.hideWithExternalInput = it
+            }
+            onDynamicSticks = {
+                this@PortActivity.dynamicSticks = it
+                prefs.edit().putBoolean(KEY_DYNAMIC_STICKS, it).apply()
+                padView?.dynamicSticks = it
+                diag.line("dynamic sticks " + (if (it) "on" else "off"))
             }
             onStatsEnabled = {
                 this@PortActivity.statsEnabled = it
@@ -1865,6 +1881,8 @@ class PortActivity : Activity() {
 
         /* Whether the on-screen pad draws its controls. */
         private const val KEY_PAD = "on_screen_pad"
+        /* Whether the two sticks start where the screen half is touched (the side menu's switch). */
+        private const val KEY_DYNAMIC_STICKS = "dynamic_sticks"
         /* Whether external input (controller, mouse or keyboard) hides the on-screen overlay (the
          * side menu's switch). The stored key string is kept as-is so installs keep their setting. */
         private const val KEY_HIDE_EXTERNAL_INPUT = "hide_with_controller"

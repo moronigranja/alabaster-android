@@ -61,6 +61,21 @@ enum class GameProfile(
     /** The render canvas the port's overlays measure. Both engines own the element's own layout. */
     val canvasSelector: String,
     /**
+     * The game's own save folder inside the picked saves folder: the path the engine appends below
+     * its `dataPath`. Alabaster Dawn writes `Saves/…` (its desktop `dataPath` is the game's config
+     * directory), CrossCode writes `Default/…` (its desktop `dataPath` *is* `…/CrossCode/Default`).
+     * A desktop saves folder copied in whole reproduces this shape under the picked folder.
+     */
+    val saveSubdir: String,
+    /**
+     * The path that exists in the picked saves folder only when the desktop saves were copied *flat*
+     * — the contents of the desktop folder, without [saveSubdir]: Alabaster Dawn's `Default`
+     * directory, CrossCode's `cc.save`. Its presence, with [saveSubdir] absent, makes the port read
+     * and write the game's saves at the picked root (see `SaveLayout`); the game itself is untouched
+     * and still asks for `Saves/…` / `Default/…`.
+     */
+    val saveFlatMarker: String,
+    /**
      * The game's own art inside its install, relative to the picked root, for its card's tile on the
      * entry screen: each game's *title art* — Alabaster Dawn's emblem, CrossCode's character scene.
      * It is **drawn from the user's copy at runtime and never shipped** — the APK carries no game art
@@ -92,6 +107,8 @@ enum class GameProfile(
         rewrites = true,
         viewAlign = true,
         canvasSelector = ".xgCanvas",
+        saveSubdir = "Saves",
+        saveFlatMarker = "Default",
         artPath = "terra/media/gui/title/title-bg-01.png",
         pcInstallFolder = "steamapps/common/Alabaster Dawn",
         pcSaves = listOf(
@@ -114,8 +131,13 @@ enum class GameProfile(
         resetVideoParam = null,
         /* Cubic Impact, canvas 2D: none of the GLSL rewrites have a file to land on. */
         rewrites = false,
-        viewAlign = false,
+        /* Its canvas is `position:absolute; inset:0; margin:auto` like `terra`'s, and its own
+         * mouse mapping (`ig.Input.getMouseCoords`) sums `offsetLeft/offsetTop` up the
+         * offsetParent chain too — so moving the element's box keeps clicks picture-relative. */
+        viewAlign = true,
         canvasSelector = "#canvas",
+        saveSubdir = "Default",
+        saveFlatMarker = "cc.save",
         artPath = "assets/media/gui/title-bg.png",
         pcInstallFolder = "steamapps/common/CrossCode",
         pcSaves = listOf(

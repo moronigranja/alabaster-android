@@ -69,12 +69,23 @@ class GameProfileTest {
     @Test
     fun `the engine rewrites and the resolution reset are Alabaster Dawn's alone`() {
         assertEquals(true, GameProfile.ALABASTER_DAWN.rewrites)
-        assertEquals(true, GameProfile.ALABASTER_DAWN.viewAlign)
         assertEquals("adaResetVideo", GameProfile.ALABASTER_DAWN.resetVideoParam)
 
         assertEquals(false, GameProfile.CROSSCODE.rewrites)
-        assertEquals(false, GameProfile.CROSSCODE.viewAlign)
         assertNull("CrossCode has no stored resolution option to jam", GameProfile.CROSSCODE.resetVideoParam)
+    }
+
+    @Test
+    fun `both engines offer the picture control, and each keeps its own saves subfolder`() {
+        /* Both canvases are `position:absolute; inset:0; margin:auto` and both engines' mouse maps
+         * sum the canvas's own offsetLeft/offsetTop, so the box-move aligns both. */
+        assertEquals(true, GameProfile.ALABASTER_DAWN.viewAlign)
+        assertEquals(true, GameProfile.CROSSCODE.viewAlign)
+
+        assertEquals("Saves", GameProfile.ALABASTER_DAWN.saveSubdir)
+        assertEquals("Default", GameProfile.ALABASTER_DAWN.saveFlatMarker)
+        assertEquals("Default", GameProfile.CROSSCODE.saveSubdir)
+        assertEquals("cc.save", GameProfile.CROSSCODE.saveFlatMarker)
     }
 
     @Test

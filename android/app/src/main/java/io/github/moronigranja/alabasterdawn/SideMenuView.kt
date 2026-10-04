@@ -42,6 +42,9 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
     /** A tap on the overlay switch (never fired by [setHideWithExternalInput]). */
     var onHideWithExternalInput: ((Boolean) -> Unit)? = null
 
+    /** A tap on the dynamic-sticks switch. */
+    var onDynamicSticks: ((Boolean) -> Unit)? = null
+
     /** A tap on the frame-readout switch. */
     var onStatsEnabled: ((Boolean) -> Unit)? = null
 
@@ -70,6 +73,7 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
     var onScrimTap: (() -> Unit)? = null
 
     private val hideToggle = Switch(context)
+    private val dynamicToggle = Switch(context)
     private val statsToggle = Switch(context)
     private val fpsToggle = Switch(context)
     private val logToggle = Switch(context)
@@ -100,6 +104,7 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
     private val pillColor = PortStyle.PILL
 
     private var hideWithExternalInput = true
+    private var dynamicSticks = true
     private var statsEnabled = false
     private var limitFps = false
     private var fpsLimit = FpsLimit.DEFAULT
@@ -118,6 +123,11 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
 
     fun setHideWithExternalInput(value: Boolean) {
         hideWithExternalInput = value
+        sync()
+    }
+
+    fun setDynamicSticks(value: Boolean) {
+        dynamicSticks = value
         sync()
     }
 
@@ -218,6 +228,13 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
         }
         addRow(panel, R.drawable.ic_menu_pad, "Hide pad with external input", hideToggle) {
             hideToggle.isChecked = !hideToggle.isChecked
+        }
+
+        dynamicToggle.setOnCheckedChangeListener { _, checked ->
+            if (!syncing) onDynamicSticks?.invoke(checked)
+        }
+        addRow(panel, R.drawable.ic_menu_joystick, "Dynamic sticks (touch anywhere)", dynamicToggle) {
+            dynamicToggle.isChecked = !dynamicToggle.isChecked
         }
 
         statsToggle.setOnCheckedChangeListener { _, checked ->
@@ -491,6 +508,7 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
     private fun sync() {
         syncing = true
         hideToggle.isChecked = hideWithExternalInput
+        dynamicToggle.isChecked = dynamicSticks
         statsToggle.isChecked = statsEnabled
         fpsToggle.isChecked = limitFps
         fpsSlider.progress = FpsLimit.indexOf(fpsLimit)

@@ -397,6 +397,7 @@
     function pollGamepads() {
         applyFpsLimit();
         updateStats();
+        applyViewAlign();
         var st = parseJson(call(function (b) { return b.getGamepadJson(); }, ""));
         if (!st) {
             pad.connected = false;
@@ -575,6 +576,48 @@
         div.textContent = parts.join(" \u00b7 ");
         statsStart = t;
         statsFrames = 0;
+    }
+
+    /* ---- picture alignment -----------------------------------------------
+     * The side menu's Top/Centre/Bottom control. `#canvas` is `position: absolute; inset: 0;
+     * margin: auto` (impact/page/css/style.css), and the engine writes only its `width`/`height`
+     * (`ig.System.setCanvasSize`), so setting `top` pins the element's layout box and its own CSS
+     * centres the picture inside it. The engine's mouse mapping then follows the box: `ig.Input.
+     * getMouseCoords` sums `offsetLeft/offsetTop` up the offsetParent chain, exactly like the terra
+     * engine, and scales by `ig.system.width/screenWidth` — both the element's client box — so a
+     * click stays on the picture-relative point it hit, in every mode. `""` restores centred. */
+    var alignApplied = null;
+    var alignElement = null;
+    var alignTop = null;
+
+    function applyViewAlign() {
+        var mode = call(function (b) { return b.getViewAlign(); }, "center");
+        var canvas = gameCanvas();
+        if (!canvas) return;
+        var top = null;
+        if (mode === "top" || mode === "bottom") top = alignTopFor(canvas, mode);
+        if (mode === alignApplied && canvas === alignElement && top === alignTop) return;
+        /* Measurements are all zero before the first layout pass; retry on the next frame. */
+        if (mode !== "center" && top === null) return;
+        alignApplied = mode;
+        alignElement = canvas;
+        alignTop = top;
+        canvas.style.top = top === null ? "" : top;
+        canvas.style.bottom = top === null ? "" : "auto";
+    }
+
+    function alignTopFor(canvas, mode) {
+        var parent = canvas.parentElement;
+        var boxH = parent ? parent.clientHeight : 0;
+        if (!boxH) boxH = window.innerHeight;
+        var bufW = canvas.width, bufH = canvas.height;
+        var clientW = canvas.clientWidth, clientH = canvas.clientHeight;
+        if (!boxH || !bufW || !bufH || !clientW || !clientH) return null;
+        var scale1 = Math.min(clientW / bufW, clientH / bufH);
+        var pictureH = scale1 * bufH;
+        var deltaY = clientH - pictureH;
+        var desired = mode === "top" ? 0 : boxH - pictureH;
+        return Math.round(desired - deltaY / 2) + "px";
     }
 
     function reportDiag(kind, text) {

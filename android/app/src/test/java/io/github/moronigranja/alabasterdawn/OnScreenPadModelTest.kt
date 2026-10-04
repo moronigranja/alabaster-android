@@ -108,7 +108,7 @@ class OnScreenPadModelTest {
         val model = model()
         val stick = model.shape(OnScreenPadModel.LEFT_STICK)
         model.down(1, stick.x, stick.y)
-        model.move(1, stick.x + stick.radius * 0.1f, stick.y)
+        model.move(1, stick.x + stick.radius * 0.05f, stick.y)
         assertEquals(0.0, model.axes[0].toDouble(), 0.0001)
     }
 
@@ -140,6 +140,122 @@ class OnScreenPadModelTest {
         model.move(1, stick.x, stick.y + stick.radius)
         assertEquals(0.0, model.axes[0].toDouble(), 0.0001)
         assertEquals(1.0, model.axes[3].toDouble(), 0.0001)
+    }
+
+    /* ------------------------------------------------------------------ dynamic sticks ---- */
+
+    @Test
+    fun `dynamic sticks start where the half was touched`() {
+        val model = model()
+        model.dynamicSticks = true
+        assertTrue(model.down(1, 300f, 700f))
+        assertTrue(model.stickActive(OnScreenPadModel.LEFT_STICK))
+        for (axis in 0 until GamepadState.AXES) assertEquals(0.0, model.axes[axis].toDouble(), 0.0001)
+        val radius = model.shape(OnScreenPadModel.LEFT_STICK).radius
+        model.move(1, 300f + radius, 700f)
+        assertEquals(1.0, model.axes[0].toDouble(), 0.0001)
+        assertEquals(0.0, model.axes[1].toDouble(), 0.0001)
+        assertEquals(0.0, model.axes[2].toDouble(), 0.0001)
+        assertEquals(0.0, model.axes[3].toDouble(), 0.0001)
+    }
+
+    @Test
+    fun `the right half starts the right stick`() {
+        val model = model()
+        model.dynamicSticks = true
+        assertTrue(model.down(1, 1500f, 700f))
+        assertTrue(model.stickActive(OnScreenPadModel.RIGHT_STICK))
+        model.move(1, 1500f, 700f + model.shape(OnScreenPadModel.RIGHT_STICK).radius)
+        assertEquals(1.0, model.axes[3].toDouble(), 0.0001)
+        assertEquals(0.0, model.axes[0].toDouble(), 0.0001)
+    }
+
+    @Test
+    fun `a touch on a control presses it instead of starting a stick`() {
+        val model = model()
+        model.dynamicSticks = true
+        val faceA = model.shape(OnScreenPadModel.FACE_A)
+        assertTrue(model.down(1, faceA.x, faceA.y))
+        assertTrue(model.buttons[0])
+        assertFalse(model.stickActive(OnScreenPadModel.RIGHT_STICK))
+        assertFalse(model.stickActive(OnScreenPadModel.LEFT_STICK))
+    }
+
+    @Test
+    fun `one stick per half`() {
+        val model = model()
+        model.dynamicSticks = true
+        assertTrue(model.down(1, 300f, 700f))
+        assertFalse("a second finger on the same half gets no stick", model.down(2, 350f, 700f))
+        assertTrue(model.down(2, 1500f, 700f))
+    }
+
+    @Test
+    fun `lifting a dynamic stick clears its axes`() {
+        val model = model()
+        model.dynamicSticks = true
+        assertTrue(model.down(1, 300f, 700f))
+        model.move(1, 300f + model.shape(OnScreenPadModel.LEFT_STICK).radius, 700f)
+        assertEquals(1.0, model.axes[0].toDouble(), 0.0001)
+        assertTrue(model.up(1))
+        assertEquals(0.0, model.axes[0].toDouble(), 0.0001)
+        assertFalse(model.stickActive(OnScreenPadModel.LEFT_STICK))
+    }
+
+    @Test
+    fun `full deflection is reachable with the origin at the screen edge`() {
+        val model = model()
+        model.dynamicSticks = true
+        assertTrue(model.down(1, 5f, 5f))
+        model.move(1, -200f, 5f)
+        assertEquals(-1.0, model.axes[0].toDouble(), 0.0001)
+    }
+
+    @Test
+    fun `the editor cannot grab a stick in dynamic mode`() {
+        val model = model()
+        val stick = model.shape(OnScreenPadModel.LEFT_STICK)
+        assertEquals(OnScreenPadModel.LEFT_STICK, model.controlAt(stick.x, stick.y))
+        val x = stick.x
+        val y = stick.y
+        model.dynamicSticks = true
+        assertEquals(OnScreenPadModel.NO_CONTROL, model.controlAt(x, y))
+    }
+
+    @Test
+    fun `turning dynamic off restores the fixed pad`() {
+        val model = model()
+        model.dynamicSticks = true
+        assertTrue(model.down(1, 300f, 700f))
+        model.dynamicSticks = false
+        val stick = model.shape(OnScreenPadModel.LEFT_STICK)
+        assertTrue("the freed fixed centre claims the stick again", model.down(2, stick.x, stick.y))
+        assertTrue(model.stickActive(OnScreenPadModel.LEFT_STICK))
+        model.move(2, stick.x + stick.radius, stick.y)
+        assertEquals(1.0, model.axes[0].toDouble(), 0.0001)
+    }
+
+    @Test
+    fun `turning dynamic on releases a held fixed stick`() {
+        val model = model()
+        val stick = model.shape(OnScreenPadModel.LEFT_STICK)
+        assertTrue(model.down(1, stick.x, stick.y))
+        model.move(1, stick.x + stick.radius, stick.y)
+        assertEquals(1.0, model.axes[0].toDouble(), 0.0001)
+        model.dynamicSticks = true
+        assertEquals(0.0, model.axes[0].toDouble(), 0.0001)
+        assertFalse(model.stickActive(OnScreenPadModel.LEFT_STICK))
+        assertTrue(model.down(2, 300f, 700f))
+    }
+
+    @Test
+    fun `turning dynamic on drops a stick the editor had selected`() {
+        val model = model()
+        val stick = model.shape(OnScreenPadModel.LEFT_STICK)
+        model.beginDrag(OnScreenPadModel.LEFT_STICK, stick.x, stick.y)
+        assertEquals(OnScreenPadModel.LEFT_STICK, model.selected)
+        model.dynamicSticks = true
+        assertEquals(OnScreenPadModel.NO_CONTROL, model.selected)
     }
 
     /* ------------------------------------------------------------------------- buttons ---- */

@@ -2,7 +2,7 @@
 
 ## This project
 
-RadicalFish Port — an unofficial Android port for Radical Fish Games' NW.js titles (Alabaster Dawn and
+RadicalFish Ports — an unofficial Android port for Radical Fish Games' NW.js titles (Alabaster Dawn and
 CrossCode), plus a desktop controller fix for the same games' PC builds. MIT licensed, © 2026 Moroni
 Granja. See `LICENSE`.
 
