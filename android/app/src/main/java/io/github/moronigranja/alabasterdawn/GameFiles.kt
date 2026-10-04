@@ -143,6 +143,64 @@ object GameFiles {
     }
 
     /**
+     * One file's bytes by its path under the picked root, **without indexing the tree**: one query per
+     * segment. The entry screen draws each game's own logo (see [GameProfile.logoPath]) before any
+     * game has been started, and walking a three-segment path is far cheaper than the full index.
+     *
+     * Returns null for a missing file, a directory, an oversized file or a failed read, so a caller
+     * falls back to no image rather than half of one.
+     */
+    fun readByPath(
+        resolver: ContentResolver,
+        treeUri: Uri,
+        path: String,
+        maxBytes: Long = 2 * 1024 * 1024,
+    ): ByteArray? {
+        val segments = path.trim('/').split('/').filter { it.isNotEmpty() }
+        if (segments.isEmpty()) return null
+        var docId = try {
+            DocumentsContract.getTreeDocumentId(treeUri)
+        } catch (e: Exception) {
+            return null
+        }
+        /* Every segment but the last is a directory we have to find by name. */
+        for (segment in segments.dropLast(1)) {
+            docId = findChild(resolver, treeUri, docId, segment) ?: return null
+        }
+        val fileId = findChild(resolver, treeUri, docId, segments.last()) ?: return null
+        return try {
+            resolver.openInputStream(DocumentsContract.buildDocumentUriUsingTree(treeUri, fileId))
+                ?.use { stream -> stream.readBytes().takeIf { it.size <= maxBytes } }
+        } catch (e: Exception) {
+            Log.w(TAG, "cannot read $path", e)
+            null
+        }
+    }
+
+    /** The document id of [name] under [parentDocId], or null when there is no such child. */
+    private fun findChild(
+        resolver: ContentResolver,
+        treeUri: Uri,
+        parentDocId: String,
+        name: String,
+    ): String? = try {
+        val children = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, parentDocId)
+        resolver.query(children, PROJECTION, null, null, null)?.use { cursor ->
+            var found: String? = null
+            while (cursor.moveToNext()) {
+                if (cursor.getString(1) == name) {
+                    found = cursor.getString(0)
+                    break
+                }
+            }
+            found
+        }
+    } catch (e: Exception) {
+        Log.w(TAG, "cannot look up $name", e)
+        null
+    }
+
+    /**
      * Last path segment of a picked tree URI's document id, for the pre-game screen. The document id
      * of a tree URI looks like `primary:Download/GameFolder`.
      */

@@ -93,8 +93,8 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
     private var syncing = false
 
     /** The icon and control colour on a row, and the ripple the whole row shows. */
-    private val rippleColor = ColorStateList.valueOf(0x33E8DCC8)
-    private val pillColor = 0x1FE8DCC8.toInt()
+    private val rippleColor = ColorStateList.valueOf(PortStyle.RIPPLE)
+    private val pillColor = PortStyle.PILL
 
     private var hideWithExternalInput = true
     private var statsEnabled = false
@@ -174,7 +174,7 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
 
         addView(
             View(context).apply {
-                setBackgroundColor(0x99000000.toInt())
+                setBackgroundColor(PortStyle.SCRIM)
                 setOnClickListener { onScrimTap?.invoke() }
             },
             LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
@@ -199,7 +199,7 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
             orientation = LinearLayout.VERTICAL
             /* Its blank area must not fall through to the scrim, which would close the menu. */
             isClickable = true
-            setBackgroundColor(0xF0101820.toInt())
+            setBackgroundColor(PortStyle.PANEL)
             val pad = dp(16)
             setPadding(pad, pad, pad, pad)
         }
@@ -207,7 +207,7 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
         panel.addView(TextView(context).apply {
             text = "Menu"
             textSize = 18f
-            setTextColor(COLOR_TEXT)
+            setTextColor(PortStyle.TEXT)
         })
 
         hideToggle.setOnCheckedChangeListener { _, checked ->
@@ -248,7 +248,7 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
             panel.addView(TextView(context).apply {
                 text = "Game position"
                 textSize = 14f
-                setTextColor(COLOR_DIM)
+                setTextColor(PortStyle.DIM)
                 setPadding(0, dp(16), 0, 0)
             })
 
@@ -262,25 +262,25 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
 
         versionLine.apply {
             textSize = 12f
-            setTextColor(COLOR_DIM)
+            setTextColor(PortStyle.DIM)
         }
         panel.addView(versionLine)
 
         externalInputStatus.apply {
             textSize = 13f
-            setTextColor(COLOR_DIM)
+            setTextColor(PortStyle.DIM)
         }
         panel.addView(externalInputStatus)
 
         savesStatus.apply {
             textSize = 13f
-            setTextColor(COLOR_DIM)
+            setTextColor(PortStyle.DIM)
         }
         panel.addView(savesStatus)
 
         engineStatus.apply {
             textSize = 12f
-            setTextColor(COLOR_DIM)
+            setTextColor(PortStyle.DIM)
             setPadding(0, dp(4), 0, dp(8))
         }
         panel.addView(engineStatus)
@@ -325,7 +325,7 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
         })
         fpsValue.apply {
             textSize = 13f
-            setTextColor(COLOR_TEXT)
+            setTextColor(PortStyle.TEXT)
             gravity = Gravity.END or Gravity.CENTER_VERTICAL
         }
         val line = LinearLayout(context).apply {
@@ -355,7 +355,7 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         )
         panel.addView(
-            View(context).apply { setBackgroundColor(COLOR_DIVIDER) },
+            View(context).apply { setBackgroundColor(PortStyle.HAIRLINE) },
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(1))
         )
     }
@@ -368,7 +368,7 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
     private inner class FpsTicks(context: Context) : View(context) {
 
         private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = COLOR_DIM
+            color = PortStyle.DIM
             textSize = dp(11).toFloat()
             textAlign = Paint.Align.CENTER
         }
@@ -396,21 +396,7 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
      * the current choice (the reference side menus mark the active entry this way). The mask has a
      * colour on purpose - a mask is read by alpha, and an unfilled GradientDrawable is transparent.
      */
-    private fun rowBackground(filled: Boolean): Drawable {
-        val mask = GradientDrawable().apply {
-            cornerRadius = dp(24).toFloat()
-            setColor(Color.WHITE)
-        }
-        val content = if (filled) {
-            GradientDrawable().apply {
-                cornerRadius = dp(24).toFloat()
-                setColor(pillColor)
-            }
-        } else {
-            null
-        }
-        return RippleDrawable(rippleColor, content, mask)
-    }
+    private fun rowBackground(filled: Boolean): Drawable = PortStyle.row(context, filled)
 
     /**
      * The panel's only row shape, after the emulator side menus: a leading icon in a fixed gutter, the
@@ -433,7 +419,7 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
             addView(
                 ImageView(context).apply {
                     setImageResource(iconRes)
-                    imageTintList = ColorStateList.valueOf(COLOR_TEXT)
+                    imageTintList = ColorStateList.valueOf(PortStyle.TEXT)
                     scaleType = ImageView.ScaleType.FIT_CENTER
                 },
                 LinearLayout.LayoutParams(dp(24), dp(24)).apply { marginEnd = dp(16) }
@@ -442,7 +428,7 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
                 TextView(context).apply {
                     text = label
                     textSize = 14f
-                    setTextColor(COLOR_TEXT)
+                    setTextColor(PortStyle.TEXT)
                     isSingleLine = true
                     ellipsize = TextUtils.TruncateAt.END
                 },
@@ -472,7 +458,7 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
         )
         if (!last) {
             panel.addView(
-                View(context).apply { setBackgroundColor(COLOR_DIVIDER) },
+                View(context).apply { setBackgroundColor(PortStyle.HAIRLINE) },
                 LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(1))
             )
         }
@@ -510,11 +496,6 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
         syncing = false
     }
 
-    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+    private fun dp(value: Int): Int = PortStyle.dp(context, value)
 
-    companion object {
-        private const val COLOR_TEXT = 0xFFE8DCC8.toInt()
-        private const val COLOR_DIM = 0xB3E8DCC8.toInt()
-        private const val COLOR_DIVIDER = 0x33E8DCC8.toInt()
-    }
 }

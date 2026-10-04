@@ -64,7 +64,7 @@ class DiagnosticsDialog(
             TextView(context).apply {
                 this.text = "Diagnostics — Back opens this while the game is running"
                 textSize = 16f
-                setTextColor(COLOR_TEXT)
+                setTextColor(PortStyle.TEXT)
             }
         )
 
@@ -75,7 +75,7 @@ class DiagnosticsDialog(
                         this.text = record
                         typeface = Typeface.MONOSPACE
                         setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
-                        setTextColor(COLOR_TEXT)
+                        setTextColor(PortStyle.TEXT)
                         setTextIsSelectable(true)
                     }
                 )
@@ -85,7 +85,7 @@ class DiagnosticsDialog(
 
         status.apply {
             textSize = 12f
-            setTextColor(COLOR_DIM)
+            setTextColor(PortStyle.DIM)
             setPadding(0, dp(8), 0, 0)
         }
         root.addView(status)
@@ -99,7 +99,7 @@ class DiagnosticsDialog(
                         "driver: open \"OpenGL driver\" below and set this app to ANGLE. If it starts, " +
                         "the panel's spelling test says which shaders still disagree."
                     textSize = 12f
-                    setTextColor(COLOR_DIM)
+                    setTextColor(PortStyle.DIM)
                     setPadding(0, dp(8), 0, 0)
                 }
             )
@@ -111,6 +111,7 @@ class DiagnosticsDialog(
                 addView(Button(context).apply {
                     this.text = "Share"
                     setOnClickListener { status.text = onShare() }
+                    PortStyle.dress(this)
                 })
                 if (shaderTools) {
                     addView(Button(context).apply {
@@ -119,11 +120,13 @@ class DiagnosticsDialog(
                             onResetResolution()
                             dismiss()
                         }
+                        PortStyle.dress(this)
                     })
                 }
                 addView(Button(context).apply {
                     this.text = "Close"
                     setOnClickListener { dismiss() }
+                    PortStyle.dress(this)
                 })
             }
         )
@@ -137,10 +140,12 @@ class DiagnosticsDialog(
                         onShaderSelfTest()
                         dismiss()
                     }
+                    PortStyle.dress(this)
                 }.also { it.visibility = if (shaderTools) View.VISIBLE else View.GONE })
                 addView(Button(context).apply {
                     this.text = "OpenGL driver"
                     setOnClickListener { onDriverSettings() }
+                    PortStyle.dress(this)
                 })
             }
         )
@@ -152,8 +157,4 @@ class DiagnosticsDialog(
 
     private fun dp(value: Int): Int = (value * context.resources.displayMetrics.density).toInt()
 
-    companion object {
-        private const val COLOR_TEXT = 0xFFE8DCC8.toInt()
-        private const val COLOR_DIM = 0xB3E8DCC8.toInt()
-    }
 }

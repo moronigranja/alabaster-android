@@ -60,6 +60,12 @@ enum class GameProfile(
     val viewAlign: Boolean,
     /** The render canvas the port's overlays measure. Both engines own the element's own layout. */
     val canvasSelector: String,
+    /**
+     * The game's own logo inside its install, relative to the picked root, for the entry screen's
+     * hero. It is **drawn from the user's copy at runtime and never shipped**: the APK carries no game
+     * art (see `NOTICE.md`), and a build that moved the file simply gets no image.
+     */
+    val logoPath: String,
 ) {
     ALABASTER_DAWN(
         id = "ada",
@@ -74,6 +80,7 @@ enum class GameProfile(
         rewrites = true,
         viewAlign = true,
         canvasSelector = ".xgCanvas",
+        logoPath = "terra/media/gui/game-logo-small.png",
     ),
     CROSSCODE(
         id = "cc",
@@ -91,6 +98,7 @@ enum class GameProfile(
         rewrites = false,
         viewAlign = false,
         canvasSelector = "#canvas",
+        logoPath = "assets/media/gui/title-logo-new.png",
     );
 
     /** The entry page's index key (also its path under the picked root). */

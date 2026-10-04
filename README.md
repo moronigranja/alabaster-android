@@ -184,6 +184,19 @@ adb install -r android/app/build/outputs/apk/debug/app-debug.apk
 |---|---|---|---|---|---|
 | ![Setup screen](docs/setup.png) | ![Title screen](docs/title-screen.png) | ![On-screen pad](docs/on-screen-pad.png) | ![Pad editor](docs/pad-editor.png) | ![Side menu](docs/side-menu.png) | ![Diagnostics](docs/diagnostics.png) |
 
+### The entry screen
+
+One screen holds both games. A **hero card** shows the game that the big button will start — its own
+logo (read from your copy at runtime, never bundled), its name and the folder it points at. Under it,
+each game has a row with a ready dot and a **⋮** menu to change or forget its folder; tapping a row
+moves the hero to that game. One **saves** folder is shared by both (each game writes its own files
+into it).
+
+Picking a folder is how the screen learns which game it is — the entry page is the fingerprint — so
+point each game at its folder once and both are one tap away after that. Tapping the wrong row's
+Start says which game the folder actually is and files it under that game's row. Troubleshoot and the
+port version stay on this screen, because it is the screen every report is taken from.
+
 ### Game files and saves
 
 Pick the game's **install folder** — the one holding Alabaster Dawn's `terra/` directory or

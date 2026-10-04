@@ -6,6 +6,8 @@ import android.content.ComponentName
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.ApplicationInfo
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
@@ -15,6 +17,7 @@ import android.os.Looper
 import android.os.Process
 import android.provider.Settings
 import android.util.Log
+import android.view.Gravity
 import android.view.InputDevice
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -32,7 +35,9 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.PopupMenu
 import android.widget.TextView
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewCompat
@@ -53,11 +58,19 @@ class PortActivity : Activity() {
     private lateinit var savesLabel: TextView
     private lateinit var status: TextView
 
-    /** One row label and one Start button per game (see [buildPreGameUi]), and the folder each has
-     *  remembered. Both games can be pointed out once and either started from here. */
-    private val gameLabels = HashMap<GameProfile, TextView>()
-    private val gameStarts = HashMap<GameProfile, Button>()
+    /** The folder each game has remembered, and the parts of the entry screen that show them. Both
+     *  games can be pointed out once and either started from here. */
     private val gameUris = HashMap<GameProfile, Uri?>()
+    private val gameFolders = HashMap<GameProfile, TextView>()
+    private val gameDots = HashMap<GameProfile, View>()
+    /** Each game's own logo, decoded from the user's copy for the hero card (never shipped). */
+    private val gameLogos = HashMap<GameProfile, Bitmap>()
+    /** The game the hero card is showing: what this screen's one button will start. */
+    private var heroGame: GameProfile? = null
+    private lateinit var heroLogo: ImageView
+    private lateinit var heroName: TextView
+    private lateinit var heroFolder: TextView
+    private lateinit var heroStart: Button
 
     private var gameTreeUri: Uri? = null
     private var savesTreeUri: Uri? = null
@@ -150,6 +163,8 @@ class PortActivity : Activity() {
         for (p in GameProfile.entries) {
             gameUris[p] = validateGrant(prefs.getString(p.gameFolderKey, null), wantWrite = false)
         }
+        heroGame = prefs.getString(KEY_LAST_GAME, null)
+            ?.let { id -> GameProfile.entries.firstOrNull { it.id == id } }
         savesTreeUri = validateGrant(prefs.getString(KEY_SAVES, null), wantWrite = true)
         hideWithExternalInput = prefs.getBoolean(KEY_HIDE_EXTERNAL_INPUT, true)
         viewAlign = ViewAlign.fromWire(prefs.getString(KEY_VIEW_ALIGN, null))
@@ -184,123 +199,313 @@ class PortActivity : Activity() {
 
     /* ---------------------------------------------------------------- pre-game screen ---- */
 
+    /**
+     * The entry screen: a hero card for the game that will start — its own logo, name, folder and the
+     * one button that starts it — the two games as rows beneath it, then the saves folder and the
+     * record.
+     *
+     * A tap on a row makes that game the hero; a row's own ⋮ changes or forgets its folder. A picked
+     * folder is filed under whichever game it turns out to be (see [learnGameFolder]), so both can be
+     * pointed out once and either started with one tap afterwards.
+     */
     private fun buildPreGameUi() {
-        val pad = (24 * resources.displayMetrics.density).toInt()
+        val pad = PortStyle.dp(this, 20)
+        val gap = PortStyle.dp(this, 10)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(pad, pad, pad, pad)
             setBackgroundColor(Color.BLACK)
         }
-        root.addView(
-            TextView(this).apply {
-                text = getString(R.string.app_name)
-                textSize = 22f
-                setTextColor(Color.WHITE)
-            }
-        )
-        /* One row per game: the folder it holds, and a Start. Picking a folder files it under
-         * whichever game it turns out to be, so both can be pointed out once and either started. */
-        root.addView(
-            TextView(this).apply {
-                text = "Game files"
-                textSize = 14f
-                setTextColor(Color.LTGRAY)
-                setPadding(0, pad / 2, 0, pad / 4)
-            }
-        )
-        for (p in GameProfile.entries) addGameRow(root, p)
-        root.addView(
-            Button(this).apply {
-                text = "Choose game files"
-                setOnClickListener { pick(REQ_GAME, wantWrite = false) }
-            }
-        )
-        savesLabel = folderRow(root, "saves") { pick(REQ_SAVES, wantWrite = true) }
-        status = TextView(this).apply {
-            textSize = 13f
-            setTextColor(Color.LTGRAY)
-            setPadding(0, pad / 2, 0, pad / 2)
-        }
-        root.addView(status)
+
         root.addView(
             LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                addView(
+                    TextView(this@PortActivity).apply {
+                        text = getString(R.string.app_name)
+                        textSize = 18f
+                        setTextColor(PortStyle.TEXT)
+                    },
+                    LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+                )
                 /* A device-only failure is reported from here: the record names the WebView, the GL
                  * backend and what the engine was doing, without adb. The panel it opens is also
                  * where the stored Resolution can be dropped (FINDINGS §19). */
                 addView(Button(this@PortActivity).apply {
                     text = "Troubleshoot"
                     setOnClickListener { showDiagnostics() }
+                    PortStyle.dress(this)
                 })
             }
         )
+
+        /* The hero: whichever game this screen will start. */
+        val hero = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            background = PortStyle.panel(this@PortActivity)
+            setPadding(pad, pad, pad, pad)
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = gap }
+        }
+        heroLogo = ImageView(this).apply {
+            adjustViewBounds = true
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, PortStyle.dp(this@PortActivity, HERO_LOGO_DP)
+            )
+        }
+        hero.addView(heroLogo)
+        heroName = TextView(this).apply {
+            textSize = 20f
+            setTextColor(PortStyle.TEXT)
+            setPadding(0, gap / 2, 0, 0)
+        }
+        hero.addView(heroName)
+        heroFolder = TextView(this).apply {
+            textSize = 13f
+            setTextColor(PortStyle.DIM)
+        }
+        hero.addView(heroFolder)
+        heroStart = Button(this).apply {
+            setOnClickListener { heroAction() }
+            PortStyle.dress(this, primary = true)
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = gap }
+        }
+        hero.addView(heroStart)
+        root.addView(hero)
+
+        root.addView(sectionLabel("Games"))
+        for (p in GameProfile.entries) addGameRow(root, p)
+
+        root.addView(sectionLabel("Saves"))
+        savesLabel = saveFolderRow(root)
+
+        status = TextView(this).apply {
+            textSize = 13f
+            setTextColor(PortStyle.DIM)
+            setPadding(0, gap, 0, 0)
+        }
+        root.addView(status)
         /* Which build the user is on, on the screen every report is taken from. */
         root.addView(
             TextView(this).apply {
                 text = "port ${appVersion()}"
                 textSize = 12f
-                setTextColor(Color.LTGRAY)
-                setPadding(0, pad / 2, 0, 0)
+                setTextColor(PortStyle.DIM)
+                setPadding(0, gap, 0, 0)
             }
         )
         setContentView(root)
         refreshUi()
+        loadGameLogos()
+    }
+
+    /** A small dim header above a group of rows. */
+    private fun sectionLabel(text: String): TextView = TextView(this).apply {
+        this.text = text.uppercase()
+        textSize = 11f
+        setTextColor(PortStyle.DIM)
+        setPadding(PortStyle.dp(this@PortActivity, 12), PortStyle.dp(this@PortActivity, 16), 0, 0)
     }
 
     /**
-     * One game's row on the entry screen: its name and remembered folder on the left, Start on the
-     * right. Start is disabled until a folder is known for that game, so the screen says at a glance
-     * what is ready and what still needs picking.
+     * One game's row: its name, its remembered folder, a dot that says whether it is ready to start,
+     * and a ⋮ menu to change or forget the folder. Tapping the row makes that game the hero.
      */
     private fun addGameRow(parent: LinearLayout, profile: GameProfile) {
-        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val label = TextView(this).apply {
-            textSize = 15f
-            setTextColor(Color.WHITE)
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            minimumHeight = PortStyle.dp(this@PortActivity, 56)
+            setPadding(PortStyle.dp(this@PortActivity, 12), PortStyle.dp(this@PortActivity, 6),
+                PortStyle.dp(this@PortActivity, 4), PortStyle.dp(this@PortActivity, 6))
+            background = PortStyle.row(this@PortActivity)
+            isClickable = true
+            setOnClickListener { chooseHero(profile) }
         }
+        val texts = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val name = TextView(this).apply {
+            text = profile.displayName
+            textSize = 16f
+            setTextColor(PortStyle.TEXT)
+        }
+        val folder = TextView(this).apply {
+            textSize = 12f
+            setTextColor(PortStyle.DIM)
+        }
+        texts.addView(name)
+        texts.addView(folder)
+        row.addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+
+        val dot = View(this).apply { background = PortStyle.dot(this@PortActivity, false) }
         row.addView(
-            label,
-            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            dot,
+            LinearLayout.LayoutParams(PortStyle.dp(this, 10), PortStyle.dp(this, 10))
+                .apply { marginEnd = PortStyle.dp(this@PortActivity, 6) }
         )
-        val start = Button(this).apply {
-            text = "Start"
-            setOnClickListener { startGame(profile) }
-        }
-        row.addView(start)
+
+        row.addView(
+            TextView(this).apply {
+                text = "\u22ee"
+                textSize = 22f
+                gravity = Gravity.CENTER
+                setTextColor(PortStyle.DIM)
+                minWidth = PortStyle.dp(this@PortActivity, 44)
+                isClickable = true
+                setOnClickListener { showGameMenu(it, profile) }
+            }
+        )
         parent.addView(row)
-        gameLabels[profile] = label
-        gameStarts[profile] = start
+        gameFolders[profile] = folder
+        gameDots[profile] = dot
     }
 
-    private fun folderRow(parent: LinearLayout, which: String, onPick: () -> Unit): TextView {
-        val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+    /** The saves row: one folder for both games (each writes its own files into it). */
+    private fun saveFolderRow(parent: LinearLayout): TextView {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            minimumHeight = PortStyle.dp(this@PortActivity, 56)
+            setPadding(
+                PortStyle.dp(this@PortActivity, 12), PortStyle.dp(this@PortActivity, 6),
+                PortStyle.dp(this@PortActivity, 12), PortStyle.dp(this@PortActivity, 6)
+            )
+            background = PortStyle.row(this@PortActivity)
+            isClickable = true
+            setOnClickListener { pick(REQ_SAVES, wantWrite = true) }
+        }
+        val texts = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val label = TextView(this).apply {
             textSize = 15f
-            setTextColor(Color.WHITE)
+            setTextColor(PortStyle.TEXT)
         }
-        row.addView(
-            label,
-            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-        )
-        row.addView(Button(this).apply {
-            text = if (which == "game") "Choose game files" else "Choose saves folder"
-            setOnClickListener { onPick() }
-        })
+        val hint = TextView(this).apply {
+            text = "tap to pick — both games save here"
+            textSize = 12f
+            setTextColor(PortStyle.DIM)
+        }
+        texts.addView(label)
+        texts.addView(hint)
+        row.addView(texts, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         parent.addView(row)
         return label
     }
 
-    private fun refreshUi() {
-        for (p in GameProfile.entries) {
-            gameLabels[p]?.text = "${p.displayName}: " +
-                (GameFiles.displayNameOf(gameUris[p]) ?: "(not set)")
-            gameStarts[p]?.isEnabled = gameUris[p] != null
+    /** Tapping a row moves the hero to that game, so its one button starts what was tapped. */
+    private fun chooseHero(profile: GameProfile) {
+        heroGame = profile
+        prefs.edit().putString(KEY_LAST_GAME, profile.id).apply()
+        refreshUi()
+    }
+
+    /** The hero's one action: start its game, or pick a folder when it has none yet. */
+    private fun heroAction() {
+        val hero = heroGame
+        if (hero == null || gameUris[hero] == null) {
+            pick(REQ_GAME, wantWrite = false)
+            return
         }
-        savesLabel.text = "Saves: " + (GameFiles.displayNameOf(savesTreeUri) ?: "(not set)")
+        startGame(hero)
+    }
+
+    /** A game row's own menu: change which folder it points at, or forget it. */
+    private fun showGameMenu(anchor: View, profile: GameProfile) {
+        val menu = PopupMenu(this, anchor)
+        menu.menu.add(0, MENU_CHANGE_FOLDER, 0, "Change ${profile.displayName} folder")
+        menu.menu.add(0, MENU_FORGET_FOLDER, 1, "Forget it")
+        menu.setOnMenuItemClickListener {
+            if (it.itemId == MENU_CHANGE_FOLDER) {
+                chooseHero(profile)
+                pick(REQ_GAME, wantWrite = false)
+            } else {
+                forgetGameFolder(profile)
+            }
+            true
+        }
+        menu.show()
+    }
+
+    private fun forgetGameFolder(profile: GameProfile) {
+        gameUris[profile] = null
+        gameLogos.remove(profile)
+        prefs.edit().remove(profile.gameFolderKey).apply()
+        diag.line("forgot the ${profile.displayName} folder")
+        status.text = ""
+        refreshUi()
+    }
+
+    /**
+     * Reads each remembered game's own logo out of the user's copy and decodes it for the hero card.
+     * Off the main thread: this is game art drawn from their installation, never shipped in the APK.
+     */
+    private fun loadGameLogos() {
+        for ((profile, uri) in gameUris.toMap()) {
+            if (uri == null) continue
+            Thread({
+                val bitmap = decodeLogo(uri, profile.logoPath)
+                if (bitmap != null) runOnUiThread {
+                    gameLogos[profile] = bitmap
+                    refreshUi()
+                }
+            }, "ada-logo").start()
+        }
+    }
+
+    /**
+     * The game's logo, decoded at roughly the hero box's size (a power-of-two downscale, so a big
+     * logo does not cost a full-size bitmap). Null when the user's copy does not carry that file,
+     * which is not a failure: the hero then shows text only.
+     */
+    private fun decodeLogo(tree: Uri, path: String): Bitmap? {
+        val bytes = GameFiles.readByPath(contentResolver, tree, path) ?: return null
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+        var sample = 1
+        val target = PortStyle.dp(this, HERO_LOGO_DP) * 2
+        while (bounds.outHeight / (sample * 2) >= target) sample *= 2
+        return BitmapFactory.decodeByteArray(
+            bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample }
+        )
+    }
+
+    private fun refreshUi() {
+        val hero = heroGame ?: gameUris.entries.firstOrNull { it.value != null }?.key
+        heroGame = hero
+        if (hero == null) {
+            /* Nothing pointed at yet: the port's own mark, not the games'. */
+            heroLogo.setImageResource(R.drawable.ic_launcher_foreground)
+            heroLogo.visibility = View.VISIBLE
+            heroName.text = "Pick a game to start"
+            heroFolder.text = "Alabaster Dawn or CrossCode \u2014 read from your own copy"
+            heroStart.text = "Choose game files"
+        } else {
+            val logo = gameLogos[hero]
+            if (logo != null) {
+                heroLogo.setImageBitmap(logo)
+                heroLogo.visibility = View.VISIBLE
+            } else {
+                heroLogo.visibility = View.GONE
+            }
+            heroName.text = hero.displayName
+            val folder = GameFiles.displayNameOf(gameUris[hero])
+            heroFolder.text = folder ?: "No folder yet \u2014 choose the game's install folder"
+            heroStart.text = if (folder != null) "START" else "Choose folder"
+        }
+        heroStart.isEnabled = true
+        for (p in GameProfile.entries) {
+            gameFolders[p]?.text = GameFiles.displayNameOf(gameUris[p]) ?: "(not set)"
+            gameDots[p]?.background = PortStyle.dot(this, gameUris[p] != null)
+        }
+        savesLabel.text = GameFiles.displayNameOf(savesTreeUri) ?: "(not set)"
         if (status.length() == 0) {
             status.text = when {
                 gameUris.values.all { it == null } ->
-                    "Pick a game's install folder — the one holding Alabaster Dawn's terra/ or CrossCode's assets/."
+                    "Pick a game's install folder \u2014 the one holding Alabaster Dawn's terra/ or CrossCode's assets/."
                 savesTreeUri == null ->
                     "No saves folder: saves will be kept inside the app and cannot be copied out."
                 else -> "Ready."
@@ -308,9 +513,9 @@ class PortActivity : Activity() {
         }
     }
 
-    /** While a game is starting, no Start is tappable. */
+    /** While a game is starting, the hero's button is not tappable. */
     private fun setStartButtonsEnabled(enabled: Boolean) {
-        for ((p, button) in gameStarts) button.isEnabled = enabled && gameUris[p] != null
+        heroStart.isEnabled = enabled
     }
 
     private fun pick(requestCode: Int, wantWrite: Boolean) {
@@ -413,6 +618,7 @@ class PortActivity : Activity() {
                     GameFiles.readText(contentResolver, uri, raw, it)?.let(GameVersion::fromChangelog)
                 }
             }
+            val logo = if (detected != null) decodeLogo(uri, detected.logoPath) else null
             runOnUiThread {
                 if (built == null) {
                     status.text = "Could not read that folder."
@@ -428,6 +634,8 @@ class PortActivity : Activity() {
                 if (forgetLegacyKey) edit.remove(KEY_GAME)
                 edit.apply()
                 gameUris[detected] = uri
+                if (logo != null) gameLogos[detected] = logo
+                heroGame = detected
                 gameTreeUri = uri
                 learnedUri = uri
                 learnedIndex = built
@@ -444,6 +652,8 @@ class PortActivity : Activity() {
     private fun startGame(selected: GameProfile) {
         val tree = gameUris[selected] ?: return
         if (index != null) return
+        heroGame = selected
+        prefs.edit().putString(KEY_LAST_GAME, selected.id).apply()
         setStartButtonsEnabled(false)
         /* The folder was read when it was picked; reuse that map rather than walking the tree again. */
         if (learnedUri == tree && learnedIndex != null) {
@@ -1300,7 +1510,14 @@ class PortActivity : Activity() {
     companion object {
         private const val TAG = "RfPort"
         private const val PREF = "ada"
+        /* The old single-folder key: read once at startup and then filed under its game's key. */
         private const val KEY_GAME = "game_tree_uri"
+        /* The game the entry screen's hero card shows (and so starts). */
+        private const val KEY_LAST_GAME = "last_game"
+        private const val MENU_CHANGE_FOLDER = 1
+        private const val MENU_FORGET_FOLDER = 2
+        /* How tall the hero card's logo box is. */
+        private const val HERO_LOGO_DP = 84
         private const val KEY_SAVES = "saves_tree_uri"
 
         /* Whether the on-screen pad draws its controls. */
