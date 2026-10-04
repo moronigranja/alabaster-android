@@ -390,15 +390,27 @@ docs/alabaster-dawn-port.md     the Alabaster Dawn port and controller-fix docum
 
 ## Roadmap
 
+Shipped in **v0.8.0**:
+
 - [x] Per-game profile seam; Alabaster Dawn's behaviour unchanged
-- [x] CrossCode shim: boot to the title screen in a desktop harness
+- [x] CrossCode shim: boot to its title screen — in a desktop harness, and on a phone (Galaxy Z Fold 7,
+      60 fps at 1136×640, `docs/crosscode-phone.png`); the legacy `keyCode` drives its keyboard
 - [x] Entry screen: a card per game (title art, name, both folder paths, play badge, **⋮**), a saves
       folder each, folders that have been moved or deleted marked, and **Game selection** in the side
       menu to come back to it without ending the process
 - [x] Card **⋮**: **Help: what to copy** and **Create a home-screen link**; the static launcher
       shortcuts for both games; the folder index kept between launches
-- [ ] CrossCode on a phone: GPU cost at 1136×640, audio, fullscreen/scale, pad mapping
-- [ ] CrossCode save round-trip (save-string export, and the file path list)
+- [x] Saves that travel both ways: each game's desktop layout read whether the save folder was copied
+      whole or flat (`SaveLayout`), and written back out unrenamed
+- [x] The picture-position control (Top/Centre/Bottom) for both engines; **dynamic sticks** on the
+      on-screen pad; the circuit-fish launcher mark, fit to the adaptive-icon safe circle
+
+Open:
+
+- [ ] CrossCode **play** on a phone: the heavier scenes' GPU cost at 1136×640, audio, the pad mapping
+      in-game, fullscreen/scale — the boot and the saves are verified, the game itself is not
+- [ ] CrossCode save round-trip: a save made on the phone, taken to a desktop install and back
+- [ ] **Dynamic sticks** on real hardware (unit-tested; the fixed pad is the device-proven one)
 - [ ] CrossCode extensions (`assets/extension`) if mods are wanted
 - [ ] Extract a shared shim core if a third game ever appears
 
