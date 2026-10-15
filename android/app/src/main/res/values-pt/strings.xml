@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">RadicalFish Ports</string>
+    <string name="shortcut_ada_short">Alabaster Dawn</string>
+    <string name="shortcut_ada_long">Jogar Alabaster Dawn</string>
+    <string name="shortcut_cc_short">CrossCode</string>
+    <string name="shortcut_cc_long">Jogar CrossCode</string>
+
+    <string name="or_join"> ou </string>
+
+    <string name="splash_starting">Iniciando %1$s…</string>
+    <string name="folder_error">Essa pasta não é um jogo que este port executa — escolha a pasta que contém %1$s.</string>
+    <string name="folder_error_entry">%2$s/ de %1$s</string>
+    <string name="help_text">Aponte o port para sua própria cópia do jogo: nenhum arquivo do jogo é incluído e nada é enviado.\n\nArquivos do jogo\nNa Steam: clique com o botão direito em %1$s → Gerenciar → Procurar arquivos locais. Copie a pasta %2$s/ de %3$s para o celular e então escolha a pasta que a contém. Só %2$s/ é lida; o resto da instalação é o runtime NW.js de desktop, não é necessário.\n\nSaves\nNo computador eles ficam em:\n%4$s\nCopie a própria pasta de saves para a pasta de saves que você escolheu aqui (o ⋮ deste cartão → Selecionar pasta de saves), ou apenas o conteúdo dela — o port lê qualquer um dos formatos (a subpasta própria do jogo %5$s/, ou os arquivos no nível superior).\nNão está lá? Procure no computador por %6$s.</string>
+    <string name="troubleshoot">Diagnóstico</string>
+    <string name="start_last_directly">Iniciar o último jogo direto</string>
+    <string name="port_version">port %1$s</string>
+    <string name="add_game">Adicionar %1$s</string>
+    <string name="menu_select_game">Selecionar pasta do jogo</string>
+    <string name="menu_select_saves">Selecionar pasta de saves</string>
+    <string name="menu_help">Ajuda: o que copiar</string>
+    <string name="menu_link">Criar um atalho na tela inicial</string>
+    <string name="shortcut_play">Jogar %1$s</string>
+
+    <string name="status_no_shortcuts">Este launcher não permite atalhos na tela inicial.</string>
+    <string name="status_shortcut_failed">Não foi possível criar o atalho na tela inicial.</string>
+    <string name="status_game_folder_missing">%1$s: pasta do jogo ausente — escolha de novo no menu ⋮ do cartão</string>
+    <string name="status_saves_folder_missing">%1$s: pasta de saves ausente — os saves ficam dentro do app</string>
+    <string name="card_folders">arquivos: %1$s%2$s\nsaves: %3$s%4$s</string>
+    <string name="folder_missing_suffix"> (ausente)</string>
+    <string name="folder_not_set">(não definido)</string>
+    <string name="status_pick_folder">Escolha a pasta de instalação de um jogo — a que contém %1$s.</string>
+    <string name="status_no_saves">Sem pasta de saves: os saves ficarão dentro do app e não poderão ser copiados para fora.</string>
+    <string name="status_ready">Pronto.</string>
+    <string name="status_no_picker">Nenhum seletor de documentos disponível: %1$s</string>
+    <string name="status_grant_lost">Não foi possível manter o acesso a %1$s. Escolha de novo.</string>
+    <string name="status_reading">Lendo %1$s…</string>
+    <string name="the_folder">a pasta</string>
+    <string name="status_unreadable">Não foi possível ler essa pasta.</string>
+    <string name="status_empty">Essa pasta está vazia — o jogo não está mais lá. Escolha de novo.</string>
+    <string name="status_indexing">Indexando os arquivos do jogo…</string>
+    <string name="status_wrong_game">Essa pasta é %1$s, não %2$s.</string>
+    <string name="status_loaded">Carregados %1$s arquivos.</string>
+    <string name="status_copied_saves">Copiados %1$s arquivo(s) de save do armazenamento do app para %2$s.</string>
+    <string name="status_reset_armed">A resolução do jogo será redefinida quando ele iniciar.</string>
+    <string name="status_loading">Carregando o jogo…</string>
+    <string name="status_pick_game_folder">%1$s: escolha a pasta do jogo primeiro.</string>
+
+    <string name="share_diagnostics_title">Compartilhar diagnóstico</string>
+    <string name="share_subject">%1$s: diagnóstico do port para Android</string>
+    <string name="share_write_failed">não foi possível gravar o arquivo: %1$s</string>
+    <string name="share_sent">enviado de %1$s</string>
+    <string name="share_no_app">nenhum app para compartilhar; o registro está em %1$s</string>
+
+    <string name="menu_title">Menu</string>
+    <string name="menu_hide_pad">Ocultar o controle com entrada externa</string>
+    <string name="menu_dynamic_sticks">Analógicos dinâmicos (toque em qualquer lugar)</string>
+    <string name="menu_show_stats">Mostrar FPS / bateria / temperatura</string>
+    <string name="menu_limit_fps">Limitar a taxa de quadros (bateria)</string>
+    <string name="menu_log_saves">Manter um log junto aos saves</string>
+    <string name="menu_game_position">Posição do jogo</string>
+    <string name="menu_top">Topo</string>
+    <string name="menu_center">Centro</string>
+    <string name="menu_bottom">Base</string>
+    <string name="menu_game_selection">Seleção de jogo</string>
+    <string name="menu_exit">Sair</string>
+    <string name="menu_external_input">Entrada externa: %1$s</string>
+    <string name="menu_active">ativa</string>
+    <string name="menu_idle">inativa</string>
+    <string name="menu_saves">Saves: %1$s</string>
+    <string name="menu_engine">Motor: %1$s\n(ver Diagnóstico)</string>
+    <string name="no_game">nenhum jogo</string>
+    <string name="menu_version">port %1$s · %2$s</string>
+
+    <string name="diag_title">Diagnóstico — Voltar abre isto com o jogo em execução</string>
+    <string name="diag_hint">O jogo trava na barra de carregamento? Em um dispositivo Mali isso é o driver OpenGL: abra \"Driver OpenGL\" abaixo e defina este app como ANGLE. Se ele iniciar, o teste de grafias do painel diz quais shaders ainda divergem.</string>
+    <string name="diag_share">Compartilhar</string>
+    <string name="diag_reset_resolution">Redefinir resolução</string>
+    <string name="diag_close">Fechar</string>
+    <string name="diag_shader_test">Testar grafias de shaders</string>
+    <string name="diag_opengl_driver">Driver OpenGL</string>
+
+    <string name="menu_translation_add">Adicionar tradução em espanhol (~2,4 MB)</string>
+    <string name="menu_translation_remove">Remover a tradução em espanhol</string>
+    <string name="status_translation_downloading">Baixando a tradução em espanhol…</string>
+    <string name="status_translation_installed">Tradução em espanhol instalada — reinicie o CrossCode.</string>
+    <string name="status_translation_removed">Tradução em espanhol removida.</string>
+    <string name="status_translation_failed">Falha ao baixar a tradução: %1$s</string>
+    <string name="help_translation_credit">Tradução em espanhol por tralph3 e colaboradores — CC BY 4.0 (github.com/tralph3/CrossCode-Esp).</string>
+
+    <string name="menu_mods">Mods…</string>
+    <string name="mods_title">Mods</string>
+    <string name="mods_loader">CCLoader %1$s instalado.</string>
+    <string name="mods_no_loader">Nenhum CCLoader instalado. Adicione a tradução em espanhol, ou escolha uma versão do CCLoader, antes de usar mods.</string>
+    <string name="mods_empty">Nenhum mod instalado.</string>
+    <string name="mods_entry">%1$s %2$s</string>
+    <string name="mods_remove">Remover</string>
+    <string name="mods_add">Adicionar mod (.ccmod)</string>
+    <string name="mods_close">Fechar</string>
+    <string name="status_mod_installing">Instalando %1$s…</string>
+    <string name="status_mod_installed">%1$s instalado — reinicie o CrossCode.</string>
+    <string name="status_mod_no_loader">%1$s instalado, mas sem CCLoader: os mods não serão carregados até haver um.</string>
+    <string name="status_mod_failed">Não foi possível instalar o mod: %1$s</string>
+</resources>

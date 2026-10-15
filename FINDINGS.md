@@ -3323,3 +3323,46 @@ Not built yet: the up-front compatibility gate (§26.6's CCLoader-3 schema/versi
 mod that CCLoader will refuse still installs, and the reason appears in CCLoader's own console, which
 §26.6's `util` fix made readable.
 
+## 28. The port's UI in Brazilian Portuguese, and resource parity (2026-10-15)
+
+`res/values-pt/strings.xml` carries Brazilian Portuguese, so the pre-game screen, the side menu, the
+diagnostics dialog, the mods dialog and every status/share message read in Portuguese. It follows the
+repo's convention of a **generic language qualifier** (`values-es` is Castilian even on a Spanish
+phone), so a `pt-PT` device resolves it too — the same trade the Spanish file already makes. 93 keys.
+
+Parity is checked by `android/tools/check-locales.mjs` (run it after any string change; it exits
+non-zero on a missing/extra key, a changed order, a placeholder-arity mismatch or a stray `%`):
+
+```
+node android/tools/check-locales.mjs
+values: 93 keys / values-es: 93 keys / values-pt: 93 keys
+all 3 locales agree on 93 keys
+```
+
+So the Spanish file **does** cover the strings added since §25 (the 7 translation keys of §26 and the
+13 mod-library keys of §27 — 73 → 80 → 93); nothing was left in English. The default file's key order
+is the reference, and both translations follow it, which keeps a future diff readable.
+
+Compiled-APK check (`aapt2 dump resources`), the same evidence §25.2 used:
+
+```
+resource string/menu_translation_add
+  ()   "Add Spanish translation (~2.4 MB)"
+  (es) "Añadir traducción al español (~2,4 MB)"
+  (pt) "Adicionar tradução em espanhol (~2,4 MB)"
+resource string/status_mod_failed
+  ()   "Could not install the mod: %1$s"
+  (es) "No se pudo instalar el mod: %1$s"
+  (pt) "Não foi possível instalar o mod: %1$s"
+```
+
+Host: `:app:assembleDebug :app:testDebugUnitTest` green, `test-cc-shim.mjs` 8/8,
+`test-shim-diagnostics.mjs` 62/62.
+
+**Not measured: the Portuguese on-screen pass.** The device was unplugged before the planned check
+(`adb shell cmd locale set-app-locales <pkg> --user 0 pt-BR`, an Android 13+ per-app override that
+needs no change to the phone's own language). Owner's step: set the phone language to Portuguese
+(Brazil) — or run that command — and the pre-game screen, side menu, diagnostics and mods dialogs must
+read Portuguese with no `IllegalFormatException` in logcat; the same for **Español** (never flipped on
+a device either). Wording is authored here (no upstream source) and a native reviewer may adjust it.
+
