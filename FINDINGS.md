@@ -3359,10 +3359,26 @@ resource string/status_mod_failed
 Host: `:app:assembleDebug :app:testDebugUnitTest` green, `test-cc-shim.mjs` 8/8,
 `test-shim-diagnostics.mjs` 62/62.
 
-**Not measured: the Portuguese on-screen pass.** The device was unplugged before the planned check
-(`adb shell cmd locale set-app-locales <pkg> --user 0 pt-BR`, an Android 13+ per-app override that
-needs no change to the phone's own language). Owner's step: set the phone language to Portuguese
-(Brazil) — or run that command — and the pre-game screen, side menu, diagnostics and mods dialogs must
-read Portuguese with no `IllegalFormatException` in logcat; the same for **Español** (never flipped on
-a device either). Wording is authored here (no upstream source) and a native reviewer may adjust it.
+**Measured on device** (SM-F971B, Galaxy Z Fold, Android 17) with the Android 13+ per-app override,
+so the phone's own language stayed `en-US` (`get-device-locale` unchanged throughout):
+
+```
+adb shell cmd locale set-app-locales <pkg> --user 0 --locales pt-BR     # --locales is required;
+                                                                       # without it: silent no-op
+```
+
+* **pt-BR** — pre-game: `Diagnóstico`, `Adicionar Alabaster Dawn`,
+  `arquivos: … / saves: (não definido)`, `Iniciar o último jogo direto`,
+  `Sem pasta de saves: os saves ficarão dentro do app e não poderão ser copiados para fora.`;
+  card ⋮: `Selecionar pasta do jogo`, `Selecionar pasta de saves`, `Ajuda: o que copiar`,
+  `Criar um atalho na tela inicial`, `Mods…`, `Adicionar tradução em espanhol (~2,4 MB)`;
+  Mods dialog: `Nenhum CCLoader instalado. …`, `Nenhum mod instalado.`, `FECHAR`,
+  `ADICIONAR MOD (.CCMOD)`; diagnostics: `Diagnóstico — Voltar abre isto com o jogo em execução`,
+  `Compartilhar`, `Fechar`, `Driver OpenGL`.
+* **es** — `Diagnóstico`, `Añadir Alabaster Dawn`, `archivos: … / partidas: (sin definir)`,
+  `Iniciar el último juego directamente`, `Sin carpeta de partidas: …`.
+
+Clearing the override (`… set-app-locales <pkg> --user 0`, empty list) returned the English UI, and
+logcat carried zero `IllegalFormatException` / `MissingFormatArgument` across every launch. Wording is
+authored here (no upstream source) and a native reviewer may adjust it.
 
