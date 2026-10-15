@@ -3382,3 +3382,37 @@ Clearing the override (`… set-app-locales <pkg> --user 0`, empty list) returne
 logcat carried zero `IllegalFormatException` / `MissingFormatArgument` across every launch. Wording is
 authored here (no upstream source) and a native reviewer may adjust it.
 
+## 29. Build 0.2.0-8 ships the same shapes the port keys on (2026-10-13)
+
+Steam updated the install to `0.2.0-8 Early Access` (bundle `VersionManager`, `0/2/0/8`). The phone copy
+that carried the shader work was `0.2.0-6`; the last *documented* baseline was `0.1.0-10` (§11.3). Diffing
+the `0.2.0-6` tree on the device against the fresh install, the update touched `terra/dist/bundle.js`
+(+26 KB), ten `terra/data/**` JSON documents (items, locale, changelog, two enemies, effects, three maps, a
+figure), `media/gui/items-icons.png` and `greenworks.js` — **nothing under `terra/data/shader/`**, so the
+shader rewrites have the same files to land on.
+
+Every literal the port rewrites against is still present and *unique* in the new bytes: the bundle's
+`const RESOLUTION_MAP = [1, 2, 3, 4, 6];`, `const TEX_SLOT_COUNT = 256;` and `class VersionManager {`; the
+options DB's `{"en_US":"640x360","langID":171}` (with 172 / 173 / 203 / 204); `terra/index.html`'s
+`<script src="dist/bundle.js"`; and every `ShaderArrays` / `ShaderDither` / `ShaderPrecision` anchor line
+verbatim. `GameVersion.fromBundle` still parses the block (1 423 chars, under the 4 000 cap).
+
+Booted on the SM-S908U1 (Adreno 730, WebView 153.0.8010.57) with `0.2.0-8` in the picked folder: the title
+screen draws its own `VERSION: 0.2.0-8 EARLY ACCESS`, the record reads `game 0.2.0-8 Early Access` /
+`game files: AlabasterDawn (3348 entries)`, and **every rewrite landed at its full count** — the array lifts
+at `1/1` and `2/2` per file and the two water shaders' `lib/water.glsl` at `9/9`, the five dither shaders,
+the resolution ladder (`rewriting the resolution ladder in terra/dist/bundle.js`) and the option relabel —
+with no `NOT lifted (0/x)` and no shader error:
+
+```
++123708ms shader arrays: Adreno (TM) 730: all 9 shapes compile and link -> the game's bytes
++125182ms array declarations lifted in terra/data/shader/fragment/water-plane.frag (2/2)
++135423ms array declarations lifted in terra/data/shader/lib/water.glsl (9/9)
++125518ms ENGINE facts: webgl2=true; gl=Adreno (TM) 730; driver=native; uniforms=256/256; varyings=31; resolution=1280x720; window=384x823@2.8125; canvas=384x823; audio=running
++135860ms ENGINE boot: complete in 12149ms, 1835 resources; resolution=1280x720; audio=running; decodes started=659 done=659 failed=0
+```
+
+Screenshot `docs/ada-0.2.0-8-title.png`. Host-side the unit suite is green
+(`./gradlew :app:testDebugUnitTest`) and the shim diagnostics print 62/62 (`node
+tools/test-shim-diagnostics.mjs`, under `android/`). CrossCode, auto-started as the last game before the
+switch, drew its title screen at 1136×640 / 30 fps — unchanged.
