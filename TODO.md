@@ -32,11 +32,15 @@ button, the 30 fps switch, the exit that keeps the task in recents and the shade
 
 ## CrossCode on a phone (open after 0.8.0)
 
+* **Spanish translation for CrossCode** — the on-device download-and-install route (community
+  *CrossCode-Esp* v1.1.0 via CCLoader, nothing shipped, the game folder never touched) is planned in
+  [`CROSSCODE_SPANISH_PLAN.md`](CROSSCODE_SPANISH_PLAN.md). Not started; the host suites and the
+  device smoke in that plan are its acceptance.
+
 **v0.8.0 shipped** CrossCode: `GameProfile` selects it from the picked folder, and `cc-shim.js` boots it
 to its title screen (`ig.platform == Desktop`, Cubic Impact 0.5, 0 page errors — harness-verified
 2026-10-04 with `tools/game-harness.py`, screenshot in `docs/crosscode-title.png`). What a phone adds is
 still **not measured** and is the top of the 0.8.0 queue:
-
 * **The title screen is verified on a phone** (2026-10-04, Galaxy Z Fold 7, Android 17): 60 fps,
   canvas 1136×640, `window=475x751@2.625`, `platform=Desktop`, and `Default/cc.save` written into the
   picked saves folder. What is left is *play*: the heavier scenes' GPU cost at 1136×640 (§9.5 is the
