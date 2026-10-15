@@ -1,5 +1,11 @@
 # CrossCode Spanish translation (download-and-install, no game files touched)
 
+> **Implemented** (2026-10-15) as a general CCLoader mod library — see `FINDINGS.md` §26 and §27. Two
+> details below are **not** what shipped: the loader is served from a root registration (`/`), not
+> `/ccloader/` + `/assets/` (the asset loader strips the registered prefix — §26.3), and the Spanish
+> locale is forced by injecting `window.IG_LANG` into the served entry, not by the pack itself (§26.4).
+> This file is kept as the design record.
+
 ## Context
 
 Add an on-device Spanish (`es_ES`) translation for CrossCode: the user taps one entry-screen

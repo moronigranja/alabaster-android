@@ -20,6 +20,8 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.os.Process
+import android.provider.DocumentsContract
+import android.provider.OpenableColumns
 import android.provider.Settings
 import android.text.TextUtils
 import android.util.Log
@@ -53,6 +55,7 @@ import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import org.json.JSONObject
 import java.io.File
+import java.io.IOException
 
 /**
  * Hosts the game: the user's own folder served from SAF, the Node/NW.js shim injected at document
@@ -146,11 +149,11 @@ class PortActivity : Activity() {
     private var assetHandler: GameAssetHandler? = null
 
     /**
-     * The installed CrossCode Spanish translation pack, or null. Its presence on disk is the state: a
-     * non-null value makes [gameUrl] boot the pack's own CCLoader page, and the pack's trees are
-     * served by the asset handler and read through the fs bridge.
+     * The installed CCLoader library, or null. Its presence on disk is the state: a non-null value
+     * makes [gameUrl] boot the loader's own page, and the library's trees are served by the asset
+     * handler and read through the fs bridge. See [ModLibrary].
      */
-    private var translationPack: TranslationPack.Pack? = null
+    private var modRoot: ModLibrary.ModRoot? = null
 
     /** The last report the injected shim made, shown in the side menu (a boot stall names itself). */
     @Volatile
@@ -210,7 +213,7 @@ class PortActivity : Activity() {
         limitFps = prefs.getBoolean(KEY_LIMIT_FPS, false)
         fpsLimit = FpsLimit.normalize(prefs.getInt(KEY_FPS_LIMIT, FpsLimit.DEFAULT))
         logToSaves = prefs.getBoolean(LogFile.PREF_KEY, true)
-        translationPack = TranslationPack.open(this)
+        modRoot = ModLibrary.open(this)
         /* The store is opened here and not at START, and the previous session's record is read back
          * into the ring: a user who freezes and restarts expects the panel (and the file) to still
          * show what happened, not an empty record from the launch that follows. */
@@ -313,7 +316,7 @@ class PortActivity : Activity() {
             profile.pcSaveFiles.joinToString(getString(R.string.or_join)),
         )
         /* The optional Spanish pack is community work, so its credit belongs where the folder help is. */
-        return if (profile.translationEntryHtml != null) {
+        return if (profile.ccloaderEntryHtml != null) {
             base + "\n\n" + getString(R.string.help_translation_credit)
         } else {
             base
@@ -596,13 +599,14 @@ class PortActivity : Activity() {
         menu.menu.add(0, MENU_SELECT_SAVES, 1, getString(R.string.menu_select_saves))
         menu.menu.add(0, MENU_HELP, 2, getString(R.string.menu_help))
         menu.menu.add(0, MENU_LINK, 3, getString(R.string.menu_link))
-        /* Only a game with a translation pack gets the item (CrossCode today); the label says which
-         * way the tap goes, since the pack's presence on disk is the state. */
-        if (profile.translationEntryHtml != null) {
+        /* Only an engine with a CCLoader build gets the mod items (CrossCode today); the translation
+         * item's label says which way the tap goes, since its mod's presence on disk is the state. */
+        if (profile.ccloaderEntryHtml != null) {
+            menu.menu.add(0, MENU_MODS, 4, getString(R.string.menu_mods))
             menu.menu.add(
-                0, MENU_TRANSLATION, 4,
+                0, MENU_TRANSLATION, 5,
                 getString(
-                    if (translationPack != null) R.string.menu_translation_remove
+                    if (ModLibrary.locale(this) != null) R.string.menu_translation_remove
                     else R.string.menu_translation_add
                 )
             )
@@ -613,8 +617,9 @@ class PortActivity : Activity() {
                 MENU_SELECT_SAVES -> pick(REQ_SAVES, wantWrite = true, forGame = profile)
                 MENU_HELP -> showHelp(profile)
                 MENU_LINK -> pinShortcut(profile)
-                MENU_TRANSLATION -> if (translationPack != null) removeTranslation()
-                else installTranslation()
+                MENU_MODS -> showMods()
+                MENU_TRANSLATION ->
+                    if (ModLibrary.locale(this) != null) removeTranslation() else installTranslation()
             }
             true
         }
@@ -622,21 +627,170 @@ class PortActivity : Activity() {
     }
 
     /**
-     * Downloads the community Spanish pack off the main thread, unpacks it and repoints the boot at
-     * it. Failure is reported (and recorded) rather than thrown; the state stays "not installed".
+     * The Mods dialog: what is installed, on/off, remove, and add a `.ccmod`. Every action re-reads
+     * the library from disk and rebuilds the dialog, so what is shown is always what is on disk.
+     */
+    private fun showMods() {
+        val installed = ModLibrary.list(this)
+        val loader = ModLibrary.loaderVersion(this)
+        val view = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        view.addView(modHint(
+            if (loader == null) getString(R.string.mods_no_loader)
+            else getString(R.string.mods_loader, loader)
+        ))
+        if (installed.isEmpty()) view.addView(modHint(getString(R.string.mods_empty)))
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.mods_title)
+            .setView(ScrollView(this).apply { addView(view) })
+            .setPositiveButton(R.string.mods_add, null)
+            .setNegativeButton(R.string.mods_close, null)
+            .create()
+        for (mod in installed) {
+            view.addView(modRow(mod) { dialog.dismiss(); showMods() })
+        }
+        dialog.setOnShowListener {
+            /* The picker is the whole point of the dialog, so the positive button opens it rather than
+             * closing the dialog. */
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                dialog.dismiss()
+                pickModFile()
+            }
+        }
+        dialog.show()
+    }
+
+    private fun modHint(text: String): TextView = TextView(this).apply {
+        this.text = text
+        textSize = 13f
+        setTextColor(PortStyle.DIM)
+        val pad = PortStyle.dp(this@PortActivity, 8)
+        setPadding(pad, pad, pad, pad)
+    }
+
+    /** One mod's row: title and version, an on/off switch and Remove. [onChanged] rebuilds the list. */
+    private fun modRow(mod: ModLibrary.InstalledMod, onChanged: () -> Unit): LinearLayout {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        row.addView(TextView(this).apply {
+            text = if (mod.version.isEmpty()) mod.title
+            else getString(R.string.mods_entry, mod.title, mod.version)
+            textSize = 14f
+            setTextColor(PortStyle.TEXT)
+            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        })
+        row.addView(CheckBox(this).apply {
+            isChecked = mod.enabled
+            buttonTintList = ColorStateList.valueOf(PortStyle.TEXT)
+            setOnCheckedChangeListener { _, checked ->
+                if (ModLibrary.setEnabled(this@PortActivity, mod.id, checked)) {
+                    diag.line("mod ${mod.id} ${if (checked) "enabled" else "disabled"}")
+                    onChanged()
+                } else {
+                    isChecked = !checked
+                }
+            }
+        })
+        row.addView(Button(this).apply {
+            text = getString(R.string.mods_remove)
+            PortStyle.dress(this)
+            setOnClickListener {
+                if (ModLibrary.remove(this@PortActivity, mod.id)) {
+                    diag.line("mod ${mod.id} removed")
+                    modRoot = ModLibrary.open(this@PortActivity)
+                    onChanged()
+                }
+            }
+        })
+        return row
+    }
+
+    /** A `.ccmod`/zip the user picks is installed as-is; a CCLoader build in it installs the loader. */
+    private fun pickModFile() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+            putExtra(
+                Intent.EXTRA_MIME_TYPES,
+                arrayOf("application/zip", "application/octet-stream"),
+            )
+        }
+        try {
+            @Suppress("DEPRECATION")
+            startActivityForResult(intent, REQ_MOD_FILE)
+        } catch (e: Exception) {
+            Log.e(TAG, "no file picker", e)
+            diag.line("no file picker: ${e.message}")
+            setStatus(getString(R.string.status_no_picker, e.message))
+        }
+    }
+
+    /** A picked document's own name, from the provider; the URI's last segment as a fallback. */
+    private fun documentName(uri: Uri): String {
+        try {
+            contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+                ?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                        val name = cursor.getString(0)
+                        if (!name.isNullOrEmpty()) return name
+                    }
+                }
+        } catch (e: Exception) {
+            Log.w(TAG, "cannot read the picked file's name", e)
+        }
+        return uri.lastPathSegment?.substringAfterLast('/') ?: "mod.zip"
+    }
+
+    /** Installs the picked archive off the main thread and repoints the boot at the library. */
+    private fun installModFile(uri: Uri) {
+        val name = documentName(uri)
+        setStatus(getString(R.string.status_mod_installing, name))
+        Thread({
+            try {
+                val installed = contentResolver.openInputStream(uri)?.use {
+                    ModLibrary.installArchive(this, name, it)
+                } ?: throw IOException("cannot read $uri")
+                val noLoader = !installed.loader && ModLibrary.loaderVersion(this) == null
+                runOnUiThread {
+                    modRoot = ModLibrary.open(this)
+                    refreshUi()
+                    setStatus(
+                        if (noLoader) getString(R.string.status_mod_no_loader, name)
+                        else getString(R.string.status_mod_installed, name)
+                    )
+                }
+                diag.line(
+                    "mod archive installed: $name (${installed.mods.size} mod(s), " +
+                        "loader=${installed.loader})"
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "mod install failed", e)
+                diag.line("mod install failed: ${e.message}")
+                runOnUiThread { setStatus(getString(R.string.status_mod_failed, e.message)) }
+            }
+        }, "cc-mod").start()
+    }
+
+    /**
+     * Downloads the community CrossCode-Esp distribution (the loader plus the Spanish translation)
+     * off the main thread, installs it and repoints the boot at CCLoader. Failure is reported (and
+     * recorded) rather than thrown; the state stays "not installed".
      */
     private fun installTranslation() {
         setStatus(getString(R.string.status_translation_downloading))
-        diag.line("downloading the Spanish translation pack (${TranslationPack.VERSION})")
+        diag.line("downloading the CrossCode-Esp distribution (${ModLibrary.CC_ESP_VERSION})")
         Thread({
             try {
-                TranslationPack.install(this)
+                ModLibrary.installDistribution(this)
                 runOnUiThread {
-                    translationPack = TranslationPack.open(this)
+                    modRoot = ModLibrary.open(this)
                     refreshUi()
                     setStatus(getString(R.string.status_translation_installed))
                 }
-                diag.line("Spanish translation pack installed")
+                diag.line("CrossCode-Esp distribution installed")
             } catch (e: Exception) {
                 Log.e(TAG, "translation install failed", e)
                 diag.line("translation install failed: ${e.message}")
@@ -645,13 +799,16 @@ class PortActivity : Activity() {
         }, "cc-es-pack").start()
     }
 
-    /** Drops the unpacked pack; the next boot is the plain English game again. */
+    /**
+     * Drops the distribution's own mods and the loader. Without a loader no mod runs, so the next
+     * boot is the plain English game again.
+     */
     private fun removeTranslation() {
-        TranslationPack.remove(this)
-        translationPack = null
+        ModLibrary.removeDistribution(this)
+        modRoot = ModLibrary.open(this)
         refreshUi()
         setStatus(getString(R.string.status_translation_removed))
-        diag.line("Spanish translation pack removed")
+        diag.line("CrossCode-Esp distribution removed")
     }
 
     /**
@@ -766,6 +923,10 @@ class PortActivity : Activity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQ_MOD_FILE) {
+            if (resultCode == RESULT_OK) data?.data?.let { installModFile(it) }
+            return
+        }
         if (requestCode != REQ_GAME && requestCode != REQ_SAVES) return
         if (resultCode != RESULT_OK) return
         val uri = data?.data ?: return
@@ -995,7 +1156,7 @@ class PortActivity : Activity() {
         diag.line("indexed ${bound.size} entries in ${System.currentTimeMillis() - started}ms " +
             "(${detected.displayName})")
         padLayoutStore = PadLayoutStore(prefs, saveStore!!)
-        fsBridge = FsBridge(contentResolver, tree, bound, saveStore!!, translationPack)
+        fsBridge = FsBridge(contentResolver, tree, bound, saveStore!!, modRoot)
         setStatus(getString(R.string.status_loaded, bound.size))
         launchWebView()
     }
@@ -1090,10 +1251,10 @@ class PortActivity : Activity() {
     /** The game's URL, carrying the one-shot video reset to the shim when one was armed. */
     private fun gameUrl(resetVideo: Boolean): String {
         val p = profile ?: return ""
-        /* With the Spanish pack installed the boot goes through the pack's own CCLoader page, at the
-         * origin root rather than under `/game/` (see [GameProfile.translationEntryHtml]). */
-        if (p.translationEntryHtml != null && translationPack != null) {
-            return "${GameProfile.ORIGIN}/${p.translationEntryHtml}"
+        /* With a loader installed the boot goes through CCLoader's own page, at the origin root rather
+         * than under `/game/` (see [GameProfile.ccloaderEntryHtml]). */
+        if (p.ccloaderEntryHtml != null && modRoot != null) {
+            return "${GameProfile.ORIGIN}/${p.ccloaderEntryHtml}"
         }
         val param = p.resetVideoParam
         return if (resetVideo && param != null) "${p.entryUrl}?$param=1" else p.entryUrl
@@ -1111,7 +1272,8 @@ class PortActivity : Activity() {
             diag.line("document-start scripts unsupported; the shim is injected via " + selected.indexHtml)
         }
         val handler = GameAssetHandler(
-            contentResolver, gameTreeUri!!, built, selected, translationPack, assets, injectShim, diag
+            contentResolver, gameTreeUri!!, built, selected, modRoot, ModLibrary.locale(this),
+            assets, injectShim, diag
         )
         assetHandler = handler
         /* The pack's trees live at the origin root (CCLoader's `<base>`), and CCLoader reads them
@@ -1959,6 +2121,7 @@ class PortActivity : Activity() {
         private const val EXTRA_GAME = "game"
         private const val MENU_LINK = 4
         private const val MENU_TRANSLATION = 5
+        private const val MENU_MODS = 6
         /* A card's art tile: a square, so the crop is square too (see decodeArt). */
         private const val TILE_DP = 72
         /* The round play badge on a card, and the tap target of its three-dot folder menu. */
@@ -1989,6 +2152,7 @@ class PortActivity : Activity() {
         private const val KEY_FPS_LIMIT = "fps_limit"
         private const val REQ_GAME = 101
         private const val REQ_SAVES = 102
+        private const val REQ_MOD_FILE = 103
         private const val BRIDGE_NAME = "PortBridge"
 
         /* Diagnostics: how long the page's frame clock may go quiet before it is reported, how often

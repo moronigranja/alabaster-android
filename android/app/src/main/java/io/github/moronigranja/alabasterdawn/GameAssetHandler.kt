@@ -26,11 +26,16 @@ class GameAssetHandler(
     /** Which game this tree is: its page root, shim and whether the engine rewrites apply. */
     private val profile: GameProfile,
     /**
-     * The installed translation pack, or null. CCLoader builds its page with a `<base>` at the origin
-     * root and reads every file game-root-relative, so the pack's `ccloader/` and `assets/mods/` trees
-     * are served here at those paths, alongside the game tree under `/game/`.
+     * The installed CCLoader library, or null. CCLoader builds its page with a `<base>` at the origin
+     * root and reads every file game-root-relative, so the loader's `ccloader/` tree and the mods'
+     * `assets/mods/` trees are served here at those paths, alongside the game tree under `/game/`.
      */
-    private val translation: TranslationPack.Pack?,
+    private val mods: ModLibrary.ModRoot?,
+    /**
+     * The locale to force on the loader's entry page (`window.IG_LANG`), or null to leave the game's
+     * own choice alone. Only the CrossCode-Esp mod asks for one.
+     */
+    private val locale: String?,
     private val assets: AssetManager,
     /** Fallback mode: pull the shim in with a script tag, for WebViews without document-start scripts. */
     private val injectShim: Boolean,
@@ -111,15 +116,17 @@ class GameAssetHandler(
             return ok("text/plain", "utf-8", text.toByteArray(Charsets.UTF_8))
         }
 
-        /* The translation pack's own files, served at the origin root because CCLoader's `<base>` sits
-         * there and reads them game-root-relative. The pack only carries `ccloader/` and
-         * `assets/mods/`, so it cannot shadow a genuine game file. Its entry page gets the shim in
-         * absolute form: the page is at the origin root, so a relative `assets/cc-shim.js` would
-         * resolve under `/ccloader/`; `/assets/cc-shim.js` lands back on the shim branch above. */
-        translation?.read(rel)?.let { bytes ->
-            if (rel == profile.translationEntryHtml) {
-                val body = if (injectShim) injectShimTag(bytes, absolute = true) else bytes
-                return ok(mimeOf(rel), encodingOf(mimeOf(rel)), injectLocale(body))
+        /* The CCLoader library's own files, served at the origin root because CCLoader's `<base>` sits
+         * there and reads them game-root-relative. The library only carries `ccloader/` and
+         * `assets/mods/`, so it cannot shadow a genuine game file. The loader entry page gets the shim
+         * in absolute form (the page is at the origin root, so a relative `assets/cc-shim.js` would
+         * resolve under `/ccloader/`; `/assets/cc-shim.js` lands back on the shim branch above), and
+         * the pack's locale when one is asked for. */
+        mods?.read(rel)?.let { bytes ->
+            if (rel == profile.ccloaderEntryHtml) {
+                var body = if (injectShim) injectShimTag(bytes, absolute = true) else bytes
+                if (locale != null) body = injectLocale(body, locale)
+                return ok(mimeOf(rel), encodingOf(mimeOf(rel)), body)
             }
             return ok(mimeOf(rel), encodingOf(mimeOf(rel)), bytes)
         }
@@ -428,21 +435,21 @@ class GameAssetHandler(
 
     /**
      * Sets `window.IG_LANG` (the game's own override, checked before any stored choice) on the
-     * translation pack's entry page, so the boot lands in the pack's locale. The pack adds its
-     * language but does not select it — the game's `ig.main` picks `ig.FORCE_LANG` → `window.IG_LANG`
-     * → stored `IG_LANG` → auto-detect — so without this the game boots in the phone's locale. Only
-     * the pack's page gets it; the game's own entry is untouched.
+     * CCLoader entry page, so the boot lands in [locale]. The pack adds its language but does not
+     * select it — the game's `ig.main` picks `ig.FORCE_LANG` → `window.IG_LANG` → stored `IG_LANG` →
+     * auto-detect — so without this the game boots in the phone's locale. Only the loader's page gets
+     * it; the game's own entry is untouched.
      */
-    private fun injectLocale(html: ByteArray): ByteArray {
+    private fun injectLocale(html: ByteArray, locale: String): ByteArray {
         val text = String(html, Charsets.UTF_8)
         val anchor = "<head>"
         val at = text.indexOf(anchor)
         if (at == -1) {
-            Log.e(TAG, "${profile.translationEntryHtml} does not contain $anchor; serving it unmodified")
+            Log.e(TAG, "${profile.ccloaderEntryHtml} does not contain $anchor; serving it unmodified")
             return html
         }
         val cut = at + anchor.length
-        val tag = "<script>window.IG_LANG='${TranslationPack.LOCALE}';</script>\n"
+        val tag = "<script>window.IG_LANG='$locale';</script>\n"
         return (text.substring(0, cut) + tag + text.substring(cut)).toByteArray(Charsets.UTF_8)
     }
 

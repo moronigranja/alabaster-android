@@ -32,10 +32,14 @@ button, the 30 fps switch, the exit that keeps the task in recents and the shade
 
 ## CrossCode on a phone (open after 0.8.0)
 
-* **Spanish translation for CrossCode** — the on-device download-and-install route (community
-  *CrossCode-Esp* v1.1.0 via CCLoader, nothing shipped, the game folder never touched) is planned in
-  [`CROSSCODE_SPANISH_PLAN.md`](CROSSCODE_SPANISH_PLAN.md). Not started; the host suites and the
-  device smoke in that plan are its acceptance.
+* **Spanish translation for CrossCode** — shipped as the on-device download-and-install route
+  (community *CrossCode-Esp* v1.1.0 via CCLoader, nothing shipped, the game folder never touched;
+  `FINDINGS.md` §26, design in [`CROSSCODE_SPANISH_PLAN.md`](CROSSCODE_SPANISH_PLAN.md)).
+* **The CCLoader mod library** — any `.ccmod`/`.zip` can be installed from the card's **Mods…** dialog
+  alongside the pinned distribution (`FINDINGS.md` §27). Open: the **up-front compatibility gate**
+  (§26.6's CCLoader-3 manifest/`ccloader`-version rules), so a mod CCLoader will refuse is refused at
+  install time with a reason instead of installing and being dropped at boot; and a mod catalogue from
+  CCDirectLink's CCModDB (browse + download by id).
 
 **v0.8.0 shipped** CrossCode: `GameProfile` selects it from the picked folder, and `cc-shim.js` boots it
 to its title screen (`ig.platform == Desktop`, Cubic Impact 0.5, 0 page errors — harness-verified

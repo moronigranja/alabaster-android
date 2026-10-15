@@ -94,4 +94,19 @@
     <string name="status_translation_removed">Spanish translation removed.</string>
     <string name="status_translation_failed">Translation download failed: %1$s</string>
     <string name="help_translation_credit">Spanish translation by tralph3 and contributors — CC BY 4.0 (github.com/tralph3/CrossCode-Esp).</string>
+
+    <!-- The CCLoader mod library. -->
+    <string name="menu_mods">Mods…</string>
+    <string name="mods_title">Mods</string>
+    <string name="mods_loader">CCLoader %1$s installed.</string>
+    <string name="mods_no_loader">No CCLoader installed. Add the Spanish translation, or pick a CCLoader build, before mods can run.</string>
+    <string name="mods_empty">No mods installed.</string>
+    <string name="mods_entry">%1$s %2$s</string>
+    <string name="mods_remove">Remove</string>
+    <string name="mods_add">Add mod (.ccmod)</string>
+    <string name="mods_close">Close</string>
+    <string name="status_mod_installing">Installing %1$s…</string>
+    <string name="status_mod_installed">%1$s installed — restart CrossCode.</string>
+    <string name="status_mod_no_loader">%1$s installed, but no CCLoader: mods will not load until one is.</string>
+    <string name="status_mod_failed">Could not install the mod: %1$s</string>
 </resources>

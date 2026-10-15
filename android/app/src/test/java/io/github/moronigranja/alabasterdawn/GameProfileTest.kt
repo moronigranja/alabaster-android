@@ -67,9 +67,9 @@ class GameProfileTest {
     }
 
     @Test
-    fun `only CrossCode has a translation pack entry`() {
-        assertEquals("ccloader/main.html", GameProfile.CROSSCODE.translationEntryHtml)
-        assertNull("Alabaster Dawn has no translation pack", GameProfile.ALABASTER_DAWN.translationEntryHtml)
+    fun `only CrossCode has a CCLoader entry`() {
+        assertEquals("ccloader/main.html", GameProfile.CROSSCODE.ccloaderEntryHtml)
+        assertNull("Alabaster Dawn has no CCLoader build", GameProfile.ALABASTER_DAWN.ccloaderEntryHtml)
     }
 
     @Test

@@ -3244,3 +3244,82 @@ unbuilt — this was a dev-only probe.
 §25.1 counted 73 resource keys; §26's seven additions take both `values/strings.xml` and
 `values-es/strings.xml` to 80, still 1:1 with the same placeholder arity.
 
+## 27. A general CCLoader mod library (2026-10-15)
+
+§26 left the port able to run exactly one hardcoded pack. It is now a mod library: the loader and its
+mods live in one game-root subtree under `files/cc/`, and any `.ccmod`/`.zip` the user picks can be
+installed into it.
+
+### 27.1 One root, one convention, no index
+
+```
+files/cc/
+  ccloader/           the loader (main.html, dist/, common/, runtime/)
+  assets/mods/<id>/   one directory per enabled mod (CCLoader's own modsDirs)
+  disabled/<id>/      a mod moved out of assets/mods/ to turn it off
+```
+
+There is no index file: "installed" is a directory under `assets/mods/`, "enabled" is which of the two
+directories it is in, and a mod's title/version come from its own `ccmod.json`. `TranslationPack` became
+**`ModLibrary`**, its `Pack` became **`ModLibrary.ModRoot`** (same `read`/`exists`/`list`/`stat`),
+`GameProfile.translationEntryHtml` became **`ccloaderEntryHtml`**, and the port boots through CCLoader
+whenever a *loader* is installed — not only when a translation is. The Spanish locale is forced only
+while `CrossCode-Esp` is installed, so a mods-only library boots English and the game's own Options
+language switch behaves.
+
+### 27.2 Install by shape
+
+`ModLibrary.installArchive` stages the picked file and decides from its entry names:
+
+| archive | lands as |
+|---|---|
+| root `ccmod.json` | one mod → `assets/mods/<manifest id>/` |
+| root `main.html` (a bare CCLoader build) | the loader → `ccloader/` |
+| root `ccloader/` and/or `assets/mods/<id>/ccmod.json` | as-is (the CrossCode-Esp shape) |
+| one shared wrapper dir (`Foo-1.2.3/…`) | stripped first |
+| none of the above | refused with a message |
+
+Directory entries, `.xcf` sources and any `..` segment are skipped (the same rule as §26.1), and a
+manifest `id` that is not a path-safe name (`New game++`) is sanitised to a directory name. The pinned
+distribution still pins URL + SHA-256; a user-picked file is not hashed (it is the user's own choice).
+
+### 27.3 The UI
+
+The CrossCode card's ⋮ gains **Mods…**: a dialog that lists each mod (title, version, on/off, Remove),
+shows the loader's version or says there is none, and has **Add mod (.ccmod)** — a SAF
+`ACTION_OPEN_DOCUMENT` file picker (single file, no persistable grant). Every action re-reads the disk
+and rebuilds the dialog, so what is shown is what is on disk. The existing "Add/Remove Spanish
+translation" quick item stays; Remove now drops the loader and the distribution's three mods and leaves
+mods the user added themselves.
+
+### 27.4 Device smoke (SM-F971B, Galaxy Z Fold, Android 17)
+
+Installed a throwaway debug build (`.smoke` suffix, reverted after) and drove the real UI:
+
+```
+⋮ → "Add Spanish translation"      -> files/cc/{ccloader,assets/mods/{CrossCode-Esp,Localize-me,
+                                       ultimate-localized-ui}}; "Spanish translation installed"
+⋮ → Mods…                          -> "CCLoader 3.0.0-alpha installed." + three mod rows
+Mods… → Add mod (.ccmod) → picker  -> "cc-extra-dialogue-fixed.ccmod installed — restart CrossCode."
+Start CrossCode                    -> "5 mods will be loaded: ccloader-runtime v3.0.0-alpha,
+                                       cc-extra-dialogue v1.0.3, localize-me v1.0.0,
+                                       ultimate-localized-ui v1.3.0, CrossCode-Esp v1.1.0";
+                                       "final language set to es_ES"; poststart; "fully loaded!"
+Mods… → uncheck / re-check         -> moved assets/mods/ <-> disabled/ (log "mod … disabled"/"enabled")
+Mods… → Remove                     -> directory gone; log "mod cc-extra-dialogue removed"
+⋮ → "Remove Spanish translation"   -> ccloader/ and the three distribution mods gone,
+                                       assets/mods/cc-extra-dialogue (the user's) kept
+Start CrossCode                    -> no CCLoader lines: the plain game, mods inert without a loader
+```
+
+The file picker's document name is read through `OpenableColumns.DISPLAY_NAME` (a document URI has no
+tree id, so `GameFiles.displayNameOf` would have returned null and shown "mod.zip").
+
+Host: `:app:assembleDebug :app:testDebugUnitTest` green (172 tests; `ModLibraryTest` covers the
+checksum gate, the four archive shapes, the wrapper strip, the id sanitiser, enable/disable/remove, the
+listing and the `..` rule), `android/tools/test-cc-shim.mjs` 8/8, `test-shim-diagnostics.mjs` 62/62.
+
+Not built yet: the up-front compatibility gate (§26.6's CCLoader-3 schema/version rules) — today a
+mod that CCLoader will refuse still installs, and the reason appears in CCLoader's own console, which
+§26.6's `util` fix made readable.
+
