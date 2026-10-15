@@ -259,7 +259,7 @@ class PortActivity : Activity() {
     /** What auto-start shows while the last game is read, so the wait is not a black window. */
     private fun showSplash(game: GameProfile) {
         val view = TextView(this).apply {
-            text = "Starting ${game.displayName}\u2026"
+            text = getString(R.string.splash_starting, game.displayName)
             textSize = 15f
             setTextColor(PortStyle.DIM)
             gravity = Gravity.CENTER
@@ -276,8 +276,12 @@ class PortActivity : Activity() {
      * for. (The per-game hints used to be concatenated, which read "…terra/ directory. or Pick…".)
      */
     private fun notAGame(): String =
-        "That folder is not a game this port runs \u2014 pick the folder holding " +
-            GameProfile.entries.joinToString(" or ") { "${it.displayName}'s ${it.pageRoot}/" } + "."
+        getString(
+            R.string.folder_error,
+            GameProfile.entries.joinToString(getString(R.string.or_join)) {
+                getString(R.string.folder_error_entry, it.displayName, it.pageRoot)
+            },
+        )
 
     /** The ⋮ Help: what the computer's copy looks like, and where its saves are. */
     private fun showHelp(profile: GameProfile) {
@@ -285,25 +289,21 @@ class PortActivity : Activity() {
         AlertDialog.Builder(this)
             .setTitle(profile.displayName)
             .setMessage(helpText(profile))
-            .setPositiveButton("OK", null)
+            .setPositiveButton(android.R.string.ok, null)
             .show()
     }
 
     private fun helpText(profile: GameProfile): String {
         val saves = profile.pcSaves.joinToString("\n") { "  \u2022 $it" }
-        return "Point the port at your own copy of the game: no game files are bundled and nothing " +
-            "is uploaded.\n\n" +
-            "Game files\n" +
-            "On Steam: right-click ${profile.displayName} \u2192 Manage \u2192 Browse local files. " +
-            "Copy the ${profile.pageRoot}/ folder from ${profile.pcInstallFolder} to the phone, then " +
-            "pick the folder that holds it. Only ${profile.pageRoot}/ is read; the rest of the " +
-            "install is the desktop NW.js runtime, not needed.\n\n" +
-            "Saves\n" +
-            "On the computer they are in:\n$saves\n" +
-            "Copy the save folder itself into the saves folder you picked here (this card's \u22ee " +
-            "\u2192 Select save folder), or just its contents \u2014 the port reads either shape " +
-            "(the game's own ${profile.saveSubdir}/ subfolder, or the files at the top level).\n" +
-            "Not there? Search your computer for ${profile.pcSaveFiles.joinToString(" or ")}."
+        return getString(
+            R.string.help_text,
+            profile.displayName,
+            profile.pageRoot,
+            profile.pcInstallFolder,
+            saves,
+            profile.saveSubdir,
+            profile.pcSaveFiles.joinToString(getString(R.string.or_join)),
+        )
     }
 
     /**
@@ -329,13 +329,17 @@ class PortActivity : Activity() {
                 savesMissing.addAll(noSaves)
                 val notes = ArrayList<String>()
                 if (noGame.isNotEmpty()) {
-                    notes.add(noGame.joinToString(", ") { it.displayName } +
-                        ": game folder missing \u2014 pick it again from the card's \u22ee menu")
+                    notes.add(getString(
+                        R.string.status_game_folder_missing,
+                        noGame.joinToString(", ") { it.displayName },
+                    ))
                     diag.line("game folders no longer resolve: ${noGame.joinToString { it.id }}")
                 }
                 if (noSaves.isNotEmpty()) {
-                    notes.add(noSaves.joinToString(", ") { it.displayName } +
-                        ": saves folder missing \u2014 saves are kept inside the app")
+                    notes.add(getString(
+                        R.string.status_saves_folder_missing,
+                        noSaves.joinToString(", ") { it.displayName },
+                    ))
                     diag.line("saves folders no longer resolve: ${noSaves.joinToString { it.id }}")
                 }
                 if (notes.isNotEmpty()) setStatus(notes.joinToString(". ") + ".")
@@ -378,7 +382,7 @@ class PortActivity : Activity() {
                  * backend and what the engine was doing, without adb. The panel it opens is also
                  * where the stored Resolution can be dropped (FINDINGS §19). */
                 addView(Button(this@PortActivity).apply {
-                    text = "Troubleshoot"
+                    text = getString(R.string.troubleshoot)
                     setOnClickListener { showDiagnostics() }
                     PortStyle.dress(this)
                 })
@@ -388,7 +392,7 @@ class PortActivity : Activity() {
         for (p in GameProfile.entries) addGameSection(root, p)
 
         autoStartToggle = CheckBox(this).apply {
-            text = "Start last game directly"
+            text = getString(R.string.start_last_directly)
             textSize = 14f
             setTextColor(PortStyle.TEXT)
             buttonTintList = ColorStateList.valueOf(PortStyle.TEXT)
@@ -410,7 +414,7 @@ class PortActivity : Activity() {
         /* Which build the user is on, on the screen every report is taken from. */
         root.addView(
             TextView(this).apply {
-                text = "port ${appVersion()}"
+                text = getString(R.string.port_version, appVersion())
                 textSize = 12f
                 setTextColor(PortStyle.DIM)
                 setPadding(0, gap, 0, 0)
@@ -514,7 +518,7 @@ class PortActivity : Activity() {
         card.addView(actions)
 
         val add = Button(this).apply {
-            text = "Add ${profile.displayName}"
+            text = getString(R.string.add_game, profile.displayName)
             setOnClickListener { pick(REQ_GAME, wantWrite = false) }
             PortStyle.dress(this)
             setCompoundDrawablePadding(PortStyle.dp(this@PortActivity, 8))
@@ -556,28 +560,28 @@ class PortActivity : Activity() {
     private fun pinShortcut(profile: GameProfile) {
         val manager = getSystemService(ShortcutManager::class.java)
         if (manager == null || !manager.isRequestPinShortcutSupported) {
-            setStatus("This launcher does not allow home-screen shortcuts.")
+            setStatus(getString(R.string.status_no_shortcuts))
             return
         }
         val info = ShortcutInfo.Builder(this, "game-" + profile.id)
             .setShortLabel(profile.displayName)
-            .setLongLabel("Play ${profile.displayName}")
+            .setLongLabel(getString(R.string.shortcut_play, profile.displayName))
             .setIcon(Icon.createWithResource(this, R.mipmap.ic_launcher))
             .setIntent(shortcutIntent(profile))
             .build()
         val asked = manager.requestPinShortcut(info, null)
         diag.line("home-screen link for ${profile.displayName}: " +
             (if (asked) "asked" else "refused"))
-        if (!asked) setStatus("The home-screen link could not be created.")
+        if (!asked) setStatus(getString(R.string.status_shortcut_failed))
     }
 
     /** A card's menu: point it at that game's install folder, or at that game's saves folder. */
     private fun showGameMenu(anchor: View, profile: GameProfile) {
         val menu = PopupMenu(this, anchor)
-        menu.menu.add(0, MENU_SELECT_GAME, 0, "Select game folder")
-        menu.menu.add(0, MENU_SELECT_SAVES, 1, "Select save folder")
-        menu.menu.add(0, MENU_HELP, 2, "Help: what to copy")
-        menu.menu.add(0, MENU_LINK, 3, "Create a home-screen link")
+        menu.menu.add(0, MENU_SELECT_GAME, 0, getString(R.string.menu_select_game))
+        menu.menu.add(0, MENU_SELECT_SAVES, 1, getString(R.string.menu_select_saves))
+        menu.menu.add(0, MENU_HELP, 2, getString(R.string.menu_help))
+        menu.menu.add(0, MENU_LINK, 3, getString(R.string.menu_link))
         menu.setOnMenuItemClickListener {
             when (it.itemId) {
                 MENU_SELECT_GAME -> pick(REQ_GAME, wantWrite = false)
@@ -652,18 +656,27 @@ class PortActivity : Activity() {
             /* A folder that no longer resolves is dimmed with its play badge: a tap re-opens the
              * picker rather than starting a game that is not there (see [cardAction]). */
             cardRows[p]?.alpha = if (gone) 0.5f else 1f
-            cardStatus[p]?.text = "files: " + (GameFiles.pathOf(gameUris[p]) ?: "(not set)") +
-                (if (gone) " (missing)" else "") +
-                "\n" + "saves: " + (GameFiles.pathOf(savesUris[p]) ?: "(not set)") +
-                (if (savesMissing.contains(p)) " (missing)" else "")
+            val missing = getString(R.string.folder_missing_suffix)
+            cardStatus[p]?.text = getString(
+                R.string.card_folders,
+                GameFiles.pathOf(gameUris[p]) ?: getString(R.string.folder_not_set),
+                if (gone) missing else "",
+                GameFiles.pathOf(savesUris[p]) ?: getString(R.string.folder_not_set),
+                if (savesMissing.contains(p)) missing else "",
+            )
         }
         if (status.length() == 0) {
             status.text = when {
                 gameUris.values.all { it == null } ->
-                    "Pick a game's install folder \u2014 the one holding Alabaster Dawn's terra/ or CrossCode's assets/."
+                    getString(
+                        R.string.status_pick_folder,
+                        GameProfile.entries.joinToString(getString(R.string.or_join)) {
+                            getString(R.string.folder_error_entry, it.displayName, it.pageRoot)
+                        },
+                    )
                 savesUris.values.all { it == null } ->
-                    "No saves folder: saves will be kept inside the app and cannot be copied out."
-                else -> "Ready."
+                    getString(R.string.status_no_saves)
+                else -> getString(R.string.status_ready)
             }
         }
     }
@@ -687,7 +700,7 @@ class PortActivity : Activity() {
         } catch (e: Exception) {
             Log.e(TAG, "no document picker", e)
             diag.line("no document picker: ${e.message}")
-            status.text = "No document picker available: ${e.message}"
+            status.text = getString(R.string.status_no_picker, e.message)
         }
     }
 
@@ -709,7 +722,7 @@ class PortActivity : Activity() {
         }
         if (!granted) {
             diag.line("grant refused for ${GameFiles.displayNameOf(uri)} (flags=$flags)")
-            status.text = "Access to ${GameFiles.displayNameOf(uri)} could not be kept. Choose it again."
+            status.text = getString(R.string.status_grant_lost, GameFiles.displayNameOf(uri))
             return
         }
         if (!wantWrite && (flags and Intent.FLAG_GRANT_WRITE_URI_PERMISSION) != 0) {
@@ -769,7 +782,7 @@ class PortActivity : Activity() {
      * index is kept, because Start needs exactly this map and reading it twice buys nothing.
      */
     private fun learnGameFolder(uri: Uri, forgetLegacyKey: Boolean = false) {
-        setStatus("Reading " + (GameFiles.displayNameOf(uri) ?: "the folder") + "…")
+        setStatus(getString(R.string.status_reading, GameFiles.displayNameOf(uri) ?: getString(R.string.the_folder)))
         Thread({
             val built = try {
                 GameFiles.indexTree(contentResolver, uri)
@@ -788,13 +801,13 @@ class PortActivity : Activity() {
             if (built != null && detected != null) GameIndexCache.save(this, uri, release, built)
             runOnUiThread {
                 if (built == null) {
-                    status.text = "Could not read that folder."
+                    status.text = getString(R.string.status_unreadable)
                     return@runOnUiThread
                 }
                 if (detected == null) {
                     setStatus(
                         if (built.size == 0) {
-                            "That folder is empty \u2014 the game is not there any more. Pick it again."
+                            getString(R.string.status_empty)
                         } else {
                             notAGame()
                         }
@@ -847,7 +860,7 @@ class PortActivity : Activity() {
             onFolderRead(selected, tree, cached, version, System.currentTimeMillis())
             return
         }
-        setStatus("Indexing game files…")
+        setStatus(getString(R.string.status_indexing))
         /* The flush chain starts here rather than in launchWebView, because reading a big game folder
          * can take a while and a failure there has to leave a record on disk, not only on screen.
          * launchWebView re-posts this same chain. */
@@ -886,7 +899,7 @@ class PortActivity : Activity() {
     ) {
         if (built == null) {
             showPreGame()
-            setStatus("Could not read that folder.")
+            setStatus(getString(R.string.status_unreadable))
             setCardsEnabled(true)
             return
         }
@@ -895,7 +908,7 @@ class PortActivity : Activity() {
             showPreGame()
             setStatus(
                 if (built.size == 0) {
-                    "That folder is empty \u2014 the game is not there any more. Pick it again."
+                    getString(R.string.status_empty)
                 } else {
                     notAGame()
                 }
@@ -908,7 +921,7 @@ class PortActivity : Activity() {
             showPreGame()
             prefs.edit().putString(detected.gameFolderKey, tree.toString()).apply()
             gameUris[detected] = tree
-            setStatus("That folder is ${detected.displayName}, not ${selected.displayName}.")
+            setStatus(getString(R.string.status_wrong_game, detected.displayName, selected.displayName))
             diag.line("Start tapped for ${selected.displayName} with a ${detected.displayName} folder")
             setCardsEnabled(true)
             refreshUi()
@@ -923,7 +936,7 @@ class PortActivity : Activity() {
             "(${detected.displayName})")
         padLayoutStore = PadLayoutStore(prefs, saveStore!!)
         fsBridge = FsBridge(contentResolver, tree, bound, saveStore!!)
-        setStatus("Loaded ${bound.size} files.")
+        setStatus(getString(R.string.status_loaded, bound.size))
         launchWebView()
     }
 
@@ -979,8 +992,11 @@ class PortActivity : Activity() {
             runOnUiThread {
                 diag.line("carried ${copied.size} file(s) from app storage into " +
                     "${GameFiles.pathOf(into)}: ${copied.joinToString(", ")}")
-                setStatus("Copied ${copied.size} save file(s) from app storage into " +
-                    "${GameFiles.pathOf(into) ?: "the folder"}.")
+                setStatus(getString(
+                    R.string.status_copied_saves,
+                    copied.size,
+                    GameFiles.pathOf(into) ?: getString(R.string.the_folder),
+                ))
             }
         }, "ada-saves").start()
     }
@@ -1002,7 +1018,7 @@ class PortActivity : Activity() {
         val view = webView
         if (view == null) {
             prefs.edit().putBoolean(KEY_RESET_VIDEO, true).apply()
-            status.text = "The game's Resolution will be reset when it starts."
+            status.text = getString(R.string.status_reset_armed)
             diag.line("the game's stored Resolution will be reset at the next start")
             return
         }
@@ -1188,7 +1204,7 @@ class PortActivity : Activity() {
         setContentView(frame)
         splash = null
         view.requestFocus()
-        setStatus("Loading the game…")
+        setStatus(getString(R.string.status_loading))
         diag.line("loading ${selected.entryUrl}")
         webViewStartedAt = monotonicMs()
         watchdog.removeCallbacksAndMessages(null)
@@ -1407,7 +1423,7 @@ class PortActivity : Activity() {
             file.writeText(text)
         } catch (e: Exception) {
             Log.e(TAG, "cannot write $file", e)
-            return "could not write the file: ${e.message}"
+            return getString(R.string.share_write_failed, e.message)
         }
         diag.line("diagnostics written to ${file.absolutePath}")
         return try {
@@ -1417,16 +1433,19 @@ class PortActivity : Activity() {
                         type = "text/plain"
                         putExtra(
                             Intent.EXTRA_SUBJECT,
-                            (profile?.displayName ?: "Radical Fish") + " Android port diagnostics"
+                            getString(
+                                R.string.share_subject,
+                                profile?.displayName ?: "Radical Fish",
+                            )
                         )
                         putExtra(Intent.EXTRA_TEXT, text)
                     },
-                    "Share diagnostics"
+                    getString(R.string.share_diagnostics_title)
                 )
             )
-            "sent from ${file.absolutePath}"
+            getString(R.string.share_sent, file.absolutePath)
         } catch (e: ActivityNotFoundException) {
-            "no app to share it with; the record is at ${file.absolutePath}"
+            getString(R.string.share_no_app, file.absolutePath)
         }
     }
 
@@ -1470,7 +1489,7 @@ class PortActivity : Activity() {
         val menu = menuView ?: return
         menu.setStatus(padView?.externalInputInUse == true, savesStatusLine())
         /* The game's name matters in a report from a host that runs two of them. */
-        menu.setVersion("port ${appVersion()} · " + (profile?.displayName ?: "no game"))
+        menu.setVersion(getString(R.string.menu_version, appVersion(), profile?.displayName ?: getString(R.string.no_game)))
         menu.setLastEngineReport(lastEngineReport)
         menu.open()
     }
@@ -1706,7 +1725,7 @@ class PortActivity : Activity() {
         }
         if (gameUris[wanted] == null) {
             showPreGame()
-            setStatus("${wanted.displayName}: pick its game folder first.")
+            setStatus(getString(R.string.status_pick_game_folder, wanted.displayName))
             return
         }
         startGame(wanted)

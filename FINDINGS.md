@@ -3043,3 +3043,43 @@ if the game's subfolder is absent and the flat marker is present (`Default` for 
 for CrossCode), the leading subfolder segment is stripped from every path, so reads, writes and the
 engine's own `Default` → `Backups` rotation land at the picked root. Only the leading segment is dropped,
 so the port's own `pad-layout.json` and log at the root are untouched. Unit-tested in `SaveLayoutTest`.
+
+## 25. The port's own UI is localised: Spanish by the phone's language (2026-10-15)
+
+### 25.1 Everything the user reads moved into resources
+
+Every user-facing literal in `PortActivity.kt`, `SideMenuView.kt` and `DiagnosticsDialog.kt` — the
+pre-game card screen, the side menu, the diagnostics dialog, and the status/share messages — is now a
+`res/values` string, and `res/values-es/strings.xml` mirrors all 73 keys 1:1 with the same placeholder
+arity and order. Android selects `values-es` from the phone's own locale: no picker, no prefs key, no
+`AppCompatDelegate`, and no `configChanges` change (the manifest omits `locale`, so a language change
+recreates the activity and the existing `@string/app_name` resolves through resources unchanged).
+
+Deliberately left as literals: `Diag`/`Log` records and the `"RfPort"` tag; keys, ids and wire values
+(`PREF`, `KEY_*`, `EXTRA_*`, `REQ_*`, `MENU_*`, thread names, `ShortcutInfo` ids, `sc.`/`ig.` vocabulary);
+and filesystem hints (the `pcInstallFolder`/`pcSaves`/`pcSaveFiles` paths — only the sentences around them
+are translated). The one place a path sits inside a translated sentence, the game's own save subdir, is a
+placeholder (`%5$s`) so it stays per-game. `app_name` is a brand and is identical in both files.
+
+### 25.2 Host checks
+
+```
+cd android && ./gradlew :app:assembleDebug :app:testDebugUnitTest   # BUILD SUCCESSFUL (56 s, unit tests green)
+cd android && node tools/test-shim-diagnostics.mjs                  # 62/62 checks passed
+```
+
+`aapt2 dump resources app-debug.apk` shows every key carrying both a `()` (English, the default file) and
+an `(es)` value — e.g. `string/menu_title` → `()` "Menu", `(es) "Menú"`; `string/app_name` → both
+"RadicalFish Ports" — and the compiled values keep `card_folders`'s `\n` and every `%n$s` intact, so the
+Spanish bundle is in the APK and selectable by locale. Placeholder parity was checked mechanically (the
+`%n$s` set is identical in both files; no bare `%`). This is the class of bug the plan names: a mismatched
+arity is a runtime `IllegalFormatException`, not a build error, and there is none.
+
+### 25.3 Not yet measured: the on-screen pass
+
+No device was attached, so the two-language smoke is the owner's step (same signing key, `adb install -r`
+updates in place). With the phone language **Spanish** the pre-game screen, the side menu (open it
+in-game), the diagnostics dialog and a status message must read in Spanish with no `IllegalFormatException`
+in logcat and the game still starting; with the phone language **English** every one of those surfaces must
+be the original text. Wording is authored here (no upstream source) and a native reviewer may adjust it.
+

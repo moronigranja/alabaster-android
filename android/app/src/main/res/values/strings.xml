@@ -5,4 +5,84 @@
     <string name="shortcut_ada_long">Play Alabaster Dawn</string>
     <string name="shortcut_cc_short">CrossCode</string>
     <string name="shortcut_cc_long">Play CrossCode</string>
+
+    <!-- Join connector for lists of folder names / save file names read aloud in a sentence. -->
+    <string name="or_join"> or </string>
+
+    <!-- Pre-game screen. -->
+    <string name="splash_starting">Starting %1$s…</string>
+    <string name="folder_error">That folder is not a game this port runs — pick the folder holding %1$s.</string>
+    <string name="folder_error_entry">%1$s\'s %2$s/</string>
+    <string name="help_text">Point the port at your own copy of the game: no game files are bundled and nothing is uploaded.\n\nGame files\nOn Steam: right-click %1$s → Manage → Browse local files. Copy the %2$s/ folder from %3$s to the phone, then pick the folder that holds it. Only %2$s/ is read; the rest of the install is the desktop NW.js runtime, not needed.\n\nSaves\nOn the computer they are in:\n%4$s\nCopy the save folder itself into the saves folder you picked here (this card\'s ⋮ → Select save folder), or just its contents — the port reads either shape (the game\'s own %5$s/ subfolder, or the files at the top level).\nNot there? Search your computer for %6$s.</string>
+    <string name="troubleshoot">Troubleshoot</string>
+    <string name="start_last_directly">Start last game directly</string>
+    <string name="port_version">port %1$s</string>
+    <string name="add_game">Add %1$s</string>
+    <string name="menu_select_game">Select game folder</string>
+    <string name="menu_select_saves">Select save folder</string>
+    <string name="menu_help">Help: what to copy</string>
+    <string name="menu_link">Create a home-screen link</string>
+    <string name="shortcut_play">Play %1$s</string>
+
+    <!-- Status messages on the pre-game screen. -->
+    <string name="status_no_shortcuts">This launcher does not allow home-screen shortcuts.</string>
+    <string name="status_shortcut_failed">The home-screen link could not be created.</string>
+    <string name="status_game_folder_missing">%1$s: game folder missing — pick it again from the card\'s ⋮ menu</string>
+    <string name="status_saves_folder_missing">%1$s: saves folder missing — saves are kept inside the app</string>
+    <string name="card_folders">files: %1$s%2$s\nsaves: %3$s%4$s</string>
+    <string name="folder_missing_suffix"> (missing)</string>
+    <string name="folder_not_set">(not set)</string>
+    <string name="status_pick_folder">Pick a game\'s install folder — the one holding %1$s.</string>
+    <string name="status_no_saves">No saves folder: saves will be kept inside the app and cannot be copied out.</string>
+    <string name="status_ready">Ready.</string>
+    <string name="status_no_picker">No document picker available: %1$s</string>
+    <string name="status_grant_lost">Access to %1$s could not be kept. Choose it again.</string>
+    <string name="status_reading">Reading %1$s…</string>
+    <string name="the_folder">the folder</string>
+    <string name="status_unreadable">Could not read that folder.</string>
+    <string name="status_empty">That folder is empty — the game is not there any more. Pick it again.</string>
+    <string name="status_indexing">Indexing game files…</string>
+    <string name="status_wrong_game">That folder is %1$s, not %2$s.</string>
+    <string name="status_loaded">Loaded %1$s files.</string>
+    <string name="status_copied_saves">Copied %1$s save file(s) from app storage into %2$s.</string>
+    <string name="status_reset_armed">The game\'s Resolution will be reset when it starts.</string>
+    <string name="status_loading">Loading the game…</string>
+    <string name="status_pick_game_folder">%1$s: pick its game folder first.</string>
+
+    <!-- Sharing the diagnostics record. -->
+    <string name="share_diagnostics_title">Share diagnostics</string>
+    <string name="share_subject">%1$s Android port diagnostics</string>
+    <string name="share_write_failed">could not write the file: %1$s</string>
+    <string name="share_sent">sent from %1$s</string>
+    <string name="share_no_app">no app to share it with; the record is at %1$s</string>
+
+    <!-- Side menu. -->
+    <string name="menu_title">Menu</string>
+    <string name="menu_hide_pad">Hide pad with external input</string>
+    <string name="menu_dynamic_sticks">Dynamic sticks (touch anywhere)</string>
+    <string name="menu_show_stats">Show FPS / battery / temp</string>
+    <string name="menu_limit_fps">Limit the frame rate (battery)</string>
+    <string name="menu_log_saves">Keep a log with the saves</string>
+    <string name="menu_game_position">Game position</string>
+    <string name="menu_top">Top</string>
+    <string name="menu_center">Center</string>
+    <string name="menu_bottom">Bottom</string>
+    <string name="menu_game_selection">Game selection</string>
+    <string name="menu_exit">Exit</string>
+    <string name="menu_external_input">External input: %1$s</string>
+    <string name="menu_active">active</string>
+    <string name="menu_idle">idle</string>
+    <string name="menu_saves">Saves: %1$s</string>
+    <string name="menu_engine">Engine: %1$s\n(see Diagnostics)</string>
+    <string name="no_game">no game</string>
+    <string name="menu_version">port %1$s · %2$s</string>
+
+    <!-- Diagnostics dialog. -->
+    <string name="diag_title">Diagnostics — Back opens this while the game is running</string>
+    <string name="diag_hint">Does the game stop on its loading bar? On a Mali device that is the OpenGL driver: open \"OpenGL driver\" below and set this app to ANGLE. If it starts, the panel\'s spelling test says which shaders still disagree.</string>
+    <string name="diag_share">Share</string>
+    <string name="diag_reset_resolution">Reset resolution</string>
+    <string name="diag_close">Close</string>
+    <string name="diag_shader_test">Test shader spellings</string>
+    <string name="diag_opengl_driver">OpenGL driver</string>
 </resources>

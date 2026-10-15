@@ -159,8 +159,11 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
 
     /** Refreshed by the owner just before [open]: what the port is reading right now. */
     fun setStatus(externalInputActive: Boolean, saves: String) {
-        externalInputStatus.text = "External input: " + (if (externalInputActive) "active" else "idle")
-        savesStatus.text = "Saves: " + saves
+        externalInputStatus.text = context.getString(
+            R.string.menu_external_input,
+            context.getString(if (externalInputActive) R.string.menu_active else R.string.menu_idle),
+        )
+        savesStatus.text = context.getString(R.string.menu_saves, saves)
     }
 
     /** Which build the port is; shown with the rest of the status block. */
@@ -175,7 +178,7 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
      */
     fun setLastEngineReport(report: String) {
         val cut = if (report.length > 160) report.take(160) + "…" else report
-        engineStatus.text = "Engine: $cut\n(see Diagnostics)"
+        engineStatus.text = context.getString(R.string.menu_engine, cut)
     }
 
     /** The panel's scroller; kept so [open] can send it back to the top. */
@@ -218,7 +221,7 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
         }
 
         panel.addView(TextView(context).apply {
-            text = "Menu"
+            text = context.getString(R.string.menu_title)
             textSize = 18f
             setTextColor(PortStyle.TEXT)
         })
@@ -226,28 +229,28 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
         hideToggle.setOnCheckedChangeListener { _, checked ->
             if (!syncing) onHideWithExternalInput?.invoke(checked)
         }
-        addRow(panel, R.drawable.ic_menu_pad, "Hide pad with external input", hideToggle) {
+        addRow(panel, R.drawable.ic_menu_pad, context.getString(R.string.menu_hide_pad), hideToggle) {
             hideToggle.isChecked = !hideToggle.isChecked
         }
 
         dynamicToggle.setOnCheckedChangeListener { _, checked ->
             if (!syncing) onDynamicSticks?.invoke(checked)
         }
-        addRow(panel, R.drawable.ic_menu_joystick, "Dynamic sticks (touch anywhere)", dynamicToggle) {
+        addRow(panel, R.drawable.ic_menu_joystick, context.getString(R.string.menu_dynamic_sticks), dynamicToggle) {
             dynamicToggle.isChecked = !dynamicToggle.isChecked
         }
 
         statsToggle.setOnCheckedChangeListener { _, checked ->
             if (!syncing) onStatsEnabled?.invoke(checked)
         }
-        addRow(panel, R.drawable.ic_menu_stats, "Show FPS / battery / temp", statsToggle) {
+        addRow(panel, R.drawable.ic_menu_stats, context.getString(R.string.menu_show_stats), statsToggle) {
             statsToggle.isChecked = !statsToggle.isChecked
         }
 
         fpsToggle.setOnCheckedChangeListener { _, checked ->
             if (!syncing) onLimitFps?.invoke(checked)
         }
-        addRow(panel, R.drawable.ic_menu_fps, "Limit the frame rate (battery)", fpsToggle) {
+        addRow(panel, R.drawable.ic_menu_fps, context.getString(R.string.menu_limit_fps), fpsToggle) {
             fpsToggle.isChecked = !fpsToggle.isChecked
         }
         /* The rate lives under the switch, and only while it is on: the cap is the switch's job, the
@@ -257,7 +260,7 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
         logToggle.setOnCheckedChangeListener { _, checked ->
             if (!syncing) onLogToSaves?.invoke(checked)
         }
-        addRow(panel, R.drawable.ic_menu_log, "Keep a log with the saves", logToggle) {
+        addRow(panel, R.drawable.ic_menu_log, context.getString(R.string.menu_log_saves), logToggle) {
             logToggle.isChecked = !logToggle.isChecked
         }
 
@@ -266,15 +269,15 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
         if (viewAlignSupported) {
             /* not a row: a section header keeps its small dim style */
             panel.addView(TextView(context).apply {
-                text = "Game position"
+                text = context.getString(R.string.menu_game_position)
                 textSize = 14f
                 setTextColor(PortStyle.DIM)
                 setPadding(0, dp(16), 0, 0)
             })
 
-            addRadio(panel, ViewAlign.TOP, "Top", R.drawable.ic_menu_align_top, last = false)
-            addRadio(panel, ViewAlign.CENTER, "Center", R.drawable.ic_menu_align_center, last = false)
-            addRadio(panel, ViewAlign.BOTTOM, "Bottom", R.drawable.ic_menu_align_bottom, last = true)
+            addRadio(panel, ViewAlign.TOP, context.getString(R.string.menu_top), R.drawable.ic_menu_align_top, last = false)
+            addRadio(panel, ViewAlign.CENTER, context.getString(R.string.menu_center), R.drawable.ic_menu_align_center, last = false)
+            addRadio(panel, ViewAlign.BOTTOM, context.getString(R.string.menu_bottom), R.drawable.ic_menu_align_bottom, last = true)
         }
 
         /* Pushes the status lines and Exit to the bottom of the panel. */
@@ -305,13 +308,13 @@ class SideMenuView(context: Context, private val viewAlignSupported: Boolean = t
         }
         panel.addView(engineStatus)
 
-        addRow(panel, R.drawable.ic_menu_games, "Game selection", null) {
+        addRow(panel, R.drawable.ic_menu_games, context.getString(R.string.menu_game_selection), null) {
             onGameSelection?.invoke()
         }
-        addRow(panel, R.drawable.ic_menu_diagnostics, "Troubleshoot", null) {
+        addRow(panel, R.drawable.ic_menu_diagnostics, context.getString(R.string.troubleshoot), null) {
             onDiagnostics?.invoke()
         }
-        addRow(panel, R.drawable.ic_menu_exit, "Exit", null, last = true) {
+        addRow(panel, R.drawable.ic_menu_exit, context.getString(R.string.menu_exit), null, last = true) {
             onExit?.invoke()
         }
 

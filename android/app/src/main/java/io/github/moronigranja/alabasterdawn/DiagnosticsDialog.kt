@@ -62,7 +62,7 @@ class DiagnosticsDialog(
 
         root.addView(
             TextView(context).apply {
-                this.text = "Diagnostics — Back opens this while the game is running"
+                this.text = context.getString(R.string.diag_title)
                 textSize = 16f
                 setTextColor(PortStyle.TEXT)
             }
@@ -95,9 +95,7 @@ class DiagnosticsDialog(
                 TextView(context).apply {
                     /* The one instruction that has fixed a Mali phone so far, and the one thing an app
                      * cannot do for itself: the driver choice is a privileged `Settings.Global` entry. */
-                    text = "Does the game stop on its loading bar? On a Mali device that is the OpenGL " +
-                        "driver: open \"OpenGL driver\" below and set this app to ANGLE. If it starts, " +
-                        "the panel's spelling test says which shaders still disagree."
+                    text = context.getString(R.string.diag_hint)
                     textSize = 12f
                     setTextColor(PortStyle.DIM)
                     setPadding(0, dp(8), 0, 0)
@@ -109,13 +107,13 @@ class DiagnosticsDialog(
             LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 addView(Button(context).apply {
-                    this.text = "Share"
+                    this.text = context.getString(R.string.diag_share)
                     setOnClickListener { status.text = onShare() }
                     PortStyle.dress(this)
                 })
                 if (shaderTools) {
                     addView(Button(context).apply {
-                        this.text = "Reset resolution"
+                        this.text = context.getString(R.string.diag_reset_resolution)
                         setOnClickListener {
                             onResetResolution()
                             dismiss()
@@ -124,7 +122,7 @@ class DiagnosticsDialog(
                     })
                 }
                 addView(Button(context).apply {
-                    this.text = "Close"
+                    this.text = context.getString(R.string.diag_close)
                     setOnClickListener { dismiss() }
                     PortStyle.dress(this)
                 })
@@ -135,7 +133,7 @@ class DiagnosticsDialog(
             LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 addView(Button(context).apply {
-                    this.text = "Test shader spellings"
+                    this.text = context.getString(R.string.diag_shader_test)
                     setOnClickListener {
                         onShaderSelfTest()
                         dismiss()
@@ -143,7 +141,7 @@ class DiagnosticsDialog(
                     PortStyle.dress(this)
                 }.also { it.visibility = if (shaderTools) View.VISIBLE else View.GONE })
                 addView(Button(context).apply {
-                    this.text = "OpenGL driver"
+                    this.text = context.getString(R.string.diag_opengl_driver)
                     setOnClickListener { onDriverSettings() }
                     PortStyle.dress(this)
                 })

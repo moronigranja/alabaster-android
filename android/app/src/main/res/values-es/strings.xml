@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">RadicalFish Ports</string>
+    <string name="shortcut_ada_short">Alabaster Dawn</string>
+    <string name="shortcut_ada_long">Jugar a Alabaster Dawn</string>
+    <string name="shortcut_cc_short">CrossCode</string>
+    <string name="shortcut_cc_long">Jugar a CrossCode</string>
+
+    <string name="or_join"> o </string>
+
+    <string name="splash_starting">Iniciando %1$s…</string>
+    <string name="folder_error">Esa carpeta no es un juego que este port ejecute — elige la carpeta que contiene %1$s.</string>
+    <string name="folder_error_entry">%2$s/ de %1$s</string>
+    <string name="help_text">Apunta el port a tu propia copia del juego: no se incluye ningún archivo del juego y no se sube nada.\n\nArchivos del juego\nEn Steam: clic derecho en %1$s → Gestionar → Ver archivos locales. Copia la carpeta %2$s/ desde %3$s al teléfono y luego elige la carpeta que la contiene. Solo se lee %2$s/; el resto de la instalación es el runtime NW.js de escritorio, no hace falta.\n\nPartidas\nEn el ordenador están en:\n%4$s\nCopia la carpeta de partidas tal cual dentro de la carpeta de partidas que hayas elegido aquí (el ⋮ de esta tarjeta → Seleccionar carpeta de partidas), o solo su contenido — el port lee cualquiera de las dos formas (la subcarpeta propia del juego %5$s/, o los archivos en el nivel superior).\n¿No está ahí? Busca en tu ordenador %6$s.</string>
+    <string name="troubleshoot">Diagnóstico</string>
+    <string name="start_last_directly">Iniciar el último juego directamente</string>
+    <string name="port_version">port %1$s</string>
+    <string name="add_game">Añadir %1$s</string>
+    <string name="menu_select_game">Seleccionar carpeta del juego</string>
+    <string name="menu_select_saves">Seleccionar carpeta de partidas</string>
+    <string name="menu_help">Ayuda: qué copiar</string>
+    <string name="menu_link">Crear un acceso directo</string>
+    <string name="shortcut_play">Jugar a %1$s</string>
+
+    <string name="status_no_shortcuts">Este launcher no permite accesos directos.</string>
+    <string name="status_shortcut_failed">No se pudo crear el acceso directo.</string>
+    <string name="status_game_folder_missing">%1$s: falta la carpeta del juego — vuelve a elegirla en el menú ⋮ de la tarjeta</string>
+    <string name="status_saves_folder_missing">%1$s: falta la carpeta de partidas — las partidas se guardan dentro de la app</string>
+    <string name="card_folders">archivos: %1$s%2$s\npartidas: %3$s%4$s</string>
+    <string name="folder_missing_suffix"> (falta)</string>
+    <string name="folder_not_set">(sin definir)</string>
+    <string name="status_pick_folder">Elige la carpeta de instalación de un juego — la que contiene %1$s.</string>
+    <string name="status_no_saves">Sin carpeta de partidas: las partidas se guardarán dentro de la app y no se podrán copiar fuera.</string>
+    <string name="status_ready">Listo.</string>
+    <string name="status_no_picker">No hay selector de documentos disponible: %1$s</string>
+    <string name="status_grant_lost">No se pudo conservar el acceso a %1$s. Elígela otra vez.</string>
+    <string name="status_reading">Leyendo %1$s…</string>
+    <string name="the_folder">la carpeta</string>
+    <string name="status_unreadable">No se pudo leer esa carpeta.</string>
+    <string name="status_empty">Esa carpeta está vacía — el juego ya no está ahí. Elígela otra vez.</string>
+    <string name="status_indexing">Indexando los archivos del juego…</string>
+    <string name="status_wrong_game">Esa carpeta es %1$s, no %2$s.</string>
+    <string name="status_loaded">Cargados %1$s archivos.</string>
+    <string name="status_copied_saves">Copiados %1$s archivo(s) de partida del almacenamiento de la app a %2$s.</string>
+    <string name="status_reset_armed">La resolución del juego se restablecerá cuando se inicie.</string>
+    <string name="status_loading">Cargando el juego…</string>
+    <string name="status_pick_game_folder">%1$s: elige antes su carpeta de juego.</string>
+
+    <string name="share_diagnostics_title">Compartir diagnóstico</string>
+    <string name="share_subject">%1$s: diagnóstico del port de Android</string>
+    <string name="share_write_failed">no se pudo escribir el archivo: %1$s</string>
+    <string name="share_sent">enviado desde %1$s</string>
+    <string name="share_no_app">no hay app para compartirlo; el registro está en %1$s</string>
+
+    <string name="menu_title">Menú</string>
+    <string name="menu_hide_pad">Ocultar el mando con entrada externa</string>
+    <string name="menu_dynamic_sticks">Sticks dinámicos (toca en cualquier parte)</string>
+    <string name="menu_show_stats">Mostrar FPS / batería / temperatura</string>
+    <string name="menu_limit_fps">Limitar la tasa de fotogramas (batería)</string>
+    <string name="menu_log_saves">Guardar un registro con las partidas</string>
+    <string name="menu_game_position">Posición del juego</string>
+    <string name="menu_top">Arriba</string>
+    <string name="menu_center">Centro</string>
+    <string name="menu_bottom">Abajo</string>
+    <string name="menu_game_selection">Selección de juego</string>
+    <string name="menu_exit">Salir</string>
+    <string name="menu_external_input">Entrada externa: %1$s</string>
+    <string name="menu_active">activa</string>
+    <string name="menu_idle">inactiva</string>
+    <string name="menu_saves">Partidas: %1$s</string>
+    <string name="menu_engine">Motor: %1$s\n(ver Diagnóstico)</string>
+    <string name="no_game">sin juego</string>
+    <string name="menu_version">port %1$s · %2$s</string>
+
+    <string name="diag_title">Diagnóstico — Atrás abre esto mientras el juego está en marcha</string>
+    <string name="diag_hint">¿El juego se queda parado en su barra de carga? En un dispositivo Mali eso es el controlador OpenGL: abre \"Controlador OpenGL\" abajo y pon esta app en ANGLE. Si arranca, la prueba de grafías del panel dice qué shaders siguen sin coincidir.</string>
+    <string name="diag_share">Compartir</string>
+    <string name="diag_reset_resolution">Restablecer resolución</string>
+    <string name="diag_close">Cerrar</string>
+    <string name="diag_shader_test">Probar grafías de shaders</string>
+    <string name="diag_opengl_driver">Controlador OpenGL</string>
+</resources>
