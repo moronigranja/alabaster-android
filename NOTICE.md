@@ -50,6 +50,13 @@ sponsored by, or endorsed by Radical Fish Games.
 * **greenworks** (https://github.com/greenheartgames/greenworks) — the Steamworks binding the
   CrossCode build loads. `cc-shim.js` stubs its interface (there is no Steam inside a WebView); no
   code from it is used or redistributed.
+* **CCLoader** (https://github.com/CCDirectLink/CCLoader) — the CrossCode mod loader. The app can
+  fetch a build and unpack it into its own private storage on the user's request (it also comes inside
+  the Spanish pack below); nothing from it is included in this repository or in the APK.
+* **CrossCode-Esp** (https://github.com/tralph3/CrossCode-Esp), by tralph3 and contributors — the
+  community Spanish translation of CrossCode, offered as a one-tap download and licensed **CC BY 4.0**.
+  It is **not** included in the APK: the app downloads it to the user's device, credits the authors and
+  names the licence in the card's **Help**.
 * **nwjs/nw.js issue #7006** — an independent report of the same controller-mapping bug class in
   CrossCode, referenced in the research notes.
 * **GameNative** / **Winlator** / **Proton** — the Wine containers the desktop controller fix targets;

@@ -54,6 +54,8 @@
       <ul>
         <li><a href="#the-entry-screen">The entry screen</a></li>
         <li><a href="#game-files-and-saves">Game files and saves</a></li>
+        <li><a href="#crosscode-mods-and-the-spanish-translation">CrossCode mods and the Spanish translation</a></li>
+        <li><a href="#language">Language</a></li>
         <li><a href="#input">Input</a></li>
         <li><a href="#the-side-menu">The side menu</a></li>
         <li><a href="#diagnostics">Diagnostics</a></li>
@@ -131,8 +133,17 @@ is neutral now that the same app runs two games.
 * **One standard pad.** The Kotlin side reads the physical controller from `InputDevice` and emits a
   real W3C standard-layout gamepad; the on-screen pad and a hardware controller feed the *same* state,
   so the engine sees exactly one pad.
-* **No permission is requested.** Both folders come from the system document picker, and the APK's
-  manifest declares no permissions at all.
+* **The port's own chrome is localised.** Every string the port shows lives in Android string
+  resources, with Spanish and Brazilian Portuguese beside the English; the phone's own language selects
+  it, nothing to set. The diagnostics record and the config keys stay English so a report reads the same
+  for everyone.
+* **CrossCode mods live beside the game, not in it.** An installed loader and its mods sit in one
+  game-root tree in the app's own storage; a card's **⋮** can download the community Spanish pack, or
+  install any `.ccmod` you picked, switch it off, or remove it. Your copy of the game is never written
+  to.
+* **One permission, and only for a download.** Both folders come from the system document picker, and
+  the manifest's single `INTERNET` permission exists so the optional CrossCode translation pack can be
+  fetched; nothing else is sent or downloaded, and the rest works offline.
 
 ### The controller fix
 
@@ -206,7 +217,9 @@ The card's **⋮** points it at that game's install folder or saves folder, open
 copy** (the folder to take from the computer, where the desktop build keeps its saves, and the save
 file names to search for), and can **Create a home-screen link**, which asks the launcher to pin an
 icon that opens the port straight into that game. Holding the app icon on the launcher lists both
-games the same way (the static **Alabaster Dawn** / **CrossCode** shortcuts).
+games the same way (the static **Alabaster Dawn** / **CrossCode** shortcuts). The CrossCode card's ⋮
+also carries **Add/Remove Spanish translation** and **Mods…** — see
+[CrossCode mods and the Spanish translation](#crosscode-mods-and-the-spanish-translation).
 
 Picking a folder is how the screen learns which game it is — the entry page is the fingerprint — so
 point each game at its folder once and both are one tap away after that. Picking the wrong card's
@@ -313,6 +326,42 @@ not have it or the app's copy is newer, and nothing is deleted — so progress m
 chosen is not left behind. Two *user* folders are never merged automatically: re-pointing a card at a
 different folder uses that folder as it is.
 
+### CrossCode mods and the Spanish translation
+
+CrossCode is the one engine here with a mod ecosystem, CCLoader, and the port hosts it. The CrossCode
+card's **⋮** carries two items beyond the folder choices and the shortcut:
+
+* **Add Spanish translation (~2.4 MB)** downloads the community
+  [CrossCode-Esp](https://github.com/tralph3/CrossCode-Esp) pack (v1.1.0 — the CCLoader loader plus the
+  `CrossCode-Esp` and `Localize-me` mods), checks it against a pinned SHA-256, installs it into app
+  storage and boots CrossCode through CCLoader with the game's language set to Spanish. The item then
+  reads **Remove Spanish translation**. The pack is community work by tralph3 and contributors, CC BY
+  4.0, credited in the card's **Help**; it is not in the APK and your game folder is never read for it.
+* **Mods…** opens a dialog of what is installed — each mod's title and version, an on/off switch and
+  **Remove** — above the CCLoader version, or a plain note that no loader is installed. **Add mod
+  (.ccmod)** opens the system file picker and installs what you picked the same way the translation pack
+  is installed: a single mod manifest at the archive root lands as one mod, a bare CCLoader build lands
+  as the loader, and a pack's own shape lands as it is; a wrapper directory is stripped, an unknown
+  shape is refused with a message. The Spanish pack brings its own CCLoader, so adding a mod to it needs
+  no separate loader step.
+
+Everything lands in one tree inside the app's own storage — `ccloader/` for the loader,
+`assets/mods/<id>/` for each enabled mod, `disabled/<id>/` for one switched off — and never in the game
+folder you picked, which the port only ever reads. There is no index file to go stale: the dialog
+re-reads the disk after every action. The port keeps no backup of installed mods, so keep the `.ccmod`
+files you install. One gap, stated plainly: a mod that CCLoader itself will refuse still installs, and
+the reason appears in CCLoader's own console rather than as an install-time warning.
+
+### Language
+
+The port's own text — the entry screen, the side menu, the diagnostics panel, the mods dialog and the
+status messages — follows the phone's language: **English**, **Spanish** or **Brazilian Portuguese**,
+with any other language falling back to English. There is nothing to set inside the app. The games' own
+text is untouched: CrossCode's Spanish comes from the translation pack above or from its own Options,
+Alabaster Dawn's from its own Options. The diagnostics record stays in English on purpose, so a report
+reads the same whoever sends it. Both translations were written for this port; corrections from native
+speakers are welcome.
+
 ### Input
 
 * **Controller** — any Android-visible pad; the port decodes it to a W3C standard gamepad.
@@ -365,13 +414,14 @@ android/                        the app
   app/src/main/java/…/alabasterdawn/
     GameProfile.kt              what differs per game (the whole seam)
     PortActivity.kt             the WebView host, SAF pickers, input, side menu
+    ModLibrary.kt               CrossCode's loader + mods in app storage (install/enable/remove)
     GameAssetHandler.kt         serves the picked tree under /game/ (+ the engine rewrites)
     PortBridge.kt, FsBridge.kt  the @JavascriptInterface surface the shims call
     Shader*.kt                  Alabaster Dawn's `terra` shader fixes (inert for CrossCode)
   app/src/main/assets/
     ada-shim.js                 the Alabaster Dawn shim
     cc-shim.js                  the CrossCode shim
-  tools/                        shim smoke tests and the release script
+  tools/                        shim smoke tests, the locale parity check and the release script
 fix/                            the desktop controller fix (Linux / Wine containers)
 tools/                          the desktop harness and probes used to measure the games
   game-harness.py               boots a game in headless Chromium with a shim at document start
@@ -389,6 +439,18 @@ docs/alabaster-dawn-port.md     the Alabaster Dawn port and controller-fix docum
 ---
 
 ## Roadmap
+
+Shipped in **v0.9.0**:
+
+- [x] The port's own UI localised: English, Spanish and Brazilian Portuguese, chosen by the phone's
+      language, with the three string files held to one key list and one placeholder arity by
+      `android/tools/check-locales.mjs`
+- [x] **Spanish for CrossCode in one tap**: the community CrossCode-Esp pack (CC BY 4.0, nothing
+      bundled) downloaded, SHA-256-checked and installed into app storage, and booted through CCLoader
+      with `ig.currentLang = es_ES` — verified on a Galaxy Z Fold 7, and removable again
+- [x] A **CCLoader mod library** for CrossCode: a card's **Mods…** installs any `.ccmod`/`.zip`,
+      switches a mod off and on, or removes it, with the loader's version shown; everything lives
+      beside the game in app storage, never in the picked folder
 
 Shipped in **v0.8.0**:
 
@@ -411,7 +473,9 @@ Open:
       in-game, fullscreen/scale — the boot and the saves are verified, the game itself is not
 - [ ] CrossCode save round-trip: a save made on the phone, taken to a desktop install and back
 - [ ] **Dynamic sticks** on real hardware (unit-tested; the fixed pad is the device-proven one)
-- [ ] CrossCode extensions (`assets/extension`) if mods are wanted
+- [ ] A mod **compatibility gate**: a mod CCLoader will refuse is refused at install time with a
+      reason, instead of installing and being dropped at boot; and a mod catalogue (CCModDB browse
+      and download by id)
 - [ ] Extract a shared shim core if a third game ever appears
 
 See the [open issues](https://github.com/moronigranja/alabaster-android/issues) for the full list of
@@ -482,6 +546,12 @@ interoperability project, not affiliated with, sponsored by, or endorsed by Radi
   ordinary web applications, which is the only reason any of this is possible.
 * [CrossAndroid](https://gitlab.com/Namnodorel/crossandroid) — prior art for running CrossCode on
   Android; that project declares no license, so no code was taken from it.
+* [CCLoader](https://github.com/CCDirectLink/CCLoader) — the CrossCode mod loader the port hosts. It is
+  downloaded to the device on request (as part of the Spanish pack, or as a build you pick), **not**
+  bundled, and no code from it is in this project.
+* [CrossCode-Esp](https://github.com/tralph3/CrossCode-Esp) by tralph3 and contributors — the community
+  Spanish translation the card's ⋮ downloads, **CC BY 4.0**, credited in the card's **Help**. It is
+  downloaded to the device on request and is not in the APK.
 * [Best-README-Template](https://github.com/othneildrew/Best-README-Template) — the structure of this
   document.
 * [AndroidX WebKit](https://developer.android.com/jetpack/androidx/releases/webkit) and
