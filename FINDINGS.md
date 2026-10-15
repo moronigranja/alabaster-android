@@ -3205,6 +3205,42 @@ removed."; Start loads `/game/assets/node-webkit.html` (no CCLoader in the recor
 Glyph rendering is verified by the font metrics above, not by OCR; a human glance at the title screen is
 still the last word on the accents.
 
+### 26.6 Other CCLoader mods: the port is a CCLoader-3 host
+
+Question: does the port only run the translation pack, or is it a general host? Dev-only test (no
+installer): hand-place `.ccmod`s into the pack's `assets/mods/` with `run-as` + a base64/tar pipe.
+A `.ccmod` is just a mod folder zipped at the root; CCLoader reads each *subdirectory* of `assets/mods/`
+as a mod, over our `fs` bridge.
+
+Two manifest generations exist: **v3** (`ccmod.json` with `prestart`/`postload` ES-module paths) and
+**v2** (`ccmod.json` with `plugin` plus a `package.json` carrying `ccmodDependencies`). The pack ships
+CCLoader **3.0.0-alpha**, so this is a live v2/v3 test:
+
+* `cc-extra-dialogue` v1.0.3 (v3) was **rejected** at first: `ManifestValidationError … expected type of
+  'authors' to be 'array', got 'string'`. With `authors: ["anonymous"]` (dev-only edit) it **loads**:
+  `5 mods will be loaded: … cc-extra-dialogue v1.0.3 …`, then `poststart` / `fully loaded!`, still
+  `es_ES`. Its `prestart.js` ES imports, its `assets/**/*.patch` game patches and its `assets/extension/`
+  all sit on the serving/`fs` paths this port already covers.
+* `New game++` v1.4.0 (v2) was rejected twice: `id: "New game++"` breaks the v3 `^[a-zA-Z0-9_-]+$` rule;
+  with the id fixed, CCLoader 3 drops it on dependencies —
+  `Problem with requirements of mod 'ngpp': version of ccloader (3.0.0-alpha) is not in range '>=2.14.3 <3.0.0'`.
+
+Manifests were also replayed offline (`node` importing the pack's own `ccloader/dist/manifest.js` and
+running `Validator.validate`), which reproduced both failures without the device.
+
+**Port bug found and fixed here.** The first runs printed `formatFn is not a function` from CCLoader's own
+console and swallowed the mod error. CCLoader 3's console wrapper formats every message with
+`window.require('util').format`, and the shim returned `{}` for an unknown module, so `format` was
+undefined. `cc-shim.js` now provides `util` (`format`, `inspect`, `inherits`, `types`, `isArray`); the
+message above is exactly what that fix made visible, and `formatFn` no longer appears. The `util`
+behavior is covered in `android/tools/test-cc-shim.mjs` (8/8).
+
+Conclusion: the port is a real CCLoader-3 host — mod discovery, manifest read over `fs`, ES-module
+lifecycle, game patches, asset overrides and mod settings storage all exercise in one boot. Compatibility
+is **CCLoader-3-era only**: v2 mods are refused by the resolver (a CCLoader-3 property, not a port one),
+and even v3-shaped mods must satisfy the v3 manifest schema. A generic `.ccmod` installer remains
+unbuilt — this was a dev-only probe.
+
 §25.1 counted 73 resource keys; §26's seven additions take both `values/strings.xml` and
 `values-es/strings.xml` to 80, still 1:1 with the same placeholder arity.
 

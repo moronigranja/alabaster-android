@@ -94,6 +94,16 @@ async function main() {
   await window.require("fs").promises.readdir("missing")
     .then(() => check("readdir rejects for an unlistable path", false, "resolved"))
     .catch((e) => check("readdir rejects for an unlistable path with ENOENT", e && e.code === "ENOENT", String(e && e.code)));
+  /* CCLoader 3's console wrapper formats every message with `require('util').format`; without this
+   * the wrapper throws inside its own logger and the message is lost. */
+  const util = window.require("util");
+  check("util.format substitutes %s and %d",
+    util.format("%s=%d", "a", 3) === "a=3", String(util.format("%s=%d", "a", 3)));
+  check("util.format appends extra arguments, inspected",
+    util.format("x", 1, { a: 1 }) === 'x 1 {"a":1}', String(util.format("x", 1, { a: 1 })));
+  check("util.format leaves a trailing specifier alone",
+    util.format("%s %s", "only") === "only %s", String(util.format("%s %s", "only")));
+
   /* The shim's own load line is the one report it makes unconditionally; anything else is a real error. */
   const realErrors = empty.errors.filter((e) => !/^shim: loaded/.test(e));
   check("the shim reported no bridge errors beyond its load line",

@@ -342,10 +342,52 @@
         activateAchievement: noop, clearAchievement: noop, activateGameOverlayToStore: noop
     };
 
+    /* Node's `util`, minus the parts nothing here calls. CCLoader 3's console wrapper does
+     * `window.require('util').format(...)` for every message it prints, so without this the wrapper
+     * throws inside its own logger (`formatFn is not a function`) and the message is lost - including
+     * the ones that name a mod that failed to load. `format` follows Node: a string format with
+     * `%s %d %i %f %j %o %O %c %%`, extra arguments appended; a non-string first argument inspects
+     * every argument. */
+    function inspectValue(v) {
+        if (typeof v === "string") return "'" + v + "'";
+        if (v === null || typeof v !== "object") return String(v);
+        try { return JSON.stringify(v); } catch (e) { return String(v); }
+    }
+
+    var util = {
+        inspect: inspectValue,
+        format: function (format) {
+            var args = Array.prototype.slice.call(arguments, 1);
+            if (typeof format !== "string") {
+                return [format].concat(args).map(inspectValue).join(" ");
+            }
+            var i = 0;
+            var out = format.replace(/%[sdifjoOc%]/g, function (spec) {
+                if (spec === "%%") return "%";
+                if (i >= args.length) return spec;
+                var a = args[i++];
+                switch (spec) {
+                    case "%s": return typeof a === "object" ? inspectValue(a) : String(a);
+                    case "%d": case "%i": return String(parseInt(a, 10));
+                    case "%f": return String(parseFloat(a));
+                    case "%j": try { return JSON.stringify(a); } catch (e) { return "[Circular]"; }
+                    case "%c": return "";
+                    default: return inspectValue(a);
+                }
+            });
+            for (; i < args.length; i++) out += " " + inspectValue(args[i]);
+            return out;
+        },
+        types: { isDate: function (v) { return v instanceof Date; } },
+        isArray: Array.isArray,
+        inherits: function (ctor, superCtor) { ctor.super_ = superCtor; ctor.prototype = Object.create(superCtor.prototype, { constructor: { value: ctor, enumerable: false, writable: true, configurable: true } }); }
+    };
+
     window.require = function (name) {
         switch (name) {
             case "fs": return fs;
             case "path": return path;
+            case "util": case "node:util": return util;
             case "os": return {
                 platform: function () { return "linux"; }, arch: function () { return "x64"; },
                 tmpdir: function () { return "/tmp"; }, homedir: function () { return "/saves"; }
