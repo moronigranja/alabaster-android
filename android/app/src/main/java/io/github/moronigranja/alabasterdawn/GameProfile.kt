@@ -36,6 +36,13 @@ enum class GameProfile(
     /** The shim asset under `android/app/src/main/assets/` this game's page gets. */
     val shimAsset: String,
     /**
+     * The community translation pack's own entry page, relative to the picked root, or null when this
+     * game has no translation pack. When the pack is installed the port boots *this* page — at the
+     * origin root, not under `/game/` — so CCLoader's own `<base>` and game-root-relative reads
+     * resolve (see [GameAssetHandler]`.translation` and [FsBridge]`.translation`).
+     */
+    val translationEntryHtml: String?,
+    /**
      * Substring of the entry page the fallback `<script>` tag is placed next to, for WebViews without
      * document-start scripting. [shimAfterAnchor] says which side of it.
      */
@@ -100,6 +107,8 @@ enum class GameProfile(
         pageRoot = "terra",
         entryHtml = "index.html",
         shimAsset = "ada-shim.js",
+        /* No translation pack ships for this game. */
+        translationEntryHtml = null,
         shimAnchor = "<script src=\"dist/bundle.js\"",
         shimAfterAnchor = false,
         versionPath = "terra/data/database/changelog.json",
@@ -123,6 +132,8 @@ enum class GameProfile(
         pageRoot = "assets",
         entryHtml = "node-webkit.html",
         shimAsset = "cc-shim.js",
+        /* The CrossCode-Esp pack's own CCLoader entry page, which boots the game with Spanish. */
+        translationEntryHtml = "ccloader/main.html",
         /* The entry's scripts start in <head>; the shim must land before the first of them. */
         shimAnchor = "<head>",
         shimAfterAnchor = true,

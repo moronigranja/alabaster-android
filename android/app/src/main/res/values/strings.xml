@@ -85,4 +85,13 @@
     <string name="diag_close">Close</string>
     <string name="diag_shader_test">Test shader spellings</string>
     <string name="diag_opengl_driver">OpenGL driver</string>
+
+    <!-- The optional CrossCode Spanish translation pack (community work, downloaded on device). -->
+    <string name="menu_translation_add">Add Spanish translation (~2.4 MB)</string>
+    <string name="menu_translation_remove">Remove Spanish translation</string>
+    <string name="status_translation_downloading">Downloading the Spanish translation…</string>
+    <string name="status_translation_installed">Spanish translation installed — restart CrossCode.</string>
+    <string name="status_translation_removed">Spanish translation removed.</string>
+    <string name="status_translation_failed">Translation download failed: %1$s</string>
+    <string name="help_translation_credit">Spanish translation by tralph3 and contributors — CC BY 4.0 (github.com/tralph3/CrossCode-Esp).</string>
 </resources>

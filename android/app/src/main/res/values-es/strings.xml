@@ -79,4 +79,12 @@
     <string name="diag_close">Cerrar</string>
     <string name="diag_shader_test">Probar grafías de shaders</string>
     <string name="diag_opengl_driver">Controlador OpenGL</string>
+
+    <string name="menu_translation_add">Añadir traducción al español (~2,4 MB)</string>
+    <string name="menu_translation_remove">Quitar la traducción al español</string>
+    <string name="status_translation_downloading">Descargando la traducción al español…</string>
+    <string name="status_translation_installed">Traducción al español instalada — reinicia CrossCode.</string>
+    <string name="status_translation_removed">Traducción al español quitada.</string>
+    <string name="status_translation_failed">Falló la descarga de la traducción: %1$s</string>
+    <string name="help_translation_credit">Traducción al español de tralph3 y colaboradores — CC BY 4.0 (github.com/tralph3/CrossCode-Esp).</string>
 </resources>

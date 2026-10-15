@@ -25,6 +25,12 @@ class GameAssetHandler(
     private val index: GameIndex,
     /** Which game this tree is: its page root, shim and whether the engine rewrites apply. */
     private val profile: GameProfile,
+    /**
+     * The installed translation pack, or null. CCLoader builds its page with a `<base>` at the origin
+     * root and reads every file game-root-relative, so the pack's `ccloader/` and `assets/mods/` trees
+     * are served here at those paths, alongside the game tree under `/game/`.
+     */
+    private val translation: TranslationPack.Pack?,
     private val assets: AssetManager,
     /** Fallback mode: pull the shim in with a script tag, for WebViews without document-start scripts. */
     private val injectShim: Boolean,
@@ -103,6 +109,19 @@ class GameAssetHandler(
                 return miss(rel)
             }
             return ok("text/plain", "utf-8", text.toByteArray(Charsets.UTF_8))
+        }
+
+        /* The translation pack's own files, served at the origin root because CCLoader's `<base>` sits
+         * there and reads them game-root-relative. The pack only carries `ccloader/` and
+         * `assets/mods/`, so it cannot shadow a genuine game file. Its entry page gets the shim in
+         * absolute form: the page is at the origin root, so a relative `assets/cc-shim.js` would
+         * resolve under `/ccloader/`; `/assets/cc-shim.js` lands back on the shim branch above. */
+        translation?.read(rel)?.let { bytes ->
+            if (rel == profile.translationEntryHtml) {
+                val body = if (injectShim) injectShimTag(bytes, absolute = true) else bytes
+                return ok(mimeOf(rel), encodingOf(mimeOf(rel)), injectLocale(body))
+            }
+            return ok(mimeOf(rel), encodingOf(mimeOf(rel)), bytes)
         }
 
         val entry = index.find(rel) ?: return miss(rel)
@@ -390,8 +409,12 @@ class GameAssetHandler(
      * before the bundle tag for Alabaster Dawn, right after `<head>` for CrossCode (whose first
      * scripts are in the head and which has no single bundle). The bytes are rewritten in memory; the
      * file on the user's disk is never touched.
+     *
+     * [absolute] is for the translation pack's entry page, which sits at the origin root: a relative
+     * `assets/cc-shim.js` would resolve under `/ccloader/`, so the shim is named as `/assets/cc-shim.js`
+     * instead, which the `/assets/` path handler serves through the shim branch of [serve].
      */
-    private fun injectShimTag(html: ByteArray): ByteArray {
+    private fun injectShimTag(html: ByteArray, absolute: Boolean = false): ByteArray {
         val text = String(html, Charsets.UTF_8)
         val at = text.indexOf(profile.shimAnchor)
         if (at == -1) {
@@ -399,7 +422,27 @@ class GameAssetHandler(
             return html
         }
         val cut = if (profile.shimAfterAnchor) at + profile.shimAnchor.length else at
-        val tag = "<script src=\"${profile.shimAsset}\"></script>\n"
+        val tag = "<script src=\"${if (absolute) "/${profile.shimPath}" else profile.shimAsset}\"></script>\n"
+        return (text.substring(0, cut) + tag + text.substring(cut)).toByteArray(Charsets.UTF_8)
+    }
+
+    /**
+     * Sets `window.IG_LANG` (the game's own override, checked before any stored choice) on the
+     * translation pack's entry page, so the boot lands in the pack's locale. The pack adds its
+     * language but does not select it — the game's `ig.main` picks `ig.FORCE_LANG` → `window.IG_LANG`
+     * → stored `IG_LANG` → auto-detect — so without this the game boots in the phone's locale. Only
+     * the pack's page gets it; the game's own entry is untouched.
+     */
+    private fun injectLocale(html: ByteArray): ByteArray {
+        val text = String(html, Charsets.UTF_8)
+        val anchor = "<head>"
+        val at = text.indexOf(anchor)
+        if (at == -1) {
+            Log.e(TAG, "${profile.translationEntryHtml} does not contain $anchor; serving it unmodified")
+            return html
+        }
+        val cut = at + anchor.length
+        val tag = "<script>window.IG_LANG='${TranslationPack.LOCALE}';</script>\n"
         return (text.substring(0, cut) + tag + text.substring(cut)).toByteArray(Charsets.UTF_8)
     }
 

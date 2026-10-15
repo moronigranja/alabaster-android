@@ -145,6 +145,13 @@ class PortActivity : Activity() {
     private lateinit var diag: Diag
     private var assetHandler: GameAssetHandler? = null
 
+    /**
+     * The installed CrossCode Spanish translation pack, or null. Its presence on disk is the state: a
+     * non-null value makes [gameUrl] boot the pack's own CCLoader page, and the pack's trees are
+     * served by the asset handler and read through the fs bridge.
+     */
+    private var translationPack: TranslationPack.Pack? = null
+
     /** The last report the injected shim made, shown in the side menu (a boot stall names itself). */
     @Volatile
     private var lastEngineReport: String = "-"
@@ -203,6 +210,7 @@ class PortActivity : Activity() {
         limitFps = prefs.getBoolean(KEY_LIMIT_FPS, false)
         fpsLimit = FpsLimit.normalize(prefs.getInt(KEY_FPS_LIMIT, FpsLimit.DEFAULT))
         logToSaves = prefs.getBoolean(LogFile.PREF_KEY, true)
+        translationPack = TranslationPack.open(this)
         /* The store is opened here and not at START, and the previous session's record is read back
          * into the ring: a user who freezes and restarts expects the panel (and the file) to still
          * show what happened, not an empty record from the launch that follows. */
@@ -295,7 +303,7 @@ class PortActivity : Activity() {
 
     private fun helpText(profile: GameProfile): String {
         val saves = profile.pcSaves.joinToString("\n") { "  \u2022 $it" }
-        return getString(
+        val base = getString(
             R.string.help_text,
             profile.displayName,
             profile.pageRoot,
@@ -304,6 +312,12 @@ class PortActivity : Activity() {
             profile.saveSubdir,
             profile.pcSaveFiles.joinToString(getString(R.string.or_join)),
         )
+        /* The optional Spanish pack is community work, so its credit belongs where the folder help is. */
+        return if (profile.translationEntryHtml != null) {
+            base + "\n\n" + getString(R.string.help_translation_credit)
+        } else {
+            base
+        }
     }
 
     /**
@@ -582,16 +596,62 @@ class PortActivity : Activity() {
         menu.menu.add(0, MENU_SELECT_SAVES, 1, getString(R.string.menu_select_saves))
         menu.menu.add(0, MENU_HELP, 2, getString(R.string.menu_help))
         menu.menu.add(0, MENU_LINK, 3, getString(R.string.menu_link))
+        /* Only a game with a translation pack gets the item (CrossCode today); the label says which
+         * way the tap goes, since the pack's presence on disk is the state. */
+        if (profile.translationEntryHtml != null) {
+            menu.menu.add(
+                0, MENU_TRANSLATION, 4,
+                getString(
+                    if (translationPack != null) R.string.menu_translation_remove
+                    else R.string.menu_translation_add
+                )
+            )
+        }
         menu.setOnMenuItemClickListener {
             when (it.itemId) {
                 MENU_SELECT_GAME -> pick(REQ_GAME, wantWrite = false)
                 MENU_SELECT_SAVES -> pick(REQ_SAVES, wantWrite = true, forGame = profile)
                 MENU_HELP -> showHelp(profile)
                 MENU_LINK -> pinShortcut(profile)
+                MENU_TRANSLATION -> if (translationPack != null) removeTranslation()
+                else installTranslation()
             }
             true
         }
         menu.show()
+    }
+
+    /**
+     * Downloads the community Spanish pack off the main thread, unpacks it and repoints the boot at
+     * it. Failure is reported (and recorded) rather than thrown; the state stays "not installed".
+     */
+    private fun installTranslation() {
+        setStatus(getString(R.string.status_translation_downloading))
+        diag.line("downloading the Spanish translation pack (${TranslationPack.VERSION})")
+        Thread({
+            try {
+                TranslationPack.install(this)
+                runOnUiThread {
+                    translationPack = TranslationPack.open(this)
+                    refreshUi()
+                    setStatus(getString(R.string.status_translation_installed))
+                }
+                diag.line("Spanish translation pack installed")
+            } catch (e: Exception) {
+                Log.e(TAG, "translation install failed", e)
+                diag.line("translation install failed: ${e.message}")
+                runOnUiThread { setStatus(getString(R.string.status_translation_failed, e.message)) }
+            }
+        }, "cc-es-pack").start()
+    }
+
+    /** Drops the unpacked pack; the next boot is the plain English game again. */
+    private fun removeTranslation() {
+        TranslationPack.remove(this)
+        translationPack = null
+        refreshUi()
+        setStatus(getString(R.string.status_translation_removed))
+        diag.line("Spanish translation pack removed")
     }
 
     /**
@@ -935,7 +995,7 @@ class PortActivity : Activity() {
         diag.line("indexed ${bound.size} entries in ${System.currentTimeMillis() - started}ms " +
             "(${detected.displayName})")
         padLayoutStore = PadLayoutStore(prefs, saveStore!!)
-        fsBridge = FsBridge(contentResolver, tree, bound, saveStore!!)
+        fsBridge = FsBridge(contentResolver, tree, bound, saveStore!!, translationPack)
         setStatus(getString(R.string.status_loaded, bound.size))
         launchWebView()
     }
@@ -1030,6 +1090,11 @@ class PortActivity : Activity() {
     /** The game's URL, carrying the one-shot video reset to the shim when one was armed. */
     private fun gameUrl(resetVideo: Boolean): String {
         val p = profile ?: return ""
+        /* With the Spanish pack installed the boot goes through the pack's own CCLoader page, at the
+         * origin root rather than under `/game/` (see [GameProfile.translationEntryHtml]). */
+        if (p.translationEntryHtml != null && translationPack != null) {
+            return "${GameProfile.ORIGIN}/${p.translationEntryHtml}"
+        }
         val param = p.resetVideoParam
         return if (resetVideo && param != null) "${p.entryUrl}?$param=1" else p.entryUrl
     }
@@ -1046,11 +1111,16 @@ class PortActivity : Activity() {
             diag.line("document-start scripts unsupported; the shim is injected via " + selected.indexHtml)
         }
         val handler = GameAssetHandler(
-            contentResolver, gameTreeUri!!, built, selected, assets, injectShim, diag
+            contentResolver, gameTreeUri!!, built, selected, translationPack, assets, injectShim, diag
         )
         assetHandler = handler
+        /* The pack's trees live at the origin root (CCLoader's `<base>`), and CCLoader reads them
+         * game-root-relative (`ccloader/main.html`, `assets/mods/…`). The loader strips the registered
+         * prefix before `handle`, so the pack is served from a root registration (`/`), giving the
+         * handler exactly those keys; the game tree stays under `/game/` (more specific, unchanged). */
         val loader = WebViewAssetLoader.Builder()
             .addPathHandler("/game/", handler)
+            .addPathHandler("/", handler)
             .build()
         val view = WebView(this)
         view.settings.apply {
@@ -1888,6 +1958,7 @@ class PortActivity : Activity() {
         /* The extra a shortcut carries: the GameProfile.id of the game it opens. */
         private const val EXTRA_GAME = "game"
         private const val MENU_LINK = 4
+        private const val MENU_TRANSLATION = 5
         /* A card's art tile: a square, so the crop is square too (see decodeArt). */
         private const val TILE_DP = 72
         /* The round play badge on a card, and the tap target of its three-dot folder menu. */

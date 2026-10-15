@@ -188,7 +188,15 @@
         },
         unlink: function (p) { return rmRaw(p) ? Promise.resolve() : Promise.reject(enoent(p)); },
         mkdir: function (p) { return mkdirRaw(p) ? Promise.resolve() : Promise.reject(enoent(p)); },
-        copyFile: function (a, b) { return copyRaw(a, b) ? Promise.resolve() : Promise.reject(enoent(a)); }
+        copyFile: function (a, b) { return copyRaw(a, b) ? Promise.resolve() : Promise.reject(enoent(a)); },
+        /* CCLoader's desktop file backend calls these two (its boot reads `fs.promises.access` to
+         * probe a config file, then `readdir` to enumerate `assets/mods/`). Absence must reject like
+         * Node, not resolve. */
+        access: function (p, mode) { return fsExistsRaw(p) ? Promise.resolve() : Promise.reject(enoent(p)); },
+        readdir: function (p) {
+            var l = readdirRaw(p, null);
+            return l ? Promise.resolve(l) : Promise.reject(enoent(p));
+        }
     };
 
     /* ig.Storage's file path list uses the callback forms (readFile/writeFile/rename); the extension

@@ -67,6 +67,12 @@ class GameProfileTest {
     }
 
     @Test
+    fun `only CrossCode has a translation pack entry`() {
+        assertEquals("ccloader/main.html", GameProfile.CROSSCODE.translationEntryHtml)
+        assertNull("Alabaster Dawn has no translation pack", GameProfile.ALABASTER_DAWN.translationEntryHtml)
+    }
+
+    @Test
     fun `the engine rewrites and the resolution reset are Alabaster Dawn's alone`() {
         assertEquals(true, GameProfile.ALABASTER_DAWN.rewrites)
         assertEquals("adaResetVideo", GameProfile.ALABASTER_DAWN.resetVideoParam)

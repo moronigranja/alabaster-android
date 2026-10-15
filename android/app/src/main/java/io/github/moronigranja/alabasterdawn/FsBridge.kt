@@ -413,6 +413,12 @@ class FsBridge(
     private val gameTreeUri: Uri,
     private val gameIndex: GameIndex,
     private val store: SaveStore,
+    /**
+     * The installed translation pack, or null. Its `ccloader/` and `assets/mods/` trees are served
+     * here first, with the same game-root-relative keys CCLoader passes to `fs` (leading `/` dropped);
+     * the game's own tree is the fallback, so the pack never shadows a genuine game file it lacks.
+     */
+    private val translation: TranslationPack.Pack? = null,
 ) {
 
     fun exists(path: String): Boolean {
@@ -420,6 +426,7 @@ class FsBridge(
             val rel = saveRel(path) ?: return false
             return store.exists(rel)
         }
+        if (translation?.exists(path.trimStart('/')) == true) return true
         return gameIndex.findGamePath(path) != null
     }
 
@@ -437,6 +444,10 @@ class FsBridge(
             val rel = saveRel(path) ?: return null
             return store.list(rel)
         }
+        val packRel = path.trimStart('/')
+        translation?.list(packRel)?.let { names ->
+            return names.map { DirEntry(it, translation.stat("$packRel/$it")?.isDir == true) }
+        }
         val dir = gameIndex.findGameDir(path) ?: return null
         return gameIndex.children(dir)
     }
@@ -446,6 +457,7 @@ class FsBridge(
             val rel = saveRel(path) ?: return null
             return store.stat(rel)
         }
+        translation?.stat(path.trimStart('/'))?.let { return it }
         val entry = gameIndex.findGamePath(path) ?: return null
         return StatInfo(0L, entry.size, entry.isDir)
     }
@@ -455,6 +467,7 @@ class FsBridge(
             val rel = saveRel(path) ?: return null
             return store.read(rel)
         }
+        translation?.read(path.trimStart('/'))?.let { return String(it, Charsets.UTF_8) }
         val entry = gameIndex.findGamePath(path) ?: return null
         if (entry.isDir) return null
         return try {

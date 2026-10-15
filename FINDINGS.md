@@ -3083,3 +3083,128 @@ in-game), the diagnostics dialog and a status message must read in Spanish with 
 in logcat and the game still starting; with the phone language **English** every one of those surfaces must
 be the original text. Wording is authored here (no upstream source) and a native reviewer may adjust it.
 
+## 26. CrossCode's Spanish translation, installed on device (2026-10-15)
+
+### 26.1 One menu tap downloads the community pack
+
+The CrossCode card's ⋮ gains "Add Spanish translation (~2.4 MB)"; the tap streams the community
+**CrossCode-Esp v1.1.0** release (a CCLoader modpack: the loader plus `CrossCode-Esp`, `Localize-me`
+and their dependencies) over HTTPS, verifies it against its SHA-256, unpacks `ccloader/` and
+`assets/mods/` into app storage and repoints the boot at the pack's own `ccloader/main.html`. The same
+item then reads "Remove Spanish translation". The presence of `translations/cc-es/pack.json` on disk is
+the state — no prefs key. `INTERNET` is the only permission added. The pack is CC BY 4.0 community work
+(tralph3 and contributors), credited in the card's Help; the APK ships none of it and the user's picked
+game folder is neither read for it nor written.
+
+The load-bearing detail: CCLoader builds its page with `<base href = ORIGIN + '/assets/'>` and reads
+every file game-root-relative (`ccloader/main.html`, `assets/mods/…`), so the pack is served from a
+handler registered at the origin root (`/`), not under `/game/`. The reason is in §26.3: the asset
+loader **strips the registered prefix** before `handle()`, so a handler at `/ccloader/` would receive
+`rel = "main.html"` and lose the pack's own segment. The shim tag injected into that entry is absolute
+(`/assets/cc-shim.js`, which the root handler serves through the same shim branch), and `FsBridge` reads
+the pack's trees with the same game-root-relative keys CCLoader's desktop backend passes to `fs`.
+
+### 26.2 Host checks
+
+```
+cd android && ./gradlew :app:assembleDebug :app:testDebugUnitTest   # BUILD SUCCESSFUL, unit tests green
+cd android && node tools/test-shim-diagnostics.mjs                  # 62/62 checks passed
+node android/tools/test-cc-shim.mjs                                 # 5/5 checks passed
+```
+
+The matrix and constants were re-verified against the live release asset, not guessed:
+
+```
+curl -sL .../CrossCode-Esp_v1.1.0.zip | wc -c   # 2537080
+sha256sum cc-es.zip                             # d541a543e437f8ec6986b74c3df9a1fc982bd9daff6ee72a0ea044cba7edc14d
+unzip -l cc-es.zip                              # top level: package.json, ccloader/, assets/
+```
+
+`installFrom` was driven against those exact bytes (throwaway run, deleted): it extracted
+`ccloader/main.html` (336 bytes), `assets/mods/CrossCode-Esp/ccmod.json` and
+`assets/mods/Localize-me/ccmod.json`; the entry loads `main.css` and `dist/main.js` relatively; the three
+`.xcf` GIMP sources were dropped while their `.png` siblings were kept; the top-level `package.json` was
+not extracted; and the `pack.json` marker was written. `TranslationPackTest` (JVM) covers the checksum
+gate, the extraction filter (skipped trees, directory entries, `.xcf`, a `../evil.js` escape) and the
+`Pack` view's escape rule. `test-cc-shim.mjs` loads the real `cc-shim.js` against a recording bridge and
+asserts the two methods CCLoader's desktop backend now needs: `fs.promises.access` resolves/rejects with
+`ENOENT`, and `fs.promises.readdir` yields plain names, not dirents (the string-list bug §23 fixed once
+for the callback form).
+
+### 26.3 The served path loses the registered prefix (found on device)
+
+The first device run stalled with `no such asset: main.html` and an otherwise silent engine. The
+`WebViewAssetLoader` **strips the registered prefix before calling `handle()`** (verified in the
+artifact: `PathMatcher.getSuffixPath` does `path.replaceFirst(mPath, "")`, and matchers are tried in
+registration order, first match wins). A handler registered at `/ccloader/` therefore receives
+`rel = "main.html"`, not `"ccloader/main.html"` — the pack's own segment is gone, and `/assets/cc-shim.js`
+would have lost `assets/` the same way. The fix is one root registration: `/game/` first (game tree,
+unchanged), then `/` for everything else, so the pack's game-root-relative keys reach the handler intact.
+The old three-prefix plan (the durable plan's approach) is wrong and is not what ships.
+
+### 26.4 The pack adds its language but does not select it
+
+With the serving fixed, CCLoader booted to `stage 'poststart' reached!` and
+`crosscode with mods is now fully loaded!`, but in English: `final language set to  en_US`. `CrossCode-Esp`
+*registers* `es_ES` with `Localize-me` (`localizeMe.add_locale('es_ES', …)`); it never selects it, and the
+game's `ig.main` picks `ig.currentLang` from `ig.FORCE_LANG` → `window.IG_LANG` → stored `IG_LANG` →
+auto-detect (from `game.compiled.js`). The port now injects
+`<script>window.IG_LANG='es_ES';</script>` into the pack's own entry page as it serves it
+(`GameAssetHandler.injectLocale`, using `TranslationPack.LOCALE`), which the game reads on the way into
+`ig.main`. It is a served-bytes rewrite only — the pack on disk, the game tree and the Options menu are
+untouched, and no `ccloader-user-config.js` is needed (that file controls modsDirs/scripts, not the
+language).
+
+### 26.5 Device smoke (SM-F971B, Galaxy Z Fold, Android 17)
+
+The release-signed 0.8.0 was already installed and a debug APK cannot update it in place
+(`INSTALL_FAILED_UPDATE_INCOMPATIBLE`; the release keystore is not on the build machine), so a throwaway
+debug build with `applicationIdSuffix ".smoke"` was installed alongside it (config reverted after). Game
+folder `Roms/PC/Crosscode` picked through the system SAF picker; saves folder not set.
+
+```
+adb install -r app-debug.apk
+# card ⋮ → "Add Spanish translation (~2.4 MB)"
+#   logcat: "downloading the Spanish translation pack (1.1.0)"
+#           "Spanish translation pack installed"   (~1.3 s)
+#           status: "Spanish translation installed — restart CrossCode."
+```
+
+Start CrossCode (logcat `chromium` console, the page is `/ccloader/main.html`):
+
+```
+CCLoader 3.0.0-alpha
+loaded mod data storage and settings, 0 entries
+crosscode 1.4.2-4
+ccloader-runtime 3.0.0-alpha
+found 3 mods in 'assets/mods/'
+4 mods will be loaded: ccloader-runtime v3.0.0-alpha, localize-me v1.0.0, ultimate-localized-ui v1.3.0, CrossCode-Esp v1.1.0
+stage 'preload' reached!
+stage 'postload' reached!
+stage 'prestart' reached!
+final language set to  es_ES
+stage 'poststart' reached!
+crosscode with mods is now fully loaded!
+```
+
+In-page (WebView DevTools, `adb forward … localabstract:webview_devtools_remote_<pid>`): `ig.currentLang
+= "es_ES"`, `ig.game.screen` non-null, `ig.LANG_DETAILS['es_ES']` present, and
+`sc.esp.PATCHED_FONT_URLS` = the three `media/font/es_ES/*.png`. The mod's Spanish font loads over the pack
+(`/assets/mods/CrossCode-Esp/assets/media/font/es_ES/tiny.png` → `200 image/png`, 662 B) while the game
+tree's own `/assets/media/font/es_ES/…` would be `404`; `sc.fontsystem.smallFont.widthForString` returns
+non-zero widths for `á é í ó ú ñ ¿ ¡` (the patched `¡ ¿ Á É Í Ñ Ó Ú` are also present in `indicesX`).
+Boot was repeated 4× clean (`fully_loaded=1 es_ES=1 canvas_err=0` each). One first launch right after
+`adb install -r` (while the previous process was still running) failed at `prestart` with
+`Cannot read properties of null (reading 'imageSmoothingEnabled')` in `ig.System.init` — a missing
+`#canvas`; it did not reproduce on any subsequent clean launch and is recorded as unreproduced.
+
+Removal: ⋮ → "Remove Spanish translation" → `files/translations` empty, status "Spanish translation
+removed."; Start loads `/game/assets/node-webkit.html` (no CCLoader in the record), `ig.currentLang =
+"en_US"`, stored `IG_LANG` recovered to `en_US`, title `CrossCode Min v1.4.2-4`.
+
+Glyph rendering is verified by the font metrics above, not by OCR; a human glance at the title screen is
+still the last word on the accents.
+
+§25.1 counted 73 resource keys; §26's seven additions take both `values/strings.xml` and
+`values-es/strings.xml` to 80, still 1:1 with the same placeholder arity.
+
